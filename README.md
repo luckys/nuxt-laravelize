@@ -31,7 +31,7 @@ The current focus of this package is a lightweight service container wired per r
 Install in your Nuxt project:
 
 ```bash
-pnpm add nuxt-laravelize
+pnpm add @luckys_luis/nuxt-laravelize
 ```
 
 Peer requirement:
@@ -46,7 +46,7 @@ In `nuxt.config.ts`:
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
-  modules: ['nuxt-laravelize'],
+  modules: ['@luckys_luis/nuxt-laravelize'],
   laravelize: {
     container: true,
   },

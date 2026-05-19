@@ -31,7 +31,7 @@ El foco actual del paquete es un contenedor de servicios ligero por request, jun
 Instálalo en tu proyecto Nuxt:
 
 ```bash
-pnpm add nuxt-laravelize
+pnpm add @luckys_luis/nuxt-laravelize
 ```
 
 Requisito peer:
@@ -46,7 +46,7 @@ En `nuxt.config.ts`:
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
-  modules: ['nuxt-laravelize'],
+  modules: ['@luckys_luis/nuxt-laravelize'],
   laravelize: {
     container: true,
   },
