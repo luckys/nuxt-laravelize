@@ -107,21 +107,26 @@ objeto `{ key }`. Dos tokens con el mismo `key` se consideran el mismo binding.
 ### 5.2 `Container` (fachada)
 
 ```ts
-export type ServiceFactory<T> = (container: Container) => T
+// Lo que recibe un factory: solo resuelve, no registra (ISP)
+export interface Resolver {
+  make<T>(token: Token<T>): T
+  has(token: Token<unknown>): boolean
+}
 
-export interface Container {
+export type ServiceFactory<T> = (resolver: Resolver) => T
+
+export interface Container extends Resolver {
   bind<T>(token: Token<T>, factory: ServiceFactory<T>): void
   singleton<T>(token: Token<T>, factory: ServiceFactory<T>): void
   scoped<T>(token: Token<T>, factory: ServiceFactory<T>): void
   instance<T>(token: Token<T>, value: T): void
-  make<T>(token: Token<T>): T
-  has<T>(token: Token<T>): boolean
   createScope(): Container
+  seal(): void
 }
 ```
 
-El factory recibe el propio `Container` para resolver sus dependencias de forma
-explícita:
+El factory recibe un `Resolver` —interfaz estrecha que solo permite resolver,
+no registrar (ISP)— para declarar sus dependencias de forma explícita:
 
 ```ts
 container.singleton(userCreatorToken, (c) =>
@@ -186,8 +191,8 @@ instancia internamente. Los módulos virtuales (ver 5.5) exportan esas clases.
 1. Ejecuta `register(container)` de **todos** los providers.
 2. Ejecuta `await boot(container)` de **todos** los providers, en el mismo
    orden.
-3. Marca el contenedor como *booted*: un `bind` / `singleton` / `scoped`
-   posterior lanza `KernelAlreadyBootedError`.
+3. Invoca `container.seal()`: a partir de ahí cualquier `bind` / `singleton` /
+   `scoped` / `instance` lanza `KernelAlreadyBootedError`.
 
 El orden estable es: providers de convención (orden alfabético de ruta),
 después los de config, después los registrados por API.
@@ -326,3 +331,17 @@ clases pequeñas con responsabilidad única.
 | `runtime/plugin.ts` es un placeholder | Bootstrap real del contenedor del cliente |
 | Tests no cubren funcionalidad | Nueva suite unitaria e de integración |
 | `register` / `resolve` no es vocabulario Laravel | Fachada `bind` / `singleton` / `scoped` / `make` |
+
+## 11. Plan de implementación
+
+F0 se implementa en dos planes secuenciales, cada uno con software funcional y
+testeable por sí mismo:
+
+- **F0-A — Núcleo del contenedor** (`src/core/`): `Token`, `ContainerErrors`,
+  `Container`, `ServiceProvider`, `Kernel`. Lógica pura sin dependencias de
+  Nuxt, cubierta por tests unitarios. Es aditiva: no toca aún el código de
+  bootstrap existente.
+- **F0-B — Integración con Nuxt**: `module.ts` (descubrimiento de providers y
+  módulos virtuales), plugin de Nitro, plugin de cliente, composables, limpieza
+  de los `shims.d.ts` y del export `./frontend`, playground y test de
+  integración. Depende de F0-A.
