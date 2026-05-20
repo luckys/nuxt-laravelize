@@ -1,13 +1,7 @@
 {
+  "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "strict": true,
-    "skipLibCheck": true,
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
   "include": [
     "src",
@@ -16,6 +10,7 @@
   "exclude": [
     "dist",
     "node_modules",
-    "playground"
+    "playground",
+    ".nuxt"
   ]
 }
