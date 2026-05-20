@@ -1,10 +1,6 @@
-import type { NuxtLaravelizeContainer } from '../container/NuxtLaravelizeContainer'
-
-export type ProviderContext = {
-  container: NuxtLaravelizeContainer
-}
+import type { Container } from '../container/Container'
 
 export interface ServiceProvider {
-  register(context: ProviderContext): void
-  boot?(context: ProviderContext): Promise<void>
+  register(container: Container): void
+  boot?(container: Container): void | Promise<void>
 }
