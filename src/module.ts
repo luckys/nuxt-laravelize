@@ -1,27 +1,24 @@
 import { addImportsDir, addPlugin, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit'
 
-export type LaravelizeModuleOptions = {
+export interface ModuleOptions {
   container: boolean
 }
 
-export default defineNuxtModule<LaravelizeModuleOptions>({
+export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-laravelize',
     configKey: 'laravelize',
+    compatibility: {
+      nuxt: '>=3.0.0',
+    },
   },
   defaults: {
     container: true,
   },
-  setup(options) {
+  setup(_options, _nuxt) {
     const resolver = createResolver(import.meta.url)
-
     addPlugin(resolver.resolve('./runtime/plugin'))
-    addImportsDir(resolver.resolve('./runtime/composables'))
-
-    if (!options.container) {
-      return
-    }
-
     addServerPlugin(resolver.resolve('./nitro/plugin'))
+    addImportsDir(resolver.resolve('./runtime/composables'))
   },
 })

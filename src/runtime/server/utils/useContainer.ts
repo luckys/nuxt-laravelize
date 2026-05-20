@@ -1,15 +1,7 @@
-import type { NuxtLaravelizeContainer } from '../../../core/container/NuxtLaravelizeContainer'
+import type { H3Event } from 'h3'
 
-type RequestLike = {
-  context: {
-    laravelizeContainer?: unknown
-  }
-}
+import { ContainerNotAvailableError } from '../../../core/container/ContainerErrors'
 
-export function useContainer(event: RequestLike) {
-  if (!event.context.laravelizeContainer) {
-    throw new Error('Laravelize container is not attached to the request context')
-  }
-
-  return event.context.laravelizeContainer as NuxtLaravelizeContainer
+export function useContainer(_event: H3Event): never {
+  throw new ContainerNotAvailableError()
 }
