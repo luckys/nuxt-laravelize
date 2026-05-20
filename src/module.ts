@@ -21,7 +21,7 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {
     container: true,
-    providers: [] as Array<{ path: string, target: ProviderTarget }>,
+    providers: [],
   },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
@@ -54,8 +54,6 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.alias['#laravelize/server-providers'] = serverTemplate.dst
     nuxt.options.alias['#laravelize/client-providers'] = clientTemplate.dst
 
-    // nitro:config is defined in @nuxt/nitro-server module augmentation of NuxtHooks
-    // but that package is not a direct dep, so we cast the hook registration.
     ;(nuxt.hooks as { hook(name: string, cb: (config: NitroConfig) => void): void }).hook('nitro:config', (nitroConfig) => {
       nitroConfig.alias = nitroConfig.alias ?? {}
       nitroConfig.alias['#laravelize/server-providers'] = serverTemplate.dst
