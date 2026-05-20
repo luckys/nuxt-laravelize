@@ -26,4 +26,44 @@ describe('nuxt-laravelize integration', () => {
     expect(html).toContain('data-testid="first-value"')
     expect(html).toContain('data-testid="second-value"')
   })
+
+  it('creates a user when the request body is valid', async () => {
+    const response = await $fetch<{ id: string, email: string, name: string }>('/api/users', {
+      method: 'POST',
+      body: { email: 'ada@example.com', name: 'Ada Lovelace' },
+    })
+
+    expect(response.id).toMatch(/^user-/)
+    expect(response.email).toBe('ada@example.com')
+    expect(response.name).toBe('Ada Lovelace')
+  })
+
+  it('returns a 422 with Laravel-style errors when the body is invalid', async () => {
+    interface FetchErrorShape {
+      status?: number
+      statusCode?: number
+      data?: { data?: { message: string, errors: Record<string, string[]> } }
+      response?: { status: number, _data?: { data?: { message: string, errors: Record<string, string[]> } } }
+    }
+
+    let caught: FetchErrorShape | null = null
+    try {
+      await $fetch('/api/users', {
+        method: 'POST',
+        body: { email: 'not-an-email', name: '' },
+      })
+    }
+    catch (error) {
+      caught = error as FetchErrorShape
+    }
+
+    expect(caught).not.toBeNull()
+
+    const status = caught?.status ?? caught?.statusCode ?? caught?.response?.status
+    expect(status).toBe(422)
+
+    const payload = caught?.data?.data ?? caught?.response?._data?.data
+    expect(payload?.message).toBe('Validation failed')
+    expect(Object.keys(payload?.errors ?? {}).sort()).toEqual(['body.email', 'body.name'])
+  })
 })
