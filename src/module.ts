@@ -1,7 +1,14 @@
-import { addImportsDir, addPlugin, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit'
+import { addImportsDir, addPlugin, addServerImportsDir, addServerPlugin, addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
+import type { NitroConfig } from 'nitropack/types'
+
+import { discoverProvidersByConvention } from './discovery/byConvention'
+import { ProviderCollector, type ProviderTarget } from './discovery/ProviderCollector'
+import { drainLaravelizeProviderQueue } from './kit'
+import { renderProvidersModule } from './templates'
 
 export interface ModuleOptions {
   container: boolean
+  providers: Array<{ path: string, target: ProviderTarget }>
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -14,11 +21,50 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {
     container: true,
+    providers: [] as Array<{ path: string, target: ProviderTarget }>,
   },
-  setup(_options, _nuxt) {
+  setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
+    const collector = new ProviderCollector()
+
+    collector.addFromConvention(discoverProvidersByConvention(nuxt.options.rootDir))
+
+    for (const provider of options.providers) {
+      collector.addFromConfig([provider.path], provider.target)
+    }
+
+    for (const entry of drainLaravelizeProviderQueue(nuxt)) {
+      collector.addFromApi(entry.path, entry.target)
+    }
+
+    const collected = collector.collect()
+
+    const serverTemplate = addTemplate({
+      filename: 'laravelize/server-providers.mjs',
+      getContents: () => renderProvidersModule(collected.server),
+      write: true,
+    })
+
+    const clientTemplate = addTemplate({
+      filename: 'laravelize/client-providers.mjs',
+      getContents: () => renderProvidersModule(collected.client),
+      write: true,
+    })
+
+    nuxt.options.alias['#laravelize/server-providers'] = serverTemplate.dst
+    nuxt.options.alias['#laravelize/client-providers'] = clientTemplate.dst
+
+    // nitro:config is defined in @nuxt/nitro-server module augmentation of NuxtHooks
+    // but that package is not a direct dep, so we cast the hook registration.
+    ;(nuxt.hooks as { hook(name: string, cb: (config: NitroConfig) => void): void }).hook('nitro:config', (nitroConfig) => {
+      nitroConfig.alias = nitroConfig.alias ?? {}
+      nitroConfig.alias['#laravelize/server-providers'] = serverTemplate.dst
+      nitroConfig.alias['#laravelize/client-providers'] = clientTemplate.dst
+    })
+
     addPlugin(resolver.resolve('./runtime/plugin'))
     addServerPlugin(resolver.resolve('./nitro/plugin'))
     addImportsDir(resolver.resolve('./runtime/composables'))
+    addServerImportsDir(resolver.resolve('./runtime/server/utils'))
   },
 })
