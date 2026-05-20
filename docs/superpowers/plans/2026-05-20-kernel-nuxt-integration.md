@@ -70,7 +70,7 @@ export default defineNuxtPlugin(() => {})
 import { ContainerNotAvailableError } from '../../core/container/ContainerErrors'
 
 export function useContainer(): never {
-  throw new ContainerNotAvailableError('client')
+  throw new ContainerNotAvailableError()
 }
 ```
 
@@ -82,7 +82,7 @@ import type { H3Event } from 'h3'
 import { ContainerNotAvailableError } from '../../../core/container/ContainerErrors'
 
 export function useContainer(_event: H3Event): never {
-  throw new ContainerNotAvailableError('server')
+  throw new ContainerNotAvailableError()
 }
 ```
 
@@ -123,14 +123,36 @@ Abre `package.json` y borra la entrada `"./frontend"` del objeto `exports`. La f
 
 - [ ] **Step 8: Verificar typecheck, lint, build y tests del core**
 
-Run: `pnpm typecheck && pnpm lint && pnpm build && pnpm exec vitest run test/core`
-Expected: typecheck limpio, lint limpio, build OK, 23 tests verdes.
+Run: `pnpm dev:prepare && pnpm typecheck && pnpm lint && pnpm prepack && pnpm exec vitest run test/core`
+Expected: dev:prepare OK, typecheck limpio, lint limpio, prepack OK, 23 tests verdes.
+
+**Si typecheck falla con "Cannot find module '#app' | 'h3' | 'nitropack/runtime'":** el `tsconfig.json` raíz no está extendiendo el generado en `.nuxt/`. Ajusta `tsconfig.json` a:
+
+```json
+{
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src", "test"],
+  "exclude": ["dist", "node_modules", "playground", ".nuxt"]
+}
+```
+
+Y vuelve a verificar.
 
 - [ ] **Step 9: Commit**
 
 ```bash
 git add -A
 git commit -m "chore: remove dead bootstrap, stubs, shims and frontend export"
+```
+
+Si también ajustaste `tsconfig.json` en Step 8, separa los cambios en un segundo commit:
+
+```bash
+git add tsconfig.json
+git commit -m "fix: extend tsconfig from generated nuxt config for real types"
 ```
 
 ---
@@ -537,7 +559,7 @@ import '../laravelize-context'
 export function useContainer(event: H3Event): Container {
   const container = event.context.laravelizeContainer
   if (!container) {
-    throw new ContainerNotAvailableError('server')
+    throw new ContainerNotAvailableError()
   }
 
   return container
@@ -637,7 +659,7 @@ export function useContainer(): Container {
   const nuxtApp = useNuxtApp()
   const container = nuxtApp.$laravelizeContainer
   if (!container) {
-    throw new ContainerNotAvailableError('client')
+    throw new ContainerNotAvailableError()
   }
 
   return container
