@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 export interface DiscoveredProviders {
@@ -22,22 +22,21 @@ function collectTypeScriptFiles(directory: string): string[] {
     return []
   }
 
-  const entries = readdirSync(directory)
-  const files: string[] = []
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(directory, entry.name)
 
-  for (const entry of entries) {
-    const entryPath = join(directory, entry)
-    const stats = statSync(entryPath)
-
-    if (stats.isDirectory()) {
-      files.push(...collectTypeScriptFiles(entryPath))
-      continue
+    if (entry.isSymbolicLink()) {
+      return []
     }
 
-    if (entry.endsWith('.ts')) {
-      files.push(entryPath)
+    if (entry.isDirectory()) {
+      return collectTypeScriptFiles(entryPath)
     }
-  }
 
-  return files
+    if (entry.name.endsWith('.ts')) {
+      return [entryPath]
+    }
+
+    return []
+  })
 }

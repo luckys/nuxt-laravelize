@@ -37,4 +37,13 @@ describe('discoverProvidersByConvention', () => {
 
     expect(result).toEqual({ server: [], client: [] })
   })
+
+  it('ignores files that are not TypeScript sources', () => {
+    const rootDir = resolve(fixturesRoot, 'withProviders')
+
+    const result = discoverProvidersByConvention(rootDir)
+
+    expect(result.client.some(path => path.endsWith('notes.md'))).toBe(false)
+    expect(result.server.some(path => path.endsWith('notes.md'))).toBe(false)
+  })
 })
