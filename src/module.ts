@@ -64,5 +64,6 @@ export default defineNuxtModule<ModuleOptions>({
     addServerPlugin(resolver.resolve('./nitro/plugin'))
     addImportsDir(resolver.resolve('./runtime/composables'))
     addServerImportsDir(resolver.resolve('./runtime/server/utils'))
+    addServerImportsDir(resolver.resolve('./runtime/server/http'))
   },
 })
