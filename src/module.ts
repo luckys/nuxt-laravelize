@@ -40,13 +40,13 @@ export default defineNuxtModule<ModuleOptions>({
     const collected = collector.collect()
 
     const serverTemplate = addTemplate({
-      filename: 'laravelize/server-providers.mjs',
+      filename: 'laravelize/server-providers.ts',
       getContents: () => renderProvidersModule(collected.server),
       write: true,
     })
 
     const clientTemplate = addTemplate({
-      filename: 'laravelize/client-providers.mjs',
+      filename: 'laravelize/client-providers.ts',
       getContents: () => renderProvidersModule(collected.client),
       write: true,
     })
