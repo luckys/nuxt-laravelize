@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
 
 await setup({
@@ -65,5 +65,40 @@ describe('nuxt-laravelize integration', () => {
     const payload = caught?.data?.data ?? caught?.response?._data?.data
     expect(payload?.message).toBe('Validation failed')
     expect(Object.keys(payload?.errors ?? {}).sort()).toEqual(['body.email', 'body.name'])
+  })
+
+  it('applies global middleware to every request (sets x-laravelize-logged header)', async () => {
+    const response = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'global@example.com', name: 'Global Test' }),
+    })
+
+    expect(response.headers.get('x-laravelize-logged')).toBe('true')
+  })
+
+  it('returns 403 from per-handler middleware without invoking the controller', async () => {
+    interface FetchErrorShape {
+      status?: number
+      statusCode?: number
+      data?: { data?: { message: string } }
+      response?: { status: number, _data?: { data?: { message: string } } }
+    }
+
+    let caught: FetchErrorShape | null = null
+    try {
+      await $fetch('/api/protected')
+    }
+    catch (error) {
+      caught = error as FetchErrorShape
+    }
+
+    expect(caught).not.toBeNull()
+
+    const status = caught?.status ?? caught?.statusCode ?? caught?.response?.status
+    expect(status).toBe(403)
+
+    const payload = caught?.data?.data ?? caught?.response?._data?.data
+    expect(payload?.message).toBe('Blocked by middleware')
   })
 })
