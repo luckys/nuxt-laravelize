@@ -1,3 +1,4 @@
 export { FormRequest } from './FormRequest'
 export type { ValidatedInput } from './ValidatedInput'
 export { defineLaravelizedHandler } from './defineLaravelizedHandler'
+export type { Middleware } from './Middleware'
