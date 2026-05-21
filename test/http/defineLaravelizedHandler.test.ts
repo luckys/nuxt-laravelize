@@ -28,6 +28,10 @@ import { FormRequest } from '../../src/http/FormRequest'
 import { defineLaravelizedHandler } from '../../src/http/defineLaravelizedHandler'
 // eslint-disable-next-line import/first
 import { useContainer } from '../../src/runtime/server/utils/useContainer'
+// eslint-disable-next-line import/first
+import { globalMiddlewareToken } from '../../src/http/GlobalMiddleware'
+// eslint-disable-next-line import/first
+import type { Middleware } from '../../src/http/Middleware'
 
 interface UsersController {
   store(input: { body: { email: string }, query: undefined, params: undefined }): Promise<{ id: string }>
@@ -41,7 +45,7 @@ function createMockEvent(): H3Event {
 }
 
 function createMockContainer(instance: unknown): Container {
-  return { make: vi.fn().mockReturnValue(instance) } as unknown as Container
+  return { make: vi.fn().mockReturnValue(instance), has: vi.fn().mockReturnValue(false) } as unknown as Container
 }
 
 describe('defineLaravelizedHandler', () => {
@@ -122,5 +126,182 @@ describe('defineLaravelizedHandler', () => {
     })
 
     expect(controller.store).not.toHaveBeenCalled()
+  })
+
+  it('executes per-handler middleware before the controller', async () => {
+    const events: string[] = []
+
+    const tracingMiddleware: Middleware = {
+      async handle(_event, next) {
+        events.push('middleware:before')
+        const value = await next()
+        events.push('middleware:after')
+        return value
+      },
+    }
+
+    const tracingToken = createToken<Middleware>('tracing-middleware')
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn().mockImplementation(async () => {
+        events.push('controller:index')
+        return [{ id: 'user-1' }]
+      }),
+    }
+
+    const container = {
+      make: vi.fn((token) => {
+        if (token === tracingToken) return tracingMiddleware
+        if (token === usersControllerToken) return controller
+        throw new Error(`Unknown token: ${(token as { key: string }).key}`)
+      }),
+      has: vi.fn().mockReturnValue(false),
+    } as unknown as Container
+
+    vi.mocked(useContainer).mockReturnValue(container)
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'index',
+      middleware: [tracingToken],
+    })
+
+    await handler(createMockEvent())
+
+    expect(events).toEqual(['middleware:before', 'controller:index', 'middleware:after'])
+  })
+
+  it('runs global middleware (registered via globalMiddlewareToken) before per-handler middleware', async () => {
+    const events: string[] = []
+
+    const makeTracing = (label: string): Middleware => ({
+      async handle(_event, next) {
+        events.push(`${label}:before`)
+        const value = await next()
+        events.push(`${label}:after`)
+        return value
+      },
+    })
+
+    const globalToken = createToken<Middleware>('global-middleware')
+    const perHandlerToken = createToken<Middleware>('per-handler-middleware')
+    const globalInstance = makeTracing('global')
+    const perHandlerInstance = makeTracing('per-handler')
+
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn().mockImplementation(async () => {
+        events.push('controller:index')
+        return []
+      }),
+    }
+
+    const container = {
+      make: vi.fn((token) => {
+        if (token === globalMiddlewareToken) return [globalToken]
+        if (token === globalToken) return globalInstance
+        if (token === perHandlerToken) return perHandlerInstance
+        if (token === usersControllerToken) return controller
+        throw new Error(`Unknown token: ${(token as { key: string }).key}`)
+      }),
+      has: vi.fn(token => token === globalMiddlewareToken),
+    } as unknown as Container
+
+    vi.mocked(useContainer).mockReturnValue(container)
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'index',
+      middleware: [perHandlerToken],
+    })
+
+    await handler(createMockEvent())
+
+    expect(events).toEqual([
+      'global:before',
+      'per-handler:before',
+      'controller:index',
+      'per-handler:after',
+      'global:after',
+    ])
+  })
+
+  it('runs only per-handler middleware when globalMiddlewareToken is not registered', async () => {
+    const events: string[] = []
+
+    const perHandlerToken = createToken<Middleware>('per-handler-middleware')
+    const perHandlerInstance: Middleware = {
+      async handle(_event, next) {
+        events.push('per-handler:before')
+        const value = await next()
+        events.push('per-handler:after')
+        return value
+      },
+    }
+
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn().mockImplementation(async () => {
+        events.push('controller:index')
+        return []
+      }),
+    }
+
+    const container = {
+      make: vi.fn((token) => {
+        if (token === perHandlerToken) return perHandlerInstance
+        if (token === usersControllerToken) return controller
+        throw new Error(`Unknown token: ${(token as { key: string }).key}`)
+      }),
+      has: vi.fn().mockReturnValue(false),
+    } as unknown as Container
+
+    vi.mocked(useContainer).mockReturnValue(container)
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'index',
+      middleware: [perHandlerToken],
+    })
+
+    await handler(createMockEvent())
+
+    expect(events).toEqual(['per-handler:before', 'controller:index', 'per-handler:after'])
+  })
+
+  it('does not invoke the controller when a middleware short-circuits the pipeline', async () => {
+    const blockingToken = createToken<Middleware>('blocking-middleware')
+    const blockingInstance: Middleware = {
+      handle() {
+        return { status: 'blocked' }
+      },
+    }
+
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn(),
+    }
+
+    const container = {
+      make: vi.fn((token) => {
+        if (token === blockingToken) return blockingInstance
+        if (token === usersControllerToken) return controller
+        throw new Error(`Unknown token: ${(token as { key: string }).key}`)
+      }),
+      has: vi.fn().mockReturnValue(false),
+    } as unknown as Container
+
+    vi.mocked(useContainer).mockReturnValue(container)
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'index',
+      middleware: [blockingToken],
+    })
+
+    const response = await handler(createMockEvent())
+
+    expect(response).toEqual({ status: 'blocked' })
+    expect(controller.index).not.toHaveBeenCalled()
   })
 })
