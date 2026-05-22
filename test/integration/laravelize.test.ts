@@ -101,4 +101,43 @@ describe('nuxt-laravelize integration', () => {
     const payload = caught?.data?.data ?? caught?.response?._data?.data
     expect(payload?.message).toBe('Blocked by middleware')
   })
+
+  it('creates a post when the user is authorized', async () => {
+    const response = await $fetch<{ id: string, title: string }>('/api/posts', {
+      method: 'POST',
+      headers: { 'x-user-role': 'author' },
+      body: { title: 'Hello', content: 'World' },
+    })
+
+    expect(response.id).toMatch(/^post-/)
+    expect(response.title).toBe('Hello')
+  })
+
+  it('returns 403 with the Laravel unauthorized message when the user is not authorized', async () => {
+    interface FetchErrorShape {
+      status?: number
+      statusCode?: number
+      data?: { data?: { message: string } }
+      response?: { status: number, _data?: { data?: { message: string } } }
+    }
+
+    let caught: FetchErrorShape | null = null
+    try {
+      await $fetch('/api/posts', {
+        method: 'POST',
+        body: { title: 'Hello', content: 'World' },
+      })
+    }
+    catch (error) {
+      caught = error as FetchErrorShape
+    }
+
+    expect(caught).not.toBeNull()
+
+    const status = caught?.status ?? caught?.statusCode ?? caught?.response?.status
+    expect(status).toBe(403)
+
+    const payload = caught?.data?.data ?? caught?.response?._data?.data
+    expect(payload?.message).toBe('This action is unauthorized.')
+  })
 })
