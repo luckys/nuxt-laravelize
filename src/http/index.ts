@@ -3,3 +3,8 @@ export type { ValidatedInput } from './ValidatedInput'
 export { defineLaravelizedHandler } from './defineLaravelizedHandler'
 export type { Middleware } from './Middleware'
 export { globalMiddlewareToken } from './GlobalMiddleware'
+
+export type { Gate, GateCallback } from '../auth/Gate'
+export { InMemoryGate } from '../auth/Gate'
+export { GateRuleNotDefinedError } from '../auth/GateRuleNotDefinedError'
+export { gateToken } from '../auth/GateToken'
