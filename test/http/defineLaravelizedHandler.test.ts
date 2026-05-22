@@ -304,4 +304,106 @@ describe('defineLaravelizedHandler', () => {
     expect(response).toEqual({ status: 'blocked' })
     expect(controller.index).not.toHaveBeenCalled()
   })
+
+  it('throws a 403 with the Laravel-style payload when authorize returns false', async () => {
+    class CreatePostRequest extends FormRequest {
+      override body() {
+        return z.object({ title: z.string() })
+      }
+
+      override authorize() {
+        return false
+      }
+    }
+
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn(),
+    }
+
+    vi.mocked(useContainer).mockReturnValue(createMockContainer(controller))
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'store',
+      request: CreatePostRequest,
+    })
+
+    await expect(handler(createMockEvent())).rejects.toMatchObject({
+      statusCode: 403,
+      data: { message: 'This action is unauthorized.' },
+    })
+
+    expect(controller.store).not.toHaveBeenCalled()
+  })
+
+  it('continues to validation and the controller when authorize returns true', async () => {
+    class CreatePostRequest extends FormRequest {
+      override body() {
+        return z.object({ title: z.string() })
+      }
+
+      override authorize() {
+        return true
+      }
+    }
+
+    const controller: UsersController = {
+      store: vi.fn().mockResolvedValue({ id: 'post-1' }),
+      index: vi.fn(),
+    }
+
+    vi.mocked(useContainer).mockReturnValue(createMockContainer(controller))
+    vi.mocked(h3.readBody).mockResolvedValue({ title: 'Hello' })
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'store',
+      request: CreatePostRequest,
+    })
+
+    const response = await handler(createMockEvent())
+
+    expect(response).toEqual({ id: 'post-1' })
+    expect(controller.store).toHaveBeenCalledWith({
+      body: { title: 'Hello' },
+      query: undefined,
+      params: undefined,
+    })
+  })
+
+  it('awaits an async authorize that resolves false and short-circuits before validation runs', async () => {
+    const readBodySpy = vi.mocked(h3.readBody)
+    readBodySpy.mockReset()
+
+    class CreatePostRequest extends FormRequest {
+      override body() {
+        return z.object({ title: z.string() })
+      }
+
+      override async authorize() {
+        return false
+      }
+    }
+
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn(),
+    }
+
+    vi.mocked(useContainer).mockReturnValue(createMockContainer(controller))
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'store',
+      request: CreatePostRequest,
+    })
+
+    await expect(handler(createMockEvent())).rejects.toMatchObject({
+      statusCode: 403,
+    })
+
+    expect(controller.store).not.toHaveBeenCalled()
+    expect(readBodySpy).not.toHaveBeenCalled()
+  })
 })

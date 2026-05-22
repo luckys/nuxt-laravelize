@@ -1,4 +1,4 @@
-import { defineEventHandler, type EventHandler } from 'h3'
+import { createError, defineEventHandler, type EventHandler } from 'h3'
 
 import type { Token } from '../core/container/Token'
 import { useContainer } from '../runtime/server/utils/useContainer'
@@ -32,9 +32,22 @@ export function defineLaravelizedHandler<
     const middlewares = [...globals, ...perHandler].map(token => container.make(token))
 
     return await runMiddlewarePipeline(event, middlewares, async () => {
+      const request = options.request ? new options.request() : null
+
+      if (request?.authorize) {
+        const authorized = await request.authorize(event)
+        if (!authorized) {
+          throw createError({
+            statusCode: 403,
+            statusMessage: 'Forbidden',
+            data: { message: 'This action is unauthorized.' },
+          })
+        }
+      }
+
       const controller = container.make(options.controller)
-      const input = options.request
-        ? await validateFormRequest(event, new options.request())
+      const input = request
+        ? await validateFormRequest(event, request)
         : { body: undefined, query: undefined, params: undefined }
       const method = controller[options.method] as (input: unknown) => unknown
       return await method.call(controller, input)
