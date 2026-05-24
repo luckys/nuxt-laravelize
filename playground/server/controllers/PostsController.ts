@@ -1,3 +1,5 @@
+import { createError } from 'h3'
+
 import type { Resource } from '../../../src/http'
 
 import { PostResource } from '../resources/PostResource'
@@ -19,7 +21,7 @@ export class PostsController implements PostsControllerContract {
 
   find(input: { body: undefined, query: undefined, params: { id: string } }): Resource<{ id: string, title: string, content: string, authorId: string }> {
     const found = SEED_POSTS.find(post => post.id === input.params.id)
-    if (!found) throw new Error(`Post ${input.params.id} not found`)
+    if (!found) throw createError({ statusCode: 404, statusMessage: 'Not Found' })
     return new PostResource({ ...found })
   }
 }

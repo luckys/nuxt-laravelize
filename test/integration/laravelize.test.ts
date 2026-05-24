@@ -176,6 +176,7 @@ describe('nuxt-laravelize integration', () => {
 
     expect(response.id).toBe('post-seed-1')
     expect(response.title).toBe('Hello')
+    expect(response.content).toBe('World')
     expect(response.author).toEqual({
       id: 'user-1',
       email: 'ada@example.com',

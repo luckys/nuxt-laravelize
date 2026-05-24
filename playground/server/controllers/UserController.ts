@@ -1,3 +1,5 @@
+import { createError } from 'h3'
+
 import type { Resource, ResourceCollection } from '../../../src/http'
 
 import { UserResource } from '../resources/UserResource'
@@ -20,7 +22,7 @@ export class UserController implements UsersControllerContract {
 
   find(input: { body: undefined, query: undefined, params: { id: string } }): Resource<{ id: string, email: string, name: string }> {
     const found = SEED.find(user => user.id === input.params.id)
-    if (!found) throw new Error(`User ${input.params.id} not found`)
+    if (!found) throw createError({ statusCode: 404, statusMessage: 'Not Found' })
     return new UserResource({ ...found })
   }
 
