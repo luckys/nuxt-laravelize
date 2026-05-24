@@ -8,3 +8,7 @@ export type { Gate, GateCallback } from '../auth/Gate'
 export { InMemoryGate } from '../auth/Gate'
 export { GateRuleNotDefinedError } from '../auth/GateRuleNotDefinedError'
 export { gateToken } from '../auth/GateToken'
+
+export { Resource } from './resources/Resource'
+export { ResourceCollection } from './resources/ResourceCollection'
+export { isResource, isResourceCollection } from './resources/isResource'
