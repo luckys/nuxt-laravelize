@@ -43,7 +43,7 @@ describe('Resource', () => {
 
   it('supports an async toArray implementation', async () => {
     class UserResource extends Resource<User> {
-      override async toArray() {
+      override async toArray(_event: H3Event) {
         await Promise.resolve()
         return { id: this.resource.id }
       }

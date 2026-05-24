@@ -11,7 +11,7 @@ export abstract class Resource<T> {
 
   abstract toArray(event: H3Event): Record<string, unknown> | Promise<Record<string, unknown>>
 
-  static collection<R extends Resource<unknown>, U>(
+  static collection<R extends Resource<U>, U>(
     this: new (item: U) => R,
     items: readonly U[],
   ): ResourceCollection<R> {
