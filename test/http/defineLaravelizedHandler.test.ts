@@ -32,6 +32,8 @@ import { useContainer } from '../../src/runtime/server/utils/useContainer'
 import { globalMiddlewareToken } from '../../src/http/GlobalMiddleware'
 // eslint-disable-next-line import/first
 import type { Middleware } from '../../src/http/Middleware'
+// eslint-disable-next-line import/first
+import { Resource } from '../../src/http/resources/Resource'
 
 interface UsersController {
   store(input: { body: { email: string }, query: undefined, params: undefined }): Promise<{ id: string }>
@@ -405,5 +407,98 @@ describe('defineLaravelizedHandler', () => {
 
     expect(controller.store).not.toHaveBeenCalled()
     expect(readBodySpy).not.toHaveBeenCalled()
+  })
+
+  it('auto-serializes a Resource returned by the controller', async () => {
+    class UserResource extends Resource<{ id: string }> {
+      override toArray() {
+        return { id: this.resource.id }
+      }
+    }
+
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn().mockImplementation(() => new UserResource({ id: 'u-1' })),
+    }
+
+    vi.mocked(useContainer).mockReturnValue(createMockContainer(controller))
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'index',
+    })
+
+    const response = await handler(createMockEvent())
+
+    expect(response).toEqual({ id: 'u-1' })
+  })
+
+  it('auto-serializes a ResourceCollection returned by the controller', async () => {
+    class UserResource extends Resource<{ id: string }> {
+      override toArray() {
+        return { id: this.resource.id }
+      }
+    }
+
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn().mockImplementation(() => UserResource.collection([{ id: 'u-1' }, { id: 'u-2' }])),
+    }
+
+    vi.mocked(useContainer).mockReturnValue(createMockContainer(controller))
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'index',
+    })
+
+    const response = await handler(createMockEvent())
+
+    expect(response).toEqual([{ id: 'u-1' }, { id: 'u-2' }])
+  })
+
+  it('returns a plain object untouched when the controller returns no Resource (regression)', async () => {
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn().mockResolvedValue([{ id: 'u-1' }, { id: 'u-2' }]),
+    }
+
+    vi.mocked(useContainer).mockReturnValue(createMockContainer(controller))
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'index',
+    })
+
+    const response = await handler(createMockEvent())
+
+    expect(response).toEqual([{ id: 'u-1' }, { id: 'u-2' }])
+  })
+
+  it('passes the H3Event reference into the Resource toArray during auto-serialization', async () => {
+    const spy = vi.fn().mockReturnValue({ id: 'u-1' })
+
+    class UserResource extends Resource<{ id: string }> {
+      override toArray(event: H3Event) {
+        return spy(event)
+      }
+    }
+
+    const controller: UsersController = {
+      store: vi.fn(),
+      index: vi.fn().mockImplementation(() => new UserResource({ id: 'u-1' })),
+    }
+
+    vi.mocked(useContainer).mockReturnValue(createMockContainer(controller))
+
+    const handler = defineLaravelizedHandler({
+      controller: usersControllerToken,
+      method: 'index',
+    })
+
+    const event = createMockEvent()
+    await handler(event)
+
+    expect(spy).toHaveBeenCalledWith(event)
   })
 })

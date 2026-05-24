@@ -7,6 +7,7 @@ import type { FormRequest } from './FormRequest'
 import { globalMiddlewareToken } from './GlobalMiddleware'
 import type { Middleware } from './Middleware'
 import { runMiddlewarePipeline } from './MiddlewarePipeline'
+import { serializeResource } from './resources/serializeResource'
 import { validateFormRequest } from './validateFormRequest'
 
 interface LaravelizedHandlerOptions<
@@ -50,7 +51,8 @@ export function defineLaravelizedHandler<
         ? await validateFormRequest(event, request)
         : { body: undefined, query: undefined, params: undefined }
       const method = controller[options.method] as (input: unknown) => unknown
-      return await method.call(controller, input)
+      const result = await method.call(controller, input)
+      return await serializeResource(result, event)
     })
   })
 }
