@@ -140,4 +140,29 @@ describe('nuxt-laravelize integration', () => {
     const payload = caught?.data?.data ?? caught?.response?._data?.data
     expect(payload?.message).toBe('This action is unauthorized.')
   })
+
+  it('returns a single user serialized by UserResource', async () => {
+    const response = await $fetch<{ id: string, email: string, name: string, meta?: { role: string } }>('/api/users/user-1')
+
+    expect(response.id).toBe('user-1')
+    expect(response.email).toBe('ada@example.com')
+    expect(response.name).toBe('Ada Lovelace')
+    expect(response.meta).toBeUndefined()
+  })
+
+  it('includes meta.role when the x-user-role header is present (event flows to toArray)', async () => {
+    const response = await $fetch<{ meta?: { role: string } }>('/api/users/user-1', {
+      headers: { 'x-user-role': 'admin' },
+    })
+
+    expect(response.meta).toEqual({ role: 'admin' })
+  })
+
+  it('returns a collection of users serialized by UserResource.collection', async () => {
+    const response = await $fetch<Array<{ id: string, email: string, name: string }>>('/api/users')
+
+    expect(response).toHaveLength(2)
+    expect(response[0]).toEqual({ id: 'user-1', email: 'ada@example.com', name: 'Ada Lovelace' })
+    expect(response[1]).toEqual({ id: 'user-2', email: 'grace@example.com', name: 'Grace Hopper' })
+  })
 })
