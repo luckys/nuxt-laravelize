@@ -24,7 +24,7 @@ export class UserController implements UsersControllerContract {
     return new UserResource({ ...found })
   }
 
-  list(): ResourceCollection<Resource<{ id: string, email: string, name: string }>> {
+  list(_input: { body: undefined, query: undefined, params: undefined }): ResourceCollection<Resource<{ id: string, email: string, name: string }>> {
     return UserResource.collection(SEED.map(user => ({ ...user })))
   }
 }
