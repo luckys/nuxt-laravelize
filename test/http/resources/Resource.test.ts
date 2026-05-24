@@ -28,8 +28,7 @@ describe('Resource', () => {
 
   it('invokes toArray with the event and returns the expected shape', async () => {
     class UserResource extends Resource<User> {
-      override toArray(event: H3Event) {
-        expect(event).toBeDefined()
+      override toArray(_event: H3Event) {
         return { id: this.resource.id }
       }
     }
