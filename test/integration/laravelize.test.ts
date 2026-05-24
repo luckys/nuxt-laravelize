@@ -165,4 +165,21 @@ describe('nuxt-laravelize integration', () => {
     expect(response[0]).toEqual({ id: 'user-1', email: 'ada@example.com', name: 'Ada Lovelace' })
     expect(response[1]).toEqual({ id: 'user-2', email: 'grace@example.com', name: 'Grace Hopper' })
   })
+
+  it('serializes nested Resources (Post -> author UserResource)', async () => {
+    const response = await $fetch<{
+      id: string
+      title: string
+      content: string
+      author: { id: string, email: string, name: string }
+    }>('/api/posts/post-seed-1')
+
+    expect(response.id).toBe('post-seed-1')
+    expect(response.title).toBe('Hello')
+    expect(response.author).toEqual({
+      id: 'user-1',
+      email: 'ada@example.com',
+      name: 'Ada Lovelace',
+    })
+  })
 })
