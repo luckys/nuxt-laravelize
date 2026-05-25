@@ -183,4 +183,80 @@ describe('nuxt-laravelize integration', () => {
       name: 'Ada Lovelace',
     })
   })
+
+  it('dispatches UserRegistered and the sync listener records it', async () => {
+    const before = await $fetch<{ welcome: string[] }>('/api/events-probe')
+    const welcomeBefore = before.welcome.length
+
+    await $fetch('/api/users/register', {
+      method: 'POST',
+      body: { email: 'event-1@example.com', name: 'Event One' },
+    })
+
+    const after = await $fetch<{ welcome: string[] }>('/api/events-probe')
+    expect(after.welcome.length).toBe(welcomeBefore + 1)
+    expect(after.welcome[after.welcome.length - 1]).toMatch(/^user-/)
+  })
+
+  it('queued listener does not block the response and eventually records', async () => {
+    const before = await $fetch<{ audit: string[] }>('/api/events-probe')
+    const auditBefore = before.audit.length
+
+    await $fetch('/api/users/register', {
+      method: 'POST',
+      body: { email: 'event-q@example.com', name: 'Queued' },
+    })
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 30)
+    })
+
+    const after = await $fetch<{ audit: string[] }>('/api/events-probe')
+    expect(after.audit.length).toBe(auditBefore + 1)
+  })
+
+  it('subscriber registered in boot wires both listeners (welcome + audit)', async () => {
+    const before = await $fetch<{ welcome: string[], audit: string[] }>('/api/events-probe')
+    const welcomeBefore = before.welcome.length
+    const auditBefore = before.audit.length
+
+    await $fetch('/api/users/register', {
+      method: 'POST',
+      body: { email: 'sub@example.com', name: 'Subscriber' },
+    })
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 30)
+    })
+
+    const after = await $fetch<{ welcome: string[], audit: string[] }>('/api/events-probe')
+    expect(after.welcome.length).toBe(welcomeBefore + 1)
+    expect(after.audit.length).toBe(auditBefore + 1)
+  })
+
+  it('listenAny receives the dispatched event', async () => {
+    const before = await $fetch<{ any: string[] }>('/api/events-probe')
+    const anyBefore = before.any.length
+
+    await $fetch('/api/users/register', {
+      method: 'POST',
+      body: { email: 'any@example.com', name: 'AnyOne' },
+    })
+
+    const after = await $fetch<{ any: string[] }>('/api/events-probe')
+    expect(after.any[after.any.length - 1]).toBe('UserRegistered')
+    expect(after.any.length).toBe(anyBefore + 1)
+  })
+
+  it('listener with a container dependency (EventProbe) resolves correctly', async () => {
+    const before = await $fetch<{ welcome: string[] }>('/api/events-probe')
+
+    await $fetch('/api/users/register', {
+      method: 'POST',
+      body: { email: 'dep@example.com', name: 'Dep' },
+    })
+
+    const after = await $fetch<{ welcome: string[] }>('/api/events-probe')
+    expect(after.welcome.length).toBe(before.welcome.length + 1)
+  })
 })
