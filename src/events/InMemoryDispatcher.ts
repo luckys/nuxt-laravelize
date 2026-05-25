@@ -21,8 +21,8 @@ export class InMemoryDispatcher implements Dispatcher {
     this.#bound.set(ctor, current)
   }
 
-  listenAny(_listener: Token<Listener<unknown>>): void {
-    throw new Error('not implemented')
+  listenAny(listener: Token<Listener<unknown>>): void {
+    this.#anyListeners.push(listener)
   }
 
   subscribe(_subscriber: Token<EventSubscriber>): void {

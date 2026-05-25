@@ -210,3 +210,79 @@ describe('InMemoryDispatcher — listen/dispatch core', () => {
     expect(handle.mock.calls[0]?.[0]).toBe(event)
   })
 })
+
+describe('InMemoryDispatcher — listenAny', () => {
+  it('receives an event that has no specific listeners', async () => {
+    const handle = vi.fn()
+    const token = createToken<Listener<unknown>>('any')
+    const resolver = createResolver(new Map<string, unknown>([['any', { handle }]]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listenAny(token)
+    const event = new UserRegistered('u-1')
+    await dispatcher.dispatch(event)
+
+    expect(handle).toHaveBeenCalledWith(event)
+  })
+
+  it('receives an event that also has specific listeners', async () => {
+    const calls: string[] = []
+    const specificToken = createToken<Listener<UserRegistered>>('specific')
+    const anyToken = createToken<Listener<unknown>>('any')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['specific', { handle: () => { calls.push('specific') } }],
+      ['any', { handle: () => { calls.push('any') } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, specificToken)
+    dispatcher.listenAny(anyToken)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['specific', 'any'])
+  })
+
+  it('runs listenAny listeners in registration order after specific listeners', async () => {
+    const calls: string[] = []
+    const anyA = createToken<Listener<unknown>>('anyA')
+    const anyB = createToken<Listener<unknown>>('anyB')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['anyA', { handle: () => { calls.push('anyA') } }],
+      ['anyB', { handle: () => { calls.push('anyB') } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listenAny(anyA)
+    dispatcher.listenAny(anyB)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['anyA', 'anyB'])
+  })
+
+  it('zero listenAny listeners is harmless', async () => {
+    const dispatcher = new InMemoryDispatcher(createResolver(new Map()))
+
+    await expect(dispatcher.dispatch(new UserRegistered('u-1'))).resolves.toBeUndefined()
+  })
+
+  it('listenAny error fails fast (same semantics as specific listeners)', async () => {
+    const boom = new Error('boom')
+    const specificToken = createToken<Listener<UserRegistered>>('spec')
+    const anyToken = createToken<Listener<unknown>>('any')
+    const followAnyToken = createToken<Listener<unknown>>('follow')
+    const followCalls: string[] = []
+    const resolver = createResolver(new Map<string, unknown>([
+      ['spec', { handle: () => {} }],
+      ['any', { handle: () => { throw boom } }],
+      ['follow', { handle: () => { followCalls.push('follow') } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, specificToken)
+    dispatcher.listenAny(anyToken)
+    dispatcher.listenAny(followAnyToken)
+
+    await expect(dispatcher.dispatch(new UserRegistered('u-1'))).rejects.toBe(boom)
+    expect(followCalls).toEqual([])
+  })
+})
