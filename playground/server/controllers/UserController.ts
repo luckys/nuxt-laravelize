@@ -1,7 +1,8 @@
 import { createError } from 'h3'
 
 import type { Dispatcher } from '../../../src/events'
-import type { Resource, ResourceCollection } from '../../../src/http'
+import type { PaginatedResourceCollection, Resource } from '../../../src/http'
+import { LengthAwarePaginator } from '../../../src/pagination/LengthAwarePaginator'
 
 import { UserRegistered } from '../events/UserRegistered'
 import { UserResource } from '../resources/UserResource'
@@ -11,6 +12,16 @@ import type { UsersControllerContract } from './userTokens'
 const SEED = [
   { id: 'user-1', email: 'ada@example.com', name: 'Ada Lovelace' },
   { id: 'user-2', email: 'grace@example.com', name: 'Grace Hopper' },
+  { id: 'user-3', email: 'alan@example.com', name: 'Alan Turing' },
+  { id: 'user-4', email: 'donald@example.com', name: 'Donald Knuth' },
+  { id: 'user-5', email: 'edsger@example.com', name: 'Edsger Dijkstra' },
+  { id: 'user-6', email: 'barbara@example.com', name: 'Barbara Liskov' },
+  { id: 'user-7', email: 'tony@example.com', name: 'Tony Hoare' },
+  { id: 'user-8', email: 'john@example.com', name: 'John von Neumann' },
+  { id: 'user-9', email: 'linus@example.com', name: 'Linus Torvalds' },
+  { id: 'user-10', email: 'tim@example.com', name: 'Tim Berners-Lee' },
+  { id: 'user-11', email: 'guido@example.com', name: 'Guido van Rossum' },
+  { id: 'user-12', email: 'bjarne@example.com', name: 'Bjarne Stroustrup' },
 ] as const
 
 export class UserController implements UsersControllerContract {
@@ -40,7 +51,11 @@ export class UserController implements UsersControllerContract {
     return new UserResource({ ...found })
   }
 
-  list(_input: { body: undefined, query: undefined, params: undefined }): ResourceCollection<Resource<{ id: string, email: string, name: string }>> {
-    return UserResource.collection(SEED.map(user => ({ ...user })))
+  list(input: { body: undefined, query: { page: number, per_page: number }, params: undefined }): PaginatedResourceCollection<Resource<{ id: string, email: string, name: string }>> {
+    const { page, per_page } = input.query
+    const start = (page - 1) * per_page
+    const slice = SEED.slice(start, start + per_page).map(user => ({ ...user }))
+    const paginator = new LengthAwarePaginator(slice, SEED.length, per_page, page)
+    return UserResource.collection(paginator)
   }
 }

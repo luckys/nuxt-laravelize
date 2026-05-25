@@ -158,12 +158,18 @@ describe('nuxt-laravelize integration', () => {
     expect(response.meta).toEqual({ role: 'admin' })
   })
 
-  it('returns a collection of users serialized by UserResource.collection', async () => {
-    const response = await $fetch<Array<{ id: string, email: string, name: string }>>('/api/users')
+  it('returns a paginated collection of users (first page, 5 per page by default)', async () => {
+    const response = await $fetch<{
+      data: Array<{ id: string, email: string, name: string }>
+      meta: { current_page: number, per_page: number, total: number, last_page: number }
+    }>('/api/users')
 
-    expect(response).toHaveLength(2)
-    expect(response[0]).toEqual({ id: 'user-1', email: 'ada@example.com', name: 'Ada Lovelace' })
-    expect(response[1]).toEqual({ id: 'user-2', email: 'grace@example.com', name: 'Grace Hopper' })
+    expect(response.data).toHaveLength(5)
+    expect(response.data[0]).toEqual({ id: 'user-1', email: 'ada@example.com', name: 'Ada Lovelace' })
+    expect(response.meta.current_page).toBe(1)
+    expect(response.meta.per_page).toBe(5)
+    expect(response.meta.total).toBe(12)
+    expect(response.meta.last_page).toBe(3)
   })
 
   it('serializes nested Resources (Post -> author UserResource)', async () => {
@@ -339,5 +345,65 @@ describe('nuxt-laravelize integration', () => {
       body: { email: 'noblock@example.com', name: 'NoBlock' },
     })
     expect(response.id).toMatch(/^user-/)
+  })
+
+  it('GET /api/users?page=2&per_page=3 returns the second page with Laravel-shape meta', async () => {
+    const response = await $fetch<{
+      data: Array<{ id: string }>
+      meta: { current_page: number, per_page: number, total: number, last_page: number, from: number | null, to: number | null }
+    }>('/api/users?page=2&per_page=3')
+
+    expect(response.data).toHaveLength(3)
+    expect(response.data[0]?.id).toBe('user-4')
+    expect(response.meta.current_page).toBe(2)
+    expect(response.meta.per_page).toBe(3)
+    expect(response.meta.total).toBe(12)
+    expect(response.meta.last_page).toBe(4)
+    expect(response.meta.from).toBe(4)
+    expect(response.meta.to).toBe(6)
+  })
+
+  it('GET /api/users includes absolute URLs in links (first/last/prev/next)', async () => {
+    const response = await $fetch<{
+      links: { first: string | null, last: string | null, prev: string | null, next: string | null }
+    }>('/api/users?page=2&per_page=3')
+
+    expect(response.links.first).toMatch(/^https?:\/\/.+\/api\/users\?.*page=1.*per_page=3/)
+    expect(response.links.last).toMatch(/^https?:\/\/.+\/api\/users\?.*page=4.*per_page=3/)
+    expect(response.links.prev).toMatch(/page=1/)
+    expect(response.links.next).toMatch(/page=3/)
+  })
+
+  it('GET /api/users?page=1&per_page=12 has prev=null and next=null (single page)', async () => {
+    const first = await $fetch<{ links: { prev: string | null, next: string | null } }>('/api/users?page=1&per_page=12')
+    expect(first.links.prev).toBe(null)
+    expect(first.links.next).toBe(null)
+  })
+
+  it('GET /api/users-simple returns SimplePaginator shape (no last_page, no total)', async () => {
+    const response = await $fetch<{
+      data: Array<{ id: string }>
+      meta: Record<string, unknown>
+      links: { prev: string | null, next: string | null }
+    }>('/api/users-simple?page=1')
+
+    expect(response.data).toHaveLength(3)
+    expect(response.meta).not.toHaveProperty('last_page')
+    expect(response.meta).not.toHaveProperty('total')
+    expect(response.meta).toMatchObject({ current_page: 1, per_page: 3 })
+    expect(response.links.next).not.toBe(null)
+  })
+
+  it('GET /api/users-cursor returns CursorPaginator shape with encoded cursors', async () => {
+    const response = await $fetch<{
+      data: Array<{ id: string }>
+      meta: { next_cursor: string | null, prev_cursor: string | null, per_page: number }
+      links: { prev: string | null, next: string | null }
+    }>('/api/users-cursor?per_page=2')
+
+    expect(response.data).toHaveLength(2)
+    expect(response.meta.per_page).toBe(2)
+    expect(response.meta.next_cursor).not.toBe(null)
+    expect(response.links.next).toMatch(/cursor=/)
   })
 })
