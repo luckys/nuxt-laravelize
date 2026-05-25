@@ -532,3 +532,97 @@ describe('InMemoryDispatcher — ShouldQueue', () => {
     expect(calls).toEqual(['sync:u-1', 'queued:u-1'])
   })
 })
+
+describe('InMemoryDispatcher — robustness', () => {
+  it('re-entrancy: a listener that dispatches another event from within its handler works', async () => {
+    const calls: string[] = []
+    const outerToken = createToken<Listener<UserRegistered>>('outer')
+    const innerToken = createToken<Listener<UserDeleted>>('inner')
+
+    const innerListener: Listener<UserDeleted> = {
+      handle: () => { calls.push('inner') },
+    }
+
+    const ref: { dispatcher: InMemoryDispatcher | null } = { dispatcher: null }
+
+    const outerListener: Listener<UserRegistered> = {
+      handle: async () => {
+        calls.push('outer-pre')
+        await ref.dispatcher!.dispatch(new UserDeleted('u-1'))
+        calls.push('outer-post')
+      },
+    }
+
+    const resolver = createResolver(new Map<string, unknown>([
+      ['outer', outerListener],
+      ['inner', innerListener],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+    ref.dispatcher = dispatcher
+
+    dispatcher.listen(UserRegistered, outerToken)
+    dispatcher.listen(UserDeleted, innerToken)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['outer-pre', 'inner', 'outer-post'])
+  })
+
+  it('a listener that mutates the event sees that mutation visible to later listeners', async () => {
+    class Counter {
+      value = 0
+    }
+
+    const tokenA = createToken<Listener<Counter>>('a')
+    const tokenB = createToken<Listener<Counter>>('b')
+    const seen: number[] = []
+    const resolver = createResolver(new Map<string, unknown>([
+      ['a', { handle: (c: Counter) => { c.value += 1 } }],
+      ['b', { handle: (c: Counter) => { seen.push(c.value) } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(Counter, tokenA)
+    dispatcher.listen(Counter, tokenB)
+    await dispatcher.dispatch(new Counter())
+
+    expect(seen).toEqual([1])
+  })
+
+  it('an event subclass dispatched matches only the exact constructor, not the parent', async () => {
+    class BaseEvent {
+      constructor(public readonly tag: string) {}
+    }
+    class ChildEvent extends BaseEvent {}
+
+    const baseCalls: string[] = []
+    const childCalls: string[] = []
+    const baseToken = createToken<Listener<BaseEvent>>('base')
+    const childToken = createToken<Listener<ChildEvent>>('child')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['base', { handle: (e: BaseEvent) => { baseCalls.push(e.tag) } }],
+      ['child', { handle: (e: ChildEvent) => { childCalls.push(e.tag) } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(BaseEvent, baseToken)
+    dispatcher.listen(ChildEvent, childToken)
+    await dispatcher.dispatch(new ChildEvent('child'))
+
+    expect(baseCalls).toEqual([])
+    expect(childCalls).toEqual(['child'])
+  })
+
+  it('rejects with the container error when container.make fails', async () => {
+    const containerError = new Error('not registered')
+    const token = createToken<Listener<UserRegistered>>('missing')
+    const resolver: Resolver = {
+      make() { throw containerError },
+      has() { return false },
+    }
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, token)
+
+    await expect(dispatcher.dispatch(new UserRegistered('u-1'))).rejects.toBe(containerError)
+  })
+})
