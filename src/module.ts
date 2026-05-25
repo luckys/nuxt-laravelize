@@ -72,5 +72,6 @@ export default defineNuxtModule<ModuleOptions>({
     addServerImportsDir(resolver.resolve('./runtime/server/http'))
     addServerImportsDir(resolver.resolve('./runtime/server/events'))
     addServerImportsDir(resolver.resolve('./runtime/server/queue'))
+    addServerImportsDir(resolver.resolve('./runtime/server/pagination'))
   },
 })
