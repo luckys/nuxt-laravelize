@@ -259,4 +259,85 @@ describe('nuxt-laravelize integration', () => {
     const after = await $fetch<{ welcome: string[] }>('/api/events-probe')
     expect(after.welcome.length).toBe(before.welcome.length + 1)
   })
+
+  it('queue.push processes a job after microtask flush (probe records it)', async () => {
+    const before = await $fetch<{ processed: string[] }>('/api/jobs-probe')
+    const beforeCount = before.processed.length
+
+    await $fetch('/api/jobs/process-video', { method: 'POST', body: { videoId: 'vid-1' } })
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 30)
+    })
+
+    const after = await $fetch<{ processed: string[] }>('/api/jobs-probe')
+    expect(after.processed.length).toBe(beforeCount + 1)
+    expect(after.processed[after.processed.length - 1]).toBe('vid-1')
+  })
+
+  it('queue.push returns a JobHandle with id and queue', async () => {
+    const response = await $fetch<{ jobId: string, queue: string }>(
+      '/api/jobs/process-video',
+      { method: 'POST', body: { videoId: 'vid-2' } },
+    )
+    expect(response.jobId).toMatch(/^mem-/)
+    expect(response.queue).toBe('default')
+  })
+
+  it('a failing job exceeds tries and is recorded as failure', async () => {
+    const before = await $fetch<{ failures: Array<{ videoId: string }> }>('/api/jobs-probe')
+    const beforeFailures = before.failures.length
+
+    await $fetch('/api/jobs/process-video', { method: 'POST', body: { videoId: 'fail-always' } })
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50)
+    })
+
+    const after = await $fetch<{ failures: Array<{ videoId: string }> }>('/api/jobs-probe')
+    expect(after.failures.length).toBeGreaterThan(beforeFailures)
+    expect(after.failures.some(f => f.videoId === 'fail-always')).toBe(true)
+  })
+
+  it('events with toPayload still trigger dispatcher → queue → ListenerJob → handler when queue is registered', async () => {
+    const before = await $fetch<{ welcome: string[] }>('/api/events-probe')
+    const beforeCount = before.welcome.length
+
+    await $fetch('/api/users/register', {
+      method: 'POST',
+      body: { email: 'queue-event@example.com', name: 'Queued Event User' },
+    })
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50)
+    })
+
+    const after = await $fetch<{ welcome: string[] }>('/api/events-probe')
+    expect(after.welcome.length).toBe(beforeCount + 1)
+  })
+
+  it('queued listener via ListenerJob path also records to the audit probe', async () => {
+    const before = await $fetch<{ audit: string[] }>('/api/events-probe')
+    const beforeCount = before.audit.length
+
+    await $fetch('/api/users/register', {
+      method: 'POST',
+      body: { email: 'queue-audit@example.com', name: 'Audit User' },
+    })
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50)
+    })
+
+    const after = await $fetch<{ audit: string[] }>('/api/events-probe')
+    expect(after.audit.length).toBe(beforeCount + 1)
+  })
+
+  it('post-register endpoint still returns 200 (queue does not block response)', async () => {
+    const response = await $fetch<{ id: string }>('/api/users/register', {
+      method: 'POST',
+      body: { email: 'noblock@example.com', name: 'NoBlock' },
+    })
+    expect(response.id).toMatch(/^user-/)
+  })
 })

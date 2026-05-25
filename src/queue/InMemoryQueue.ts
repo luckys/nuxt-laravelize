@@ -1,4 +1,8 @@
+import type { Resolver } from '../core/container/Container'
+
 import type { Job } from './Job'
+import type { JobRegistry } from './JobRegistry'
+import { ListenerJob } from './ListenerJob'
 import type { JobHandle, PushOptions, Queue } from './Queue'
 
 interface PendingEntry {
@@ -40,7 +44,14 @@ function resolveOptions(job: Job, options: PushOptions | undefined): ResolvedOpt
 export class InMemoryQueue implements Queue {
   readonly #pending = new Map<string, PendingEntry[]>()
   readonly #scheduled = new Set<ReturnType<typeof setTimeout>>()
+  readonly #resolver: Resolver | null
+  readonly #registry: JobRegistry | null
   #nextId = 1
+
+  constructor(resolver?: Resolver, registry?: JobRegistry) {
+    this.#resolver = resolver ?? null
+    this.#registry = registry ?? null
+  }
 
   push(job: Job, options?: PushOptions): Promise<JobHandle> {
     const resolved = resolveOptions(job, options)
@@ -117,6 +128,10 @@ export class InMemoryQueue implements Queue {
 
   async #runEntry(entry: PendingEntry, queueName: string): Promise<void> {
     try {
+      if (entry.job instanceof ListenerJob && this.#resolver && this.#registry) {
+        await entry.job.handle(this.#resolver, this.#registry)
+        return
+      }
       await entry.job.handle()
     }
     catch (error) {
