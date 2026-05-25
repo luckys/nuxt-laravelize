@@ -7,5 +7,10 @@ export default defineBuildConfig({
       input: 'src/core/',
       outDir: 'dist/core',
     },
+    {
+      builder: 'mkdist',
+      input: 'bin/',
+      outDir: 'dist/bin',
+    },
   ],
 })

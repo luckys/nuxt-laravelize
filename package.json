@@ -26,11 +26,10 @@
   },
   "files": [
     "dist",
-    "src",
-    "bin"
+    "src"
   ],
   "bin": {
-    "laravelize-queue-work": "./bin/queue-work.js"
+    "laravelize-queue-work": "./dist/bin/queue-work.mjs"
   },
   "workspaces": [
     "playground"
