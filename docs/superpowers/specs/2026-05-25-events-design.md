@@ -321,3 +321,23 @@ Misc:
 - String wildcard patterns (`'user.*'`).
 - Event persistence / replay.
 - Listener middleware (before/after hooks).
+
+## 11. Queue-boundary convention (added by F4)
+
+When F4 (Queues) is enabled (`queueToken` registered in the container), the dispatcher routes `ShouldQueue` listeners through the queue rather than `queueMicrotask`. To survive serialization across a process boundary, event classes must implement an optional `toPayload()` method:
+
+```ts
+class UserRegistered {
+  constructor(public readonly userId: string) {}
+
+  toPayload(): readonly unknown[] {
+    return [this.userId]
+  }
+}
+```
+
+`toPayload()` returns the constructor args, in order. The worker rehydrates the event with `new EventCtor(...payload)`.
+
+Without `toPayload()`, the dispatcher falls back to `queueMicrotask` (in-process) and logs `console.warn('[laravelize.events] event "<name>" lacks toPayload(); skipping queue push')`. This preserves F3 behavior for events that do not need cross-process queuing.
+
+This is a non-breaking addition. F3 events without `toPayload()` continue to work for synchronous and microtask-deferred listeners.
