@@ -37,6 +37,26 @@ export class InMemoryDispatcher implements Dispatcher {
 
     for (const token of listeners) {
       const listener = this.#resolver.make(token)
+      const isQueued = (listener.constructor as { shouldQueue?: true }).shouldQueue === true
+      if (isQueued) {
+        const captured = listener
+        Promise.resolve().then(() => {
+          queueMicrotask(() => {
+            try {
+              const result = captured.handle(event)
+              if (result instanceof Promise) {
+                result.catch((error) => {
+                  console.error('[laravelize.events] queued listener failed', error)
+                })
+              }
+            }
+            catch (error) {
+              console.error('[laravelize.events] queued listener failed', error)
+            }
+          })
+        })
+        continue
+      }
       await listener.handle(event)
     }
   }

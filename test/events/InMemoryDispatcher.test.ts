@@ -369,3 +369,166 @@ describe('InMemoryDispatcher — subscribe', () => {
     await expect(dispatcher.dispatch(new UserRegistered('u-1'))).resolves.toBeUndefined()
   })
 })
+
+describe('InMemoryDispatcher — ShouldQueue', () => {
+  class QueuedListener implements Listener<UserRegistered> {
+    static readonly shouldQueue = true as const
+    constructor(private readonly calls: string[]) {}
+    handle(event: UserRegistered) {
+      this.calls.push(`queued:${event.userId}`)
+    }
+  }
+
+  class SyncListener implements Listener<UserRegistered> {
+    constructor(private readonly calls: string[]) {}
+    handle(event: UserRegistered) {
+      this.calls.push(`sync:${event.userId}`)
+    }
+  }
+
+  it('does not block dispatch when the listener is marked ShouldQueue', async () => {
+    const calls: string[] = []
+    const token = createToken<Listener<UserRegistered>>('queued')
+    const resolver = createResolver(new Map<string, unknown>([['queued', new QueuedListener(calls)]]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, token)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual([])
+
+    await new Promise<void>((resolve) => {
+      queueMicrotask(resolve)
+    })
+    expect(calls).toEqual(['queued:u-1'])
+  })
+
+  it('queued listener errors are logged via console.error and do not reject dispatch', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    class FailingQueuedListener implements Listener<UserRegistered> {
+      static readonly shouldQueue = true as const
+      handle() {
+        throw new Error('queued boom')
+      }
+    }
+
+    const token = createToken<Listener<UserRegistered>>('queued')
+    const resolver = createResolver(new Map<string, unknown>([['queued', new FailingQueuedListener()]]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, token)
+    await expect(dispatcher.dispatch(new UserRegistered('u-1'))).resolves.toBeUndefined()
+
+    await new Promise<void>((resolve) => {
+      queueMicrotask(resolve)
+    })
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[laravelize.events] queued listener failed',
+      expect.objectContaining({ message: 'queued boom' }),
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it('an async queued listener that rejects is logged but does not reject dispatch', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    class AsyncFailingQueuedListener implements Listener<UserRegistered> {
+      static readonly shouldQueue = true as const
+      async handle() {
+        throw new Error('async queued boom')
+      }
+    }
+
+    const token = createToken<Listener<UserRegistered>>('queued')
+    const resolver = createResolver(new Map<string, unknown>([['queued', new AsyncFailingQueuedListener()]]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, token)
+    await expect(dispatcher.dispatch(new UserRegistered('u-1'))).resolves.toBeUndefined()
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 5)
+    })
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[laravelize.events] queued listener failed',
+      expect.objectContaining({ message: 'async queued boom' }),
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it('a queued listener that throws does not affect other listeners', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const calls: string[] = []
+
+    class FailingQueuedListener implements Listener<UserRegistered> {
+      static readonly shouldQueue = true as const
+      handle() {
+        throw new Error('boom')
+      }
+    }
+
+    const queuedFail = createToken<Listener<UserRegistered>>('fail')
+    const queuedOk = createToken<Listener<UserRegistered>>('ok')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['fail', new FailingQueuedListener()],
+      ['ok', new QueuedListener(calls)],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, queuedFail)
+    dispatcher.listen(UserRegistered, queuedOk)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    await new Promise<void>((resolve) => {
+      queueMicrotask(resolve)
+    })
+    expect(calls).toEqual(['queued:u-1'])
+    expect(consoleSpy).toHaveBeenCalled()
+
+    consoleSpy.mockRestore()
+  })
+
+  it('multiple queued listeners all execute', async () => {
+    const calls: string[] = []
+    const tokenA = createToken<Listener<UserRegistered>>('a')
+    const tokenB = createToken<Listener<UserRegistered>>('b')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['a', new QueuedListener(calls)],
+      ['b', new QueuedListener(calls)],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, tokenA)
+    dispatcher.listen(UserRegistered, tokenB)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    await new Promise<void>((resolve) => {
+      queueMicrotask(resolve)
+    })
+    expect(calls).toEqual(['queued:u-1', 'queued:u-1'])
+  })
+
+  it('mix of sync and queued — sync runs serially, queued is scheduled', async () => {
+    const calls: string[] = []
+    const syncToken = createToken<Listener<UserRegistered>>('sync')
+    const queuedToken = createToken<Listener<UserRegistered>>('queued')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['sync', new SyncListener(calls)],
+      ['queued', new QueuedListener(calls)],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, syncToken)
+    dispatcher.listen(UserRegistered, queuedToken)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['sync:u-1'])
+    await new Promise<void>((resolve) => {
+      queueMicrotask(resolve)
+    })
+    expect(calls).toEqual(['sync:u-1', 'queued:u-1'])
+  })
+})
