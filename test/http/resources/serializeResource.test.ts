@@ -1,10 +1,21 @@
 import type { H3Event } from 'h3'
-import { describe, expect, it } from 'vitest'
+import * as h3 from 'h3'
+import { describe, expect, it, vi } from 'vitest'
 
 import { Resource } from '../../../src/http/resources/Resource'
 import { ResourceCollection } from '../../../src/http/resources/ResourceCollection'
 import { isResource, isResourceCollection } from '../../../src/http/resources/isResource'
 import { serializeResource } from '../../../src/http/resources/serializeResource'
+import { LengthAwarePaginator } from '../../../src/pagination/LengthAwarePaginator'
+import { PaginatedResourceCollection } from '../../../src/pagination/PaginatedResourceCollection'
+
+vi.mock('h3', async () => {
+  const actual = await vi.importActual<typeof import('h3')>('h3')
+  return {
+    ...actual,
+    getRequestURL: vi.fn(),
+  }
+})
 
 interface User { id: string }
 
@@ -107,5 +118,46 @@ describe('serializeResource', () => {
       meta: { count: 2 },
       users: [{ id: 'u-1' }, { wrapped: { id: 'u-2' } }],
     })
+  })
+})
+
+describe('serializeResource — PaginatedResourceCollection branch', () => {
+  class PaginatedTestResource extends Resource<{ id: string }> {
+    override toArray() {
+      return { id: this.resource.id }
+    }
+  }
+
+  it('returns {data, links, meta} when value is a PaginatedResourceCollection', async () => {
+    vi.mocked(h3.getRequestURL).mockImplementation(() => new URL('https://api.example.com/users'))
+    const paginator = new LengthAwarePaginator([{ id: 'a' }], 1, 10, 1)
+    const pc = new PaginatedResourceCollection(
+      paginator,
+      PaginatedTestResource as unknown as new (item: unknown) => PaginatedTestResource,
+    )
+    const result = await serializeResource(pc, createMockEvent()) as {
+      data: unknown[]
+      links: Record<string, string | null>
+      meta: Record<string, unknown>
+    }
+    expect(result.data).toEqual([{ id: 'a' }])
+    expect(result.meta).toMatchObject({ current_page: 1 })
+    expect(result.links).toBeDefined()
+  })
+
+  it('recursively serializes a plain object containing a PaginatedResourceCollection', async () => {
+    vi.mocked(h3.getRequestURL).mockImplementation(() => new URL('https://api.example.com/users'))
+    const paginator = new LengthAwarePaginator([{ id: 'a' }], 1, 10, 1)
+    const pc = new PaginatedResourceCollection(
+      paginator,
+      PaginatedTestResource as unknown as new (item: unknown) => PaginatedTestResource,
+    )
+    const value = { users: pc, tag: 'demo' }
+    const result = await serializeResource(value, createMockEvent()) as {
+      users: { data: unknown[] }
+      tag: string
+    }
+    expect(result.tag).toBe('demo')
+    expect(result.users.data).toEqual([{ id: 'a' }])
   })
 })

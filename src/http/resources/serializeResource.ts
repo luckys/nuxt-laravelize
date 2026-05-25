@@ -1,5 +1,7 @@
 import type { H3Event } from 'h3'
 
+import { isPaginatedResourceCollection } from '../../pagination/isPaginator'
+
 import { isResource, isResourceCollection } from './isResource'
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -14,6 +16,9 @@ export async function serializeResource(value: unknown, event: H3Event): Promise
     return serializeResource(result, event)
   }
   if (isResourceCollection(value)) {
+    return value.toArray(event)
+  }
+  if (isPaginatedResourceCollection(value)) {
     return value.toArray(event)
   }
   if (Array.isArray(value)) {
