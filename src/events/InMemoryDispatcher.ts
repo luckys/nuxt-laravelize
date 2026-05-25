@@ -8,6 +8,7 @@ import type { Listener } from './Listener'
 export class InMemoryDispatcher implements Dispatcher {
   readonly #resolver: Resolver
   readonly #bound = new Map<EventConstructor, Token<Listener<unknown>>[]>()
+  readonly #anyListeners: Token<Listener<unknown>>[] = []
 
   constructor(resolver: Resolver) {
     this.#resolver = resolver
@@ -30,7 +31,8 @@ export class InMemoryDispatcher implements Dispatcher {
 
   async dispatch<E>(event: E): Promise<void> {
     const ctor = (event as object).constructor as EventConstructor
-    const listeners = this.#bound.get(ctor) ?? []
+    const bound = this.#bound.get(ctor) ?? []
+    const listeners = [...bound, ...this.#anyListeners]
 
     for (const token of listeners) {
       const listener = this.#resolver.make(token)

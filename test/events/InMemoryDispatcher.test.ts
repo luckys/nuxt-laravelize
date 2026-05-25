@@ -17,8 +17,12 @@ class UserDeleted {
 
 function createResolver(map: Map<string, unknown>): Resolver {
   return {
-    make: <T>(token: { key: string }) => map.get(token.key) as T,
-    has: token => map.has(token.key),
+    make<T>(token: Token<T>): T {
+      return map.get(token.key) as T
+    },
+    has(token: Token<unknown>): boolean {
+      return map.has(token.key)
+    },
   }
 }
 
@@ -203,6 +207,6 @@ describe('InMemoryDispatcher — listen/dispatch core', () => {
     const event = new UserRegistered('u-1')
     await dispatcher.dispatch(event)
 
-    expect(handle).toHaveBeenCalledWith(event)
+    expect(handle.mock.calls[0]?.[0]).toBe(event)
   })
 })
