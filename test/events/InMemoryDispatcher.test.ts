@@ -626,3 +626,229 @@ describe('InMemoryDispatcher — robustness', () => {
     await expect(dispatcher.dispatch(new UserRegistered('u-1'))).rejects.toBe(containerError)
   })
 })
+
+describe('InMemoryDispatcher — F4 queue integration', () => {
+  class UserRegisteredQueueEvent {
+    constructor(public readonly userId: string) {}
+    toPayload(): readonly unknown[] {
+      return [this.userId]
+    }
+  }
+
+  class QueuedListenerOnly implements Listener<UserRegisteredQueueEvent> {
+    static readonly shouldQueue = true as const
+    handle() {}
+  }
+
+  it('pushes a ListenerJob to the queue when queueToken is registered and event has toPayload', async () => {
+    const pushed: Array<{ name: string, args: readonly unknown[] }> = []
+    const fakeQueue = {
+      push: vi.fn().mockImplementation((job: { serialize: () => { name: string, args: readonly unknown[] } }) => {
+        pushed.push(job.serialize())
+        return Promise.resolve({ id: 'mem-1', queue: 'laravelize.listeners' })
+      }),
+      later: vi.fn(),
+      size: vi.fn(),
+      clear: vi.fn(),
+    }
+    const fakeRegistry = {
+      registerJob: vi.fn(),
+      registerEvent: vi.fn(),
+      rehydrateJob: vi.fn(),
+      getEvent: vi.fn(),
+    }
+    const listenerToken = createToken<Listener<UserRegisteredQueueEvent>>('queued-listener')
+
+    const resolver: Resolver = {
+      make<T>(token: Token<T>): T {
+        if (token.key === 'laravelize.queue') return fakeQueue as unknown as T
+        if (token.key === 'laravelize.job-registry') return fakeRegistry as unknown as T
+        if (token.key === 'queued-listener') return new QueuedListenerOnly() as unknown as T
+        throw new Error(`unknown ${token.key}`)
+      },
+      has(token: Token<unknown>): boolean {
+        return token.key === 'laravelize.queue' || token.key === 'laravelize.job-registry'
+      },
+    }
+
+    const dispatcher = new InMemoryDispatcher(resolver)
+    dispatcher.listen(UserRegisteredQueueEvent, listenerToken)
+    await dispatcher.dispatch(new UserRegisteredQueueEvent('u-1'))
+
+    expect(fakeRegistry.registerEvent).toHaveBeenCalledWith('UserRegisteredQueueEvent', UserRegisteredQueueEvent)
+    expect(pushed).toHaveLength(1)
+    expect(pushed[0]?.name).toBe('laravelize.ListenerJob')
+    const payload = pushed[0]?.args[0] as { listenerTokenKey: string, eventConstructorName: string, eventArgs: readonly unknown[] }
+    expect(payload.listenerTokenKey).toBe('queued-listener')
+    expect(payload.eventConstructorName).toBe('UserRegisteredQueueEvent')
+    expect(payload.eventArgs).toEqual(['u-1'])
+  })
+
+  it('falls back to queueMicrotask when queueToken is not registered (F3 backward compat)', async () => {
+    const calls: string[] = []
+
+    class CapturingListener implements Listener<UserRegisteredQueueEvent> {
+      static readonly shouldQueue = true as const
+      handle(event: UserRegisteredQueueEvent) {
+        calls.push(event.userId)
+      }
+    }
+
+    const token = createToken<Listener<UserRegisteredQueueEvent>>('listener')
+    const resolver = createResolver(new Map<string, unknown>([['listener', new CapturingListener()]]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegisteredQueueEvent, token)
+    await dispatcher.dispatch(new UserRegisteredQueueEvent('u-1'))
+
+    expect(calls).toEqual([])
+    await new Promise<void>((resolve) => {
+      queueMicrotask(resolve)
+    })
+    expect(calls).toEqual(['u-1'])
+  })
+
+  it('falls back to queueMicrotask + warn when event lacks toPayload (queue registered)', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const calls: string[] = []
+
+    class NoPayloadEvent {
+      constructor(public readonly tag: string) {}
+    }
+
+    class NoPayloadListener implements Listener<NoPayloadEvent> {
+      static readonly shouldQueue = true as const
+      handle(event: NoPayloadEvent) {
+        calls.push(event.tag)
+      }
+    }
+
+    const fakeQueue = { push: vi.fn(), later: vi.fn(), size: vi.fn(), clear: vi.fn() }
+    const fakeRegistry = { registerJob: vi.fn(), registerEvent: vi.fn(), rehydrateJob: vi.fn(), getEvent: vi.fn() }
+    const token = createToken<Listener<NoPayloadEvent>>('listener')
+
+    const resolver: Resolver = {
+      make<T>(t: Token<T>): T {
+        if (t.key === 'laravelize.queue') return fakeQueue as unknown as T
+        if (t.key === 'laravelize.job-registry') return fakeRegistry as unknown as T
+        if (t.key === 'listener') return new NoPayloadListener() as unknown as T
+        throw new Error(`unknown ${t.key}`)
+      },
+      has(t: Token<unknown>): boolean {
+        return t.key === 'laravelize.queue' || t.key === 'laravelize.job-registry'
+      },
+    }
+
+    const dispatcher = new InMemoryDispatcher(resolver)
+    dispatcher.listen(NoPayloadEvent, token)
+    await dispatcher.dispatch(new NoPayloadEvent('x'))
+
+    expect(fakeQueue.push).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('lacks toPayload'))
+
+    await new Promise<void>((resolve) => {
+      queueMicrotask(resolve)
+    })
+    expect(calls).toEqual(['x'])
+
+    warnSpy.mockRestore()
+  })
+
+  it('does not push non-ShouldQueue listeners to the queue even when queueToken is registered', async () => {
+    const calls: string[] = []
+
+    class SyncListener implements Listener<UserRegisteredQueueEvent> {
+      handle(event: UserRegisteredQueueEvent) { calls.push(event.userId) }
+    }
+
+    const fakeQueue = { push: vi.fn(), later: vi.fn(), size: vi.fn(), clear: vi.fn() }
+    const fakeRegistry = { registerJob: vi.fn(), registerEvent: vi.fn(), rehydrateJob: vi.fn(), getEvent: vi.fn() }
+    const token = createToken<Listener<UserRegisteredQueueEvent>>('listener')
+
+    const resolver: Resolver = {
+      make<T>(t: Token<T>): T {
+        if (t.key === 'laravelize.queue') return fakeQueue as unknown as T
+        if (t.key === 'laravelize.job-registry') return fakeRegistry as unknown as T
+        if (t.key === 'listener') return new SyncListener() as unknown as T
+        throw new Error(`unknown ${t.key}`)
+      },
+      has(t: Token<unknown>): boolean {
+        return t.key === 'laravelize.queue' || t.key === 'laravelize.job-registry'
+      },
+    }
+
+    const dispatcher = new InMemoryDispatcher(resolver)
+    dispatcher.listen(UserRegisteredQueueEvent, token)
+    await dispatcher.dispatch(new UserRegisteredQueueEvent('u-1'))
+
+    expect(fakeQueue.push).not.toHaveBeenCalled()
+    expect(calls).toEqual(['u-1'])
+  })
+
+  it('queue.push failure logs and dispatch does not reject', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fakeQueue = {
+      push: vi.fn().mockRejectedValue(new Error('redis down')),
+      later: vi.fn(), size: vi.fn(), clear: vi.fn(),
+    }
+    const fakeRegistry = { registerJob: vi.fn(), registerEvent: vi.fn(), rehydrateJob: vi.fn(), getEvent: vi.fn() }
+    const token = createToken<Listener<UserRegisteredQueueEvent>>('listener')
+
+    const resolver: Resolver = {
+      make<T>(t: Token<T>): T {
+        if (t.key === 'laravelize.queue') return fakeQueue as unknown as T
+        if (t.key === 'laravelize.job-registry') return fakeRegistry as unknown as T
+        if (t.key === 'listener') return new QueuedListenerOnly() as unknown as T
+        throw new Error(`unknown ${t.key}`)
+      },
+      has(t: Token<unknown>): boolean {
+        return t.key === 'laravelize.queue' || t.key === 'laravelize.job-registry'
+      },
+    }
+
+    const dispatcher = new InMemoryDispatcher(resolver)
+    dispatcher.listen(UserRegisteredQueueEvent, token)
+
+    await expect(dispatcher.dispatch(new UserRegisteredQueueEvent('u-1'))).resolves.toBeUndefined()
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 5)
+    })
+    expect(errorSpy).toHaveBeenCalledWith('[laravelize.events] queue push failed', expect.any(Error))
+
+    errorSpy.mockRestore()
+  })
+
+  it('multiple ShouldQueue listeners produce multiple pushes in registration order', async () => {
+    const pushOrder: string[] = []
+    const fakeQueue = {
+      push: vi.fn().mockImplementation((job: { serialize: () => { args: [{ listenerTokenKey: string }] } }) => {
+        pushOrder.push(job.serialize().args[0].listenerTokenKey)
+        return Promise.resolve({ id: 'mem-1', queue: 'laravelize.listeners' })
+      }),
+      later: vi.fn(), size: vi.fn(), clear: vi.fn(),
+    }
+    const fakeRegistry = { registerJob: vi.fn(), registerEvent: vi.fn(), rehydrateJob: vi.fn(), getEvent: vi.fn() }
+    const tokenA = createToken<Listener<UserRegisteredQueueEvent>>('a')
+    const tokenB = createToken<Listener<UserRegisteredQueueEvent>>('b')
+
+    const resolver: Resolver = {
+      make<T>(t: Token<T>): T {
+        if (t.key === 'laravelize.queue') return fakeQueue as unknown as T
+        if (t.key === 'laravelize.job-registry') return fakeRegistry as unknown as T
+        if (t.key === 'a' || t.key === 'b') return new QueuedListenerOnly() as unknown as T
+        throw new Error(`unknown ${t.key}`)
+      },
+      has(t: Token<unknown>): boolean {
+        return t.key === 'laravelize.queue' || t.key === 'laravelize.job-registry'
+      },
+    }
+
+    const dispatcher = new InMemoryDispatcher(resolver)
+    dispatcher.listen(UserRegisteredQueueEvent, tokenA)
+    dispatcher.listen(UserRegisteredQueueEvent, tokenB)
+    await dispatcher.dispatch(new UserRegisteredQueueEvent('u-1'))
+
+    expect(pushOrder).toEqual(['a', 'b'])
+  })
+})
