@@ -286,3 +286,86 @@ describe('InMemoryDispatcher — listenAny', () => {
     expect(followCalls).toEqual([])
   })
 })
+
+describe('InMemoryDispatcher — subscribe', () => {
+  it('resolves the subscriber via the container and invokes subscribe(dispatcher) once', async () => {
+    const subscribe = vi.fn()
+    const token = createToken<{ subscribe: typeof subscribe }>('sub')
+    const resolver = createResolver(new Map<string, unknown>([['sub', { subscribe }]]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.subscribe(token)
+
+    expect(subscribe).toHaveBeenCalledTimes(1)
+    expect(subscribe).toHaveBeenCalledWith(dispatcher)
+  })
+
+  it('a subscriber that registers two listens causes both to fire on dispatch', async () => {
+    const calls: string[] = []
+    const listenerA = createToken<Listener<UserRegistered>>('lA')
+    const listenerB = createToken<Listener<UserRegistered>>('lB')
+
+    const subscriberInstance = {
+      subscribe: (d: InMemoryDispatcher) => {
+        d.listen(UserRegistered, listenerA)
+        d.listen(UserRegistered, listenerB)
+      },
+    }
+
+    const subToken = createToken<typeof subscriberInstance>('sub')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['sub', subscriberInstance],
+      ['lA', { handle: () => { calls.push('A') } }],
+      ['lB', { handle: () => { calls.push('B') } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.subscribe(subToken)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['A', 'B'])
+  })
+
+  it('subscriber with a container dependency resolves correctly', async () => {
+    const calls: string[] = []
+    const logToken = createToken<{ log: (m: string) => void }>('log')
+    const listenerToken = createToken<Listener<UserRegistered>>('listener')
+
+    const resolver: Resolver = {
+      make<T>(token: Token<T>): T {
+        if (token.key === 'log') return { log: (m: string) => calls.push(m) } as T
+        if (token.key === 'sub') {
+          const subscriber = {
+            subscribe: (d: InMemoryDispatcher) => {
+              d.listen(UserRegistered, listenerToken)
+              const logger = resolver.make(logToken)
+              logger.log('subscribed')
+            },
+          }
+          return subscriber as T
+        }
+        if (token.key === 'listener') return { handle: () => calls.push('handled') } as T
+        throw new Error(`unknown ${token.key}`)
+      },
+      has() { return true },
+    }
+    const subToken = createToken<{ subscribe: (d: InMemoryDispatcher) => void }>('sub')
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.subscribe(subToken)
+    expect(calls).toEqual(['subscribed'])
+
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+    expect(calls).toEqual(['subscribed', 'handled'])
+  })
+
+  it('subscriber that registers nothing is harmless', async () => {
+    const token = createToken<{ subscribe: () => void }>('sub')
+    const resolver = createResolver(new Map<string, unknown>([['sub', { subscribe: () => {} }]]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    expect(() => dispatcher.subscribe(token)).not.toThrow()
+
+    await expect(dispatcher.dispatch(new UserRegistered('u-1'))).resolves.toBeUndefined()
+  })
+})

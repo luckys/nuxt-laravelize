@@ -25,8 +25,9 @@ export class InMemoryDispatcher implements Dispatcher {
     this.#anyListeners.push(listener)
   }
 
-  subscribe(_subscriber: Token<EventSubscriber>): void {
-    throw new Error('not implemented')
+  subscribe(subscriber: Token<EventSubscriber>): void {
+    const instance = this.#resolver.make(subscriber)
+    instance.subscribe(this)
   }
 
   async dispatch<E>(event: E): Promise<void> {
