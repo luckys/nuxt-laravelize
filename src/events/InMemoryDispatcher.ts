@@ -40,7 +40,7 @@ export class InMemoryDispatcher implements Dispatcher {
       const isQueued = (listener.constructor as { shouldQueue?: true }).shouldQueue === true
       if (isQueued) {
         const captured = listener
-        Promise.resolve().then(() => {
+        void Promise.resolve().then(() => {
           queueMicrotask(() => {
             try {
               const result = captured.handle(event)
