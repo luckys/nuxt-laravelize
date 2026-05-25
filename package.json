@@ -50,7 +50,13 @@
   },
   "peerDependencies": {
     "h3": ">=1.0.0",
-    "nuxt": ">=4.0.0"
+    "nuxt": ">=4.0.0",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "bullmq": { "optional": true },
+    "ioredis": { "optional": true }
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",

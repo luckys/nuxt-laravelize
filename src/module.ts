@@ -9,6 +9,11 @@ import { renderProvidersModule } from './templates'
 export interface ModuleOptions {
   container: boolean
   providers: Array<{ path: string, target: ProviderTarget }>
+  queue?: {
+    driver?: 'memory' | 'bullmq'
+    redis?: { url?: string, host?: string, port?: number, password?: string }
+    queues?: readonly string[]
+  }
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -66,5 +71,6 @@ export default defineNuxtModule<ModuleOptions>({
     addServerImportsDir(resolver.resolve('./runtime/server/utils'))
     addServerImportsDir(resolver.resolve('./runtime/server/http'))
     addServerImportsDir(resolver.resolve('./runtime/server/events'))
+    addServerImportsDir(resolver.resolve('./runtime/server/queue'))
   },
 })
