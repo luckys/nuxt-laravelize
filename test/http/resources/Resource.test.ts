@@ -2,6 +2,10 @@ import type { H3Event } from 'h3'
 import { describe, expect, it, vi } from 'vitest'
 
 import { Resource } from '../../../src/http/resources/Resource'
+import { ResourceCollection } from '../../../src/http/resources/ResourceCollection'
+import { CursorPaginator } from '../../../src/pagination/CursorPaginator'
+import { LengthAwarePaginator } from '../../../src/pagination/LengthAwarePaginator'
+import { PaginatedResourceCollection } from '../../../src/pagination/PaginatedResourceCollection'
 
 interface User {
   id: string
@@ -69,5 +73,31 @@ describe('Resource', () => {
     new UserResource({ id: 'u-1', email: 'ada@example.com' }).toArray(event)
 
     expect(spy).toHaveBeenCalledWith(event)
+  })
+})
+
+describe('Resource.collection — paginator overload', () => {
+  class CountResource extends Resource<{ id: string }> {
+    override toArray() {
+      return { id: this.resource.id }
+    }
+  }
+
+  it('returns a ResourceCollection when called with an array (regression)', () => {
+    const result = CountResource.collection([{ id: 'a' }, { id: 'b' }])
+    expect(result).toBeInstanceOf(ResourceCollection)
+    expect(result).not.toBeInstanceOf(PaginatedResourceCollection)
+  })
+
+  it('returns a PaginatedResourceCollection when called with a LengthAwarePaginator', () => {
+    const paginator = new LengthAwarePaginator([{ id: 'a' }], 1, 10, 1)
+    const result = CountResource.collection(paginator)
+    expect(result).toBeInstanceOf(PaginatedResourceCollection)
+  })
+
+  it('returns a PaginatedResourceCollection when called with a CursorPaginator', () => {
+    const paginator = new CursorPaginator([{ id: 'a' }], 10, null, null)
+    const result = CountResource.collection(paginator)
+    expect(result).toBeInstanceOf(PaginatedResourceCollection)
   })
 })
