@@ -75,7 +75,7 @@ describe('InMemoryQueue', () => {
     const queue = new InMemoryQueue()
     const handle = await queue.push(new RecordingJob('a'))
 
-    expect(handle.id).toMatch(/.+/)
+    expect(handle.id).toMatch(/^mem-\d+$/)
     expect(handle.queue).toBe('default')
   })
 
