@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Nuxt module that brings Laravel-like architecture primitives to Nuxt and Nitro",
   "repository": "nuxt-laravelize/nuxt-laravelize",
   "license": "MIT",
@@ -63,8 +63,12 @@
     "ioredis": "^5.0.0"
   },
   "peerDependenciesMeta": {
-    "bullmq": { "optional": true },
-    "ioredis": { "optional": true }
+    "bullmq": {
+      "optional": true
+    },
+    "ioredis": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",
