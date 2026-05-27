@@ -9,8 +9,9 @@ Nuxt 4 module that brings Laravel-inspired architecture primitives to Nuxt and N
 | Package | Role |
 |---|---|
 | **[`@luckys_luis/nuxt-laravelize`](./)** *(this one)* | Runtime — DI container, controllers, queues, mail, notifications, i18n, policies, seeders, factories, testing helpers. |
-| [`@luckys_luis/nuxt-laravelize-config`](../nuxt-laravelize-config) | Toolchain — 12-rule DDD ESLint plugin, scaffolding CLI (`new:*`), shared presets, 15 AI skills with auto-link. |
-| [`@luckys_luis/nuxt-ddd-toolkit`](../nuxt-ddd-toolkit) | Bootstrap layer — capability detection, 1 ESLint rule, 4 skills, minimal preflight CLI. |
+| [`@luckys_luis/nuxt-ddd-toolkit`](../nuxt-ddd-toolkit) | Toolchain — 12-rule DDD ESLint plugin, scaffolding CLI (`laravelize new:*`), shared presets, 15 AI skills with auto-link. |
+
+> The previous package `@luckys_luis/nuxt-laravelize-config` was renamed to `nuxt-ddd-toolkit` in v0.2.0 and is now a deprecation stub.
 
 ## Contents
 
