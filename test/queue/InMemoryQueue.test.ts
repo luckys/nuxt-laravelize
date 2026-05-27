@@ -203,8 +203,12 @@ describe('InMemoryQueue', () => {
     await flushMicrotasks()
 
     expect(consoleSpy).toHaveBeenCalledWith(
-      '[laravelize.queue] job failed',
-      expect.objectContaining({ message: 'always-fail:x' }),
+      '[ERROR]',
+      'queue job failed',
+      expect.objectContaining({
+        jobName: 'AlwaysFailJob',
+        error: expect.objectContaining({ message: 'always-fail:x' }),
+      }),
     )
     consoleSpy.mockRestore()
   })

@@ -1,4 +1,5 @@
 import type { Resolver } from '../core/container/Container'
+import { loggerFor } from '../logging/loggerFor'
 
 import type { Job } from './Job'
 import type { JobRegistry } from './JobRegistry'
@@ -137,7 +138,11 @@ export class InMemoryQueue implements Queue {
     catch (error) {
       entry.attemptsLeft -= 1
       if (entry.attemptsLeft <= 0) {
-        console.error('[laravelize.queue] job failed', error)
+        loggerFor(this.#resolver).error('queue job failed', {
+          queue: queueName,
+          jobName: entry.job.constructor.name,
+          error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+        })
         return
       }
       const retry = (): void => {

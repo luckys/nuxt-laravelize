@@ -1,5 +1,6 @@
 import type { Resolver } from '../core/container/Container'
 import type { Token } from '../core/container/Token'
+import { loggerFor } from '../logging/loggerFor'
 import type { EventConstructor as JobEventConstructor, JobRegistry } from '../queue/JobRegistry'
 import { jobRegistryToken } from '../queue/JobRegistryToken'
 import { ListenerJob } from '../queue/ListenerJob'
@@ -65,7 +66,7 @@ export class InMemoryDispatcher implements Dispatcher {
 
     const eventWithPayload = event as EventWithPayload
     if (typeof eventWithPayload.toPayload !== 'function') {
-      console.warn(`[laravelize.events] event "${ctor.name}" lacks toPayload(); skipping queue push`)
+      loggerFor(this.#resolver).warn(`event "${ctor.name}" lacks toPayload(); skipping queue push`, { event: ctor.name })
       return false
     }
 
@@ -80,7 +81,11 @@ export class InMemoryDispatcher implements Dispatcher {
     })
 
     void queue.push(job).catch((error) => {
-      console.error('[laravelize.events] queue push failed', error)
+      loggerFor(this.#resolver).error('queue push failed', {
+        listener: token.key,
+        event: ctor.name,
+        error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+      })
     })
 
     return true
@@ -94,12 +99,16 @@ export class InMemoryDispatcher implements Dispatcher {
           const result = captured.handle(event)
           if (result instanceof Promise) {
             result.catch((error) => {
-              console.error('[laravelize.events] queued listener failed', error)
+              loggerFor(this.#resolver).error('queued listener failed', {
+        error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+      })
             })
           }
         }
         catch (error) {
-          console.error('[laravelize.events] queued listener failed', error)
+          loggerFor(this.#resolver).error('queued listener failed', {
+        error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+      })
         }
       })
     })

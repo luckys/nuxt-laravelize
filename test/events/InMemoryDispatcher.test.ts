@@ -424,8 +424,9 @@ describe('InMemoryDispatcher — ShouldQueue', () => {
       queueMicrotask(resolve)
     })
     expect(consoleSpy).toHaveBeenCalledWith(
-      '[laravelize.events] queued listener failed',
-      expect.objectContaining({ message: 'queued boom' }),
+      '[ERROR]',
+      'queued listener failed',
+      expect.objectContaining({ error: expect.objectContaining({ message: 'queued boom' }) }),
     )
 
     consoleSpy.mockRestore()
@@ -452,8 +453,9 @@ describe('InMemoryDispatcher — ShouldQueue', () => {
       setTimeout(resolve, 5)
     })
     expect(consoleSpy).toHaveBeenCalledWith(
-      '[laravelize.events] queued listener failed',
-      expect.objectContaining({ message: 'async queued boom' }),
+      '[ERROR]',
+      'queued listener failed',
+      expect.objectContaining({ error: expect.objectContaining({ message: 'async queued boom' }) }),
     )
 
     consoleSpy.mockRestore()
@@ -744,7 +746,11 @@ describe('InMemoryDispatcher — F4 queue integration', () => {
     await dispatcher.dispatch(new NoPayloadEvent('x'))
 
     expect(fakeQueue.push).not.toHaveBeenCalled()
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('lacks toPayload'))
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[WARN]',
+      expect.stringContaining('lacks toPayload'),
+      expect.objectContaining({ event: 'NoPayloadEvent' }),
+    )
 
     await new Promise<void>((resolve) => {
       queueMicrotask(resolve)
@@ -814,7 +820,11 @@ describe('InMemoryDispatcher — F4 queue integration', () => {
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 5)
     })
-    expect(errorSpy).toHaveBeenCalledWith('[laravelize.events] queue push failed', expect.any(Error))
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[ERROR]',
+      'queue push failed',
+      expect.objectContaining({ error: expect.objectContaining({ message: expect.any(String) }) }),
+    )
 
     errorSpy.mockRestore()
   })
