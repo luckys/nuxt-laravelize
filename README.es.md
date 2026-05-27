@@ -11,8 +11,6 @@ Módulo de Nuxt 4 que trae primitivas de arquitectura inspiradas en Laravel a Nu
 | **[`@luckys_luis/nuxt-laravelize`](./)** *(este)* | Runtime — container DI, controllers, queues, mail, notifications, i18n, policies, seeders, factories, testing helpers. |
 | [`@luckys_luis/nuxt-ddd-toolkit`](../nuxt-ddd-toolkit) | Toolchain — plugin ESLint con 12 reglas DDD, CLI scaffolding (`laravelize new:*`), presets, 15 skills IA con auto-link. |
 
-> El paquete anterior `@luckys_luis/nuxt-laravelize-config` fue renombrado a `nuxt-ddd-toolkit` en la v0.2.0 y ahora es un stub deprecado.
-
 ## Tabla de contenido
 
 - [Qué ofrece este módulo](#qué-ofrece-este-módulo)
