@@ -73,5 +73,9 @@ export default defineNuxtModule<ModuleOptions>({
     addServerImportsDir(resolver.resolve('./runtime/server/events'))
     addServerImportsDir(resolver.resolve('./runtime/server/queue'))
     addServerImportsDir(resolver.resolve('./runtime/server/pagination'))
+    addServerImportsDir(resolver.resolve('./runtime/server/logging'))
+    addServerImportsDir(resolver.resolve('./runtime/server/mail'))
+    addServerImportsDir(resolver.resolve('./runtime/server/notifications'))
+    addServerImportsDir(resolver.resolve('./runtime/server/i18n'))
   },
 })

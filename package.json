@@ -14,6 +14,10 @@
       "types": "./dist/types.d.mts",
       "import": "./dist/module.mjs"
     },
+    "./testing": {
+      "types": "./dist/runtime/testing/index.d.ts",
+      "import": "./dist/runtime/testing/index.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/module.mjs",
@@ -29,7 +33,8 @@
     "src"
   ],
   "bin": {
-    "laravelize-queue-work": "./dist/bin/queue-work.mjs"
+    "laravelize-queue-work": "./dist/bin/queue-work.mjs",
+    "laravelize-db-seed": "./dist/bin/db-seed.mjs"
   },
   "workspaces": [
     "playground"
