@@ -2,139 +2,154 @@
 
 [English](./README.md) | Español
 
-Módulo de Nuxt que trae primitivas de arquitectura inspiradas en Laravel a Nuxt y Nitro.
+Módulo de Nuxt 4 que trae primitivas de arquitectura inspiradas en Laravel a Nuxt y Nitro: contenedor DI por request, providers auto-descubiertos, controllers single-action con validación, eventos, colas, mail, notificaciones, pagination, autorización con políticas, logging, i18n, seeding y testing helpers — todo bajo el patrón DDD estilo CodelyTV.
 
-El foco actual del paquete es un contenedor de servicios ligero por request, junto con utilidades runtime para consumir ese contenedor en contexto de servidor.
+## El stack Laravelize
+
+| Paquete | Rol |
+|---|---|
+| **[`@luckys_luis/nuxt-laravelize`](./)** *(este)* | Runtime — container DI, controllers, queues, mail, notifications, i18n, policies, seeders, factories, testing helpers. |
+| [`@luckys_luis/nuxt-laravelize-config`](../nuxt-laravelize-config) | Toolchain — plugin ESLint con 12 reglas DDD, CLI scaffolding (`new:*`), presets, 15 skills IA con auto-link. |
+| [`@luckys_luis/nuxt-ddd-toolkit`](../nuxt-ddd-toolkit) | Capa bootstrap — detección de capacidades, 1 regla ESLint, 4 skills, CLI mínimo de preflight. |
 
 ## Tabla de contenido
 
 - [Qué ofrece este módulo](#qué-ofrece-este-módulo)
 - [Instalación](#instalación)
 - [Inicio rápido](#inicio-rápido)
-- [Configuración](#configuración)
-- [Comportamiento runtime](#comportamiento-runtime)
-- [Patrones de uso del contenedor](#patrones-de-uso-del-contenedor)
-- [Límites actuales del bootstrap](#límites-actuales-del-bootstrap)
-- [Desarrollo local](#desarrollo-local)
-- [Flujo de publicación](#flujo-de-publicación)
+- [Mapa de features](#mapa-de-features)
+- [Composables (server)](#composables-server)
+- [CLI (bins)](#cli-bins)
+- [Testing helpers](#testing-helpers)
+- [Desarrollo](#desarrollo)
 
 ## Qué ofrece este módulo
 
-- Registro del módulo Nuxt con clave de configuración: `laravelize`.
-- Asociación de contenedor por request en peticiones Nitro.
-- Composable runtime: `useContainer()` para contexto de request en servidor.
-- Utilidad de servidor para resolver el contenedor desde el evento de request.
-- Una API base pequeña para evolucionar a una arquitectura de providers.
+- Container DI (awilix) scoped por request + Tokens type-safe.
+- Service Providers descubiertos por convención + registro programático.
+- Controllers single-action con `defineLaravelizedHandler` y `FormRequest` (Zod / Valibot / Standard Schema).
+- Resources (`Resource`, `ResourceCollection`, `PaginatedResourceCollection`).
+- Eventos con `Dispatcher` + Listeners async/queued.
+- Queue con drivers `memory` y `bullmq`, worker CLI (`laravelize-queue-work`).
+- Authorization Gate + Policies (auto-discovered desde `server/policies/*.policy.ts`).
+- Pagination (`SimplePaginator`, `LengthAwarePaginator`, `CursorPaginator`).
+- Logging (`ConsoleLogger`, `StructuredLogger`, `FileLogger`) cableado en queue y events.
+- Mail (`LogMailer`, `NodemailerMailer`, `ResendMailer`).
+- Notifications con canales `mail`, `log`, `queue`.
+- Localization (`DictionaryTranslator` con pluralización y fallback).
+- Database: `Seeder` + `Factory<T>` + bin `laravelize-db-seed`.
+- Testing helpers (`./testing` subpath): `mountLaravelize`, `FakeDispatcher`, `FakeQueue`, `FakeMailer`, `FakeNotificationManager`, `FakeLogger`.
 
 ## Instalación
-
-Instálalo en tu proyecto Nuxt:
 
 ```bash
 pnpm add @luckys_luis/nuxt-laravelize
 ```
 
-Requisito peer:
-
-- `nuxt >= 4.0.0`
+Peer requeridos: `nuxt >= 4.0.0`, `h3 >= 1.0.0`.
+Peer opcionales: `bullmq`, `ioredis`, `zod`, `valibot`, `drizzle-orm`, `nodemailer`, `resend`, `@faker-js/faker`.
 
 ## Inicio rápido
 
-En `nuxt.config.ts`:
-
 ```ts
-import { defineNuxtConfig } from 'nuxt/config'
-
+// nuxt.config.ts
 export default defineNuxtConfig({
   modules: ['@luckys_luis/nuxt-laravelize'],
   laravelize: {
     container: true,
+    queue: { driver: 'memory' },
   },
 })
 ```
 
-En una ruta de servidor o composable server-side:
-
 ```ts
-export default defineEventHandler((event) => {
-  const container = useContainer()
-  const ping = container.resolve<() => string>('ping')
-
-  return { status: ping() }
+// server/api/users/[id].get.ts
+export default defineLaravelizedHandler({
+  controller: FindUserController,
+  request: FindUserRequest,
 })
 ```
 
-## Configuración
+```ts
+// server/contexts/identity/users/application/UserFinder/UserFinder.ts
+export class UserFinder {
+  constructor(private readonly users: UserRepository) {}
+  async execute(input: { id: string }) {
+    return this.users.find(new UserId(input.id))
+  }
+}
+```
 
-Clave del módulo: `laravelize`
+## Mapa de features
 
-Opciones disponibles:
+| Área | Symbols principales | Helper server |
+|---|---|---|
+| Container | `Container`, `Token`, `createToken` | `useContainer(event)` |
+| Providers | `ServiceProvider`, `Kernel` | descubrimiento automático |
+| Controllers | `defineLaravelizedHandler`, `FormRequest`, `Resource` | — |
+| Events | `Dispatcher`, `Listener`, `EventSubscriber`, `dispatcherToken` | — |
+| Queue | `Queue`, `InMemoryQueue`, `BullMQQueue`, `Job`, `QueueWorker`, `queueToken` | — |
+| Pagination | `LengthAwarePaginator`, `CursorPaginator`, `SimplePaginator` | — |
+| Auth | `Gate`, `Policy`, `PolicyRegistry`, `gateToken` | — |
+| Logging | `Logger`, `ConsoleLogger`, `StructuredLogger`, `FileLogger`, `loggerToken` | `useLogger(event)` |
+| Mail | `Mailable`, `Mailer`, `LogMailer`, `NodemailerMailer`, `ResendMailer`, `mailerToken` | `useMailer(event)` |
+| Notifications | `Notification`, `Notifiable`, `MailChannel`, `LogChannel`, `QueueChannel`, `notificationManagerToken` | `useNotifier(event)` |
+| i18n | `Translator`, `DictionaryTranslator`, `translatorToken` | `useTranslator(event)` |
+| Seeding | `Seeder`, `SeederRegistry`, `discoverSeedersByConvention` | bin `laravelize-db-seed` |
+| Factories | `Factory<T>`, `FactoryRegistry`, `builtInFaker` | — |
 
-- `container: boolean` (por defecto: `true`)
+## Composables (server)
 
-Comportamiento:
+Todos auto-importados en server routes:
 
-- `container: true` registra el plugin Nitro que adjunta `event.context.laravelizeContainer`.
-- `container: false` desactiva la asociación del contenedor por request.
+- `useContainer(event)` — container scoped por request.
+- `useLogger(event)`, `useMailer(event)`, `useNotifier(event)`, `useTranslator(event)`.
+
+## CLI (bins)
+
+```bash
+# Worker de colas
+laravelize-queue-work --queue=default --concurrency=4 --config=laravelize.queue.config.ts
+
+# Seeder
+laravelize-db-seed --class=DemoInvoiceSeeder --config=laravelize.seed.config.ts
+```
+
+Para scaffolding (contextos, agregados, use cases…) instala `@luckys_luis/nuxt-laravelize-config` y usa `pnpm laravelize new:*`.
+
+## Testing helpers
+
+Subpath export `@luckys_luis/nuxt-laravelize/testing`:
+
+```ts
+import { mountLaravelize } from '@luckys_luis/nuxt-laravelize/testing'
+
+const harness = await mountLaravelize({
+  fakes: { dispatcher: true, queue: true, mailer: true, notifications: true, logger: true },
+})
+
+await useCase.execute(...)
+
+harness.dispatcher!.assertDispatched(InvoiceCreated, (e) => e.amount === 100)
+harness.queue!.assertQueued(SendNotificationJob)
+harness.mailer!.assertMailed(InvoicePaidMail)
+harness.notifications!.assertSentTo(user, InvoicePaidNotification)
+expect(harness.logger!.hasMessage('info', 'mail dispatched')).toBe(true)
+```
 
 ## Comportamiento runtime
 
-Cuando está habilitado, cada request entrante recibe su propia instancia de contenedor con scope.
+Cuando el container está activo, cada request Nitro recibe un container scoped en `event.context.laravelizeContainer`. Los providers descubiertos en `server/contexts/**/infrastructure/*ServiceProvider.ts` se registran y bootean automáticamente al boot.
 
-Resumen de flujo:
-
-1. El setup del módulo registra plugin Nuxt + composables.
-2. Se ejecuta el hook de request de Nitro.
-3. Se adjunta un contenedor scoped al contexto del request.
-4. `useContainer()` recupera esa instancia.
-
-## Patrones de uso del contenedor
-
-La API del contenedor soporta:
-
-- `register(serviceKey, factory)`
-- `resolve(serviceKey)`
-- `createScope()`
-
-Ejemplo de registro y resolución:
-
-```ts
-const container = useContainer()
-
-container.register('clock', () => ({ now: () => new Date().toISOString() }))
-
-const clock = container.resolve<{ now: () => string }>('clock')
-const timestamp = clock.now()
-```
-
-Si resuelves un servicio no registrado, se lanza un error explícito:
-
-- `Service not registered: <serviceKey>`
-
-## Límites actuales del bootstrap
-
-Este paquete actualmente ofrece infraestructura base de bootstrap:
-
-- wiring del contenedor
-- superficie runtime mínima
-- contratos de tipos para providers
-
-Todavía no incluye un set completo estilo Laravel como colas, pipelines de correo, políticas de autorización o generadores de scaffolding de dominio.
-
-## Desarrollo local
+## Desarrollo
 
 ```bash
 pnpm install
 pnpm dev:prepare
-pnpm dev
-```
-
-Validaciones de calidad:
-
-```bash
+pnpm dev        # arranca playground
+pnpm test       # vitest (342 tests)
+pnpm typecheck  # vue-tsc --noEmit
 pnpm lint
-pnpm test
-pnpm typecheck
 ```
 
 ## Flujo de publicación
