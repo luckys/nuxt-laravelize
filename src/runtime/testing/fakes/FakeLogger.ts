@@ -19,6 +19,6 @@ export class FakeLogger implements Logger {
   reset(): void { this.records.length = 0 }
 
   hasMessage(level: LogLevel, message: string): boolean {
-    return this.records.some((r) => r.level === level && r.message === message)
+    return this.records.some(r => r.level === level && r.message === message)
   }
 }

@@ -8,7 +8,7 @@ export interface NodemailerTransport {
     subject: string
     html: string
     text?: string
-    attachments?: ReadonlyArray<{ filename: string; content: string | Uint8Array; contentType?: string }>
+    attachments?: ReadonlyArray<{ filename: string, content: string | Uint8Array, contentType?: string }>
   }): Promise<unknown>
 }
 

@@ -9,7 +9,7 @@ export class QueueChannel implements Channel {
   constructor(private readonly queue: Queue) {}
 
   async send(notifiable: Notifiable, notification: Notification): Promise<void> {
-    const inlineChannels = notification.via(notifiable).filter((c) => c !== 'queue')
+    const inlineChannels = notification.via(notifiable).filter(c => c !== 'queue')
     const payload = notification.toArray?.(notifiable) ?? {}
     const job = new SendNotificationJob({
       notifiableType: (notifiable as object).constructor.name,

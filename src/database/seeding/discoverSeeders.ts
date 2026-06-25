@@ -10,7 +10,7 @@ export function discoverSeedersByConvention(rootDir: string): readonly Discovere
   const dir = join(rootDir, 'server', 'database', 'seeders')
   if (!existsSync(dir)) return []
   return readdirSync(dir)
-    .filter((file) => file.endsWith('.seeder.ts') || file.endsWith('.seeder.js'))
+    .filter(file => file.endsWith('.seeder.ts') || file.endsWith('.seeder.js'))
     .map((file) => {
       const path = join(dir, file)
       if (!statSync(path).isFile()) return null

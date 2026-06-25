@@ -20,7 +20,7 @@ export class FakeDispatcher implements Dispatcher {
     eventClass: new (...args: never[]) => E,
     matcher?: (event: E) => boolean,
   ): void {
-    const matches = this.dispatched.filter((e) => e instanceof eventClass) as E[]
+    const matches = this.dispatched.filter(e => e instanceof eventClass) as E[]
     if (matches.length === 0) {
       throw new Error(`Expected an event of type ${eventClass.name} to be dispatched, none were.`)
     }
@@ -36,7 +36,7 @@ export class FakeDispatcher implements Dispatcher {
   }
 
   assertNotDispatched<E>(eventClass: new (...args: never[]) => E): void {
-    if (this.dispatched.some((e) => e instanceof eventClass)) {
+    if (this.dispatched.some(e => e instanceof eventClass)) {
       throw new Error(`Expected ${eventClass.name} NOT to be dispatched, but it was.`)
     }
   }

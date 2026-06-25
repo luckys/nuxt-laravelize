@@ -1,4 +1,4 @@
-export abstract class Policy<TUser = unknown, TModel = unknown> {
+export abstract class Policy<TUser = unknown, _TModel = unknown> {
   before?(user: TUser): boolean | null | Promise<boolean | null>;
 
   [action: string]: unknown

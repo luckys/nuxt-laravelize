@@ -10,7 +10,7 @@ export function discoverPoliciesByConvention(rootDir: string): readonly Discover
   const dir = join(rootDir, 'server', 'policies')
   if (!existsSync(dir)) return []
   return readdirSync(dir)
-    .filter((file) => file.endsWith('.policy.ts') || file.endsWith('.policy.js'))
+    .filter(file => file.endsWith('.policy.ts') || file.endsWith('.policy.js'))
     .map((file) => {
       const path = join(dir, file)
       if (!statSync(path).isFile()) return null

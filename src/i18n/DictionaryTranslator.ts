@@ -10,7 +10,7 @@ export interface DictionaryTranslatorOptions {
   readonly fallbackLocale?: string
 }
 
-const TOKEN = /:([a-zA-Z_][a-zA-Z0-9_]*)/g
+const TOKEN = /:([a-z_]\w*)/gi
 
 export class DictionaryTranslator implements Translator {
   readonly #dictionaries: Dictionaries

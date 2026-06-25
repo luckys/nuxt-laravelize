@@ -15,8 +15,8 @@ class WelcomeMail extends Mailable {
   override text() { return `Hello ${this.name}` }
 }
 
-function recordingLogger(): { logger: Logger; calls: Array<{ message: string; context: unknown }> } {
-  const calls: Array<{ message: string; context: unknown }> = []
+function recordingLogger(): { logger: Logger, calls: Array<{ message: string, context: unknown }> } {
+  const calls: Array<{ message: string, context: unknown }> = []
   const logger: Logger = {
     debug: () => {},
     info: (m, c) => calls.push({ message: m, context: c }),
@@ -71,7 +71,12 @@ describe('LogMailer', () => {
 describe('NodemailerMailer', () => {
   it('forwards a payload to the transport with the assembled message', async () => {
     const received: unknown[] = []
-    const transport: NodemailerTransport = { sendMail: async (opts) => { received.push(opts); return null } }
+    const transport: NodemailerTransport = {
+      sendMail: async (opts) => {
+        received.push(opts)
+        return null
+      },
+    }
     const mailer = new NodemailerMailer(transport, 'default@x.com')
     await mailer.send(new WelcomeMail('ada@example.com', 'Ada'))
     expect(received[0]).toMatchObject({
@@ -90,7 +95,12 @@ describe('NodemailerMailer', () => {
       render() { return 'h' }
     }
     const received: unknown[] = []
-    const transport: NodemailerTransport = { sendMail: async (opts) => { received.push(opts); return null } }
+    const transport: NodemailerTransport = {
+      sendMail: async (opts) => {
+        received.push(opts)
+        return null
+      },
+    }
     const mailer = new NodemailerMailer(transport, 'fallback@x.com')
     await mailer.send(new NoFromMail())
     expect((received[0] as { from: string }).from).toBe('fallback@x.com')
@@ -101,7 +111,12 @@ describe('ResendMailer', () => {
   it('forwards a payload to client.emails.send', async () => {
     const received: unknown[] = []
     const client: ResendClient = {
-      emails: { send: async (payload) => { received.push(payload); return null } },
+      emails: {
+        send: async (payload) => {
+          received.push(payload)
+          return null
+        },
+      },
     }
     const mailer = new ResendMailer(client, 'default@x.com')
     await mailer.send(new WelcomeMail('ada@example.com', 'Ada'))

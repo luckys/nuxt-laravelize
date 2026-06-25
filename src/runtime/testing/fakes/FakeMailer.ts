@@ -14,7 +14,7 @@ export class FakeMailer implements Mailer {
     mailableClass: new (...args: never[]) => M,
     matcher?: (mailable: M) => boolean,
   ): void {
-    const matches = this.sent.filter((m) => m instanceof mailableClass) as M[]
+    const matches = this.sent.filter(m => m instanceof mailableClass) as M[]
     if (matches.length === 0) {
       throw new Error(`Expected a mailable of type ${mailableClass.name} to be sent, none were.`)
     }

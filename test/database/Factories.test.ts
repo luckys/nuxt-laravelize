@@ -28,7 +28,7 @@ describe('Factory', () => {
   it('returns an array when count > 1', () => {
     const items = new InvoiceFactory().count(3).make() as InvoiceShape[]
     expect(items).toHaveLength(3)
-    expect(items.every((i) => i.amount === 100)).toBe(true)
+    expect(items.every(i => i.amount === 100)).toBe(true)
   })
 
   it('applies state overrides via object', () => {
@@ -38,7 +38,7 @@ describe('Factory', () => {
 
   it('applies state overrides via function', () => {
     const item = new InvoiceFactory()
-      .state((d) => ({ amount: d.amount * 2 }))
+      .state(d => ({ amount: d.amount * 2 }))
       .make() as InvoiceShape
     expect(item.amount).toBe(200)
   })
@@ -46,7 +46,7 @@ describe('Factory', () => {
   it('chains multiple state() calls in order', () => {
     const item = new InvoiceFactory()
       .state({ amount: 50 })
-      .state((d) => ({ amount: d.amount + 10 }))
+      .state(d => ({ amount: d.amount + 10 }))
       .make() as InvoiceShape
     expect(item.amount).toBe(60)
   })
@@ -63,7 +63,9 @@ describe('Factory', () => {
 
   it('create() persists each made item', async () => {
     const persisted: InvoiceShape[] = []
-    await new InvoiceFactory().count(2).create(async (i) => { persisted.push(i) })
+    await new InvoiceFactory().count(2).create(async (i) => {
+      persisted.push(i)
+    })
     expect(persisted).toHaveLength(2)
   })
 })

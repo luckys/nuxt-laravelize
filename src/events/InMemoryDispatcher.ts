@@ -100,15 +100,15 @@ export class InMemoryDispatcher implements Dispatcher {
           if (result instanceof Promise) {
             result.catch((error) => {
               loggerFor(this.#resolver).error('queued listener failed', {
-        error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
-      })
+                error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+              })
             })
           }
         }
         catch (error) {
           loggerFor(this.#resolver).error('queued listener failed', {
-        error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
-      })
+            error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+          })
         }
       })
     })

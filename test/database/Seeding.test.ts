@@ -40,8 +40,12 @@ describe('DefaultSeederRegistry', () => {
 
 describe('discoverSeedersByConvention', () => {
   let root: string
-  beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'nlz-seed-')) })
-  afterEach(() => { rmSync(root, { recursive: true, force: true }) })
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'nlz-seed-'))
+  })
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true })
+  })
 
   it('returns an empty list when the directory is missing', () => {
     expect(discoverSeedersByConvention(root)).toEqual([])
@@ -55,6 +59,6 @@ describe('discoverSeedersByConvention', () => {
     writeFileSync(join(dir, 'Other.seeder.js'), '')
 
     const discovered = discoverSeedersByConvention(root)
-    expect(discovered.map((d) => d.name).sort()).toEqual(['DemoInvoice', 'Other'])
+    expect(discovered.map(d => d.name).sort()).toEqual(['DemoInvoice', 'Other'])
   })
 })

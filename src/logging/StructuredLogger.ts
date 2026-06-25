@@ -15,7 +15,7 @@ export class StructuredLogger extends AbstractLogger {
 
   constructor(options: StructuredLoggerOptions = {}) {
     super(options.threshold ?? 'info')
-    this.#sink = options.sink ?? ((line) => process.stdout.write(`${line}\n`))
+    this.#sink = options.sink ?? (line => process.stdout.write(`${line}\n`))
     this.#now = options.now ?? (() => new Date())
     this.#serviceName = options.serviceName
   }

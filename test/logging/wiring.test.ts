@@ -7,8 +7,8 @@ import { Job } from '../../src/queue/Job'
 import { loggerToken } from '../../src/logging/LoggerToken'
 import type { Logger } from '../../src/logging/Logger'
 
-function recordingLogger(): { logger: Logger; events: Array<{ level: string; message: string; context: unknown }> } {
-  const events: Array<{ level: string; message: string; context: unknown }> = []
+function recordingLogger(): { logger: Logger, events: Array<{ level: string, message: string, context: unknown }> } {
+  const events: Array<{ level: string, message: string, context: unknown }> = []
   const logger: Logger = {
     debug: (m, c) => events.push({ level: 'debug', message: m, context: c }),
     info: (m, c) => events.push({ level: 'info', message: m, context: c }),
@@ -37,9 +37,9 @@ describe('InMemoryQueue wiring with logger', () => {
 
     const queue = new InMemoryQueue(container)
     await queue.push(new FailingJob())
-    await new Promise((r) => setTimeout(r, 30))
+    await new Promise(r => setTimeout(r, 30))
 
-    const errorEvent = events.find((e) => e.level === 'error' && e.message === 'queue job failed')
+    const errorEvent = events.find(e => e.level === 'error' && e.message === 'queue job failed')
     expect(errorEvent).toBeDefined()
     expect((errorEvent!.context as { jobName: string }).jobName).toBe('FailingJob')
   })

@@ -11,7 +11,7 @@ import {
 import { discoverPoliciesByConvention } from '../../src/auth/policiesByConvention'
 import { GateRuleNotDefinedError } from '../../src/auth/GateRuleNotDefinedError'
 
-interface UserShape { readonly id: string; readonly admin: boolean }
+interface UserShape { readonly id: string, readonly admin: boolean }
 class Invoice {
   constructor(readonly customerId: string, readonly status: 'paid' | 'draft' = 'draft') {}
 }
@@ -85,8 +85,12 @@ describe('InMemoryGate + policies', () => {
 
 describe('discoverPoliciesByConvention', () => {
   let root: string
-  beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'nlz-pol-')) })
-  afterEach(() => { rmSync(root, { recursive: true, force: true }) })
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'nlz-pol-'))
+  })
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true })
+  })
 
   it('returns empty when the directory is missing', () => {
     expect(discoverPoliciesByConvention(root)).toEqual([])
@@ -98,6 +102,6 @@ describe('discoverPoliciesByConvention', () => {
     writeFileSync(join(dir, 'Invoice.policy.ts'), '')
     writeFileSync(join(dir, 'README.md'), '')
     writeFileSync(join(dir, 'User.policy.js'), '')
-    expect(discoverPoliciesByConvention(root).map((d) => d.name).sort()).toEqual(['Invoice', 'User'])
+    expect(discoverPoliciesByConvention(root).map(d => d.name).sort()).toEqual(['Invoice', 'User'])
   })
 })

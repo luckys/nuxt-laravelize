@@ -22,7 +22,7 @@ export class FakeQueue implements Queue {
 
   async size(queueName?: string): Promise<number> {
     if (queueName === undefined) return this.pushed.length
-    return this.pushed.filter((p) => (p.options?.queue ?? (p.job.constructor as { queue?: string }).queue) === queueName).length
+    return this.pushed.filter(p => (p.options?.queue ?? (p.job.constructor as { queue?: string }).queue) === queueName).length
   }
 
   async clear(queueName?: string): Promise<void> {
@@ -43,11 +43,11 @@ export class FakeQueue implements Queue {
     jobClass: new (...args: never[]) => J,
     matcher?: (job: J) => boolean,
   ): void {
-    const matches = this.pushed.filter((e) => e.job instanceof jobClass) as Array<PushedEntry & { job: J }>
+    const matches = this.pushed.filter(e => e.job instanceof jobClass) as Array<PushedEntry & { job: J }>
     if (matches.length === 0) {
       throw new Error(`Expected a job of type ${jobClass.name} to be queued, none were.`)
     }
-    if (matcher !== undefined && !matches.some((m) => matcher(m.job))) {
+    if (matcher !== undefined && !matches.some(m => matcher(m.job))) {
       throw new Error(`Queued ${jobClass.name} jobs did not match the predicate.`)
     }
   }

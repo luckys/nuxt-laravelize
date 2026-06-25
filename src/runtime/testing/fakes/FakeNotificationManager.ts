@@ -21,9 +21,9 @@ export class FakeNotificationManager implements NotificationManager {
 
   assertSent<N extends Notification>(
     notificationClass: new (...args: never[]) => N,
-    matcher?: (entry: { notifiable: Notifiable; notification: N }) => boolean,
+    matcher?: (entry: { notifiable: Notifiable, notification: N }) => boolean,
   ): void {
-    const matches = this.sent.filter((e) => e.notification instanceof notificationClass) as Array<{
+    const matches = this.sent.filter(e => e.notification instanceof notificationClass) as Array<{
       notifiable: Notifiable
       notification: N
     }>
@@ -39,7 +39,7 @@ export class FakeNotificationManager implements NotificationManager {
     target: Notifiable,
     notificationClass: new (...args: never[]) => N,
   ): void {
-    const matched = this.sent.find((e) => e.notifiable === target && e.notification instanceof notificationClass)
+    const matched = this.sent.find(e => e.notifiable === target && e.notification instanceof notificationClass)
     if (matched === undefined) {
       throw new Error(`Expected a ${notificationClass.name} sent to the given notifiable.`)
     }

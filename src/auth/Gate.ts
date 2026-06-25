@@ -1,4 +1,3 @@
-import type { Policy } from './Policy'
 import type { PolicyRegistry } from './PolicyRegistry'
 import { GateRuleNotDefinedError } from './GateRuleNotDefinedError'
 

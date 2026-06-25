@@ -5,8 +5,8 @@ export interface FakerShim {
     word(): string
   }
   readonly number: {
-    int(opts?: { min?: number; max?: number }): number
-    float(opts?: { min?: number; max?: number }): number
+    int(opts?: { min?: number, max?: number }): number
+    float(opts?: { min?: number, max?: number }): number
   }
   readonly date: {
     past(): Date
@@ -18,7 +18,7 @@ export function builtInFaker(seed = Date.now()): FakerShim {
   let state = seed >>> 0
   const next = (): number => {
     state = (state * 1664525 + 1013904223) >>> 0
-    return state / 0xffffffff
+    return state / 0xFFFFFFFF
   }
   const intIn = (min: number, max: number): number => Math.floor(min + next() * (max - min + 1))
 

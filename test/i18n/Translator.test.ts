@@ -28,7 +28,7 @@ describe('DictionaryTranslator', () => {
       'shared': 'Shared EN',
     },
     es: {
-      'greeting': 'Hola :name',
+      greeting: 'Hola :name',
     },
   }
 

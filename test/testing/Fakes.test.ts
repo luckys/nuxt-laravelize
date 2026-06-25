@@ -22,7 +22,9 @@ class WelcomeMail extends Mailable {
   render() { return 'h' }
 }
 
-class WelcomeNotification extends Notification { via() { return ['mail' as const] } }
+class WelcomeNotification extends Notification {
+  via() { return ['mail' as const] }
+}
 
 class TestJob extends Job {
   override async handle() {}
@@ -35,8 +37,8 @@ describe('FakeDispatcher', () => {
     await d.dispatch(new UserSignedUp('u1'))
     await d.dispatch(new OtherEvent(42))
     d.assertDispatched(UserSignedUp)
-    d.assertDispatched(UserSignedUp, (e) => e.id === 'u1')
-    d.assertNotDispatched(class Foo {})
+    d.assertDispatched(UserSignedUp, e => e.id === 'u1')
+    d.assertNotDispatched(class Foo { _: unknown = null })
   })
 
   it('assertNothingDispatched throws when something was dispatched', async () => {
@@ -75,7 +77,7 @@ describe('FakeMailer', () => {
   it('records sent mailables', async () => {
     const m = new FakeMailer()
     await m.send(new WelcomeMail('ada@x.com'))
-    m.assertMailed(WelcomeMail, (mail) => mail.to() === 'ada@x.com')
+    m.assertMailed(WelcomeMail, mail => mail.to() === 'ada@x.com')
   })
 })
 

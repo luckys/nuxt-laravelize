@@ -41,7 +41,7 @@ describe('StructuredLogger', () => {
   it('writes single-line JSON to its sink', () => {
     const lines: string[] = []
     const logger = new StructuredLogger({
-      sink: (line) => lines.push(line),
+      sink: line => lines.push(line),
       now: () => new Date('2026-01-01T00:00:00Z'),
       serviceName: 'billing',
     })
@@ -60,8 +60,12 @@ describe('StructuredLogger', () => {
 
 describe('FileLogger', () => {
   let dir: string
-  beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'nlz-log-')) })
-  afterEach(() => { rmSync(dir, { recursive: true, force: true }) })
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'nlz-log-'))
+  })
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
 
   it('appends one JSON line per call and creates the file', () => {
     const path = join(dir, 'a.log')
@@ -69,7 +73,7 @@ describe('FileLogger', () => {
     logger.info('first')
     logger.error('second', { kind: 'oops' })
     expect(existsSync(path)).toBe(true)
-    const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+    const lines = readFileSync(path, 'utf8').trim().split('\n').map(l => JSON.parse(l))
     expect(lines).toHaveLength(2)
     expect(lines[0]).toEqual({ timestamp: '2026-01-01T00:00:00.000Z', level: 'info', message: 'first' })
     expect(lines[1]?.context).toEqual({ kind: 'oops' })

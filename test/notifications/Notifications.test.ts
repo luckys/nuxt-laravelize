@@ -40,13 +40,20 @@ class User implements Notifiable {
   }
 }
 
-function fakeMailer(): { mailer: Mailer; sent: Mailable[] } {
+function fakeMailer(): { mailer: Mailer, sent: Mailable[] } {
   const sent: Mailable[] = []
-  return { mailer: { send: async (m) => { sent.push(m) } }, sent }
+  return {
+    mailer: {
+      send: async (m) => {
+        sent.push(m)
+      },
+    },
+    sent,
+  }
 }
 
-function fakeLogger(): { logger: Logger; calls: Array<{ message: string; context: unknown }> } {
-  const calls: Array<{ message: string; context: unknown }> = []
+function fakeLogger(): { logger: Logger, calls: Array<{ message: string, context: unknown }> } {
+  const calls: Array<{ message: string, context: unknown }> = []
   return {
     logger: {
       debug: () => {},
@@ -59,11 +66,14 @@ function fakeLogger(): { logger: Logger; calls: Array<{ message: string; context
   }
 }
 
-function fakeQueue(): { queue: Queue; pushed: Array<{ job: Job; options: PushOptions | undefined }> } {
-  const pushed: Array<{ job: Job; options: PushOptions | undefined }> = []
+function fakeQueue(): { queue: Queue, pushed: Array<{ job: Job, options: PushOptions | undefined }> } {
+  const pushed: Array<{ job: Job, options: PushOptions | undefined }> = []
   return {
     queue: {
-      push: async (job, options) => { pushed.push({ job, options }); return { id: 'fake', queue: 'notifications' } as JobHandle },
+      push: async (job, options) => {
+        pushed.push({ job, options })
+        return { id: 'fake', queue: 'notifications' } as JobHandle
+      },
       later: async () => ({ id: 'fake', queue: 'notifications' } as JobHandle),
       size: async () => 0,
       clear: async () => {},
@@ -83,7 +93,9 @@ describe('MailChannel', () => {
 
   it('is a no-op when toMail is not defined', async () => {
     const { mailer, sent } = fakeMailer()
-    class Silent extends Notification { via() { return ['mail' as const] } }
+    class Silent extends Notification {
+      via() { return ['mail' as const] }
+    }
     await new MailChannel(mailer).send(new User('u', 'x'), new Silent())
     expect(sent).toHaveLength(0)
   })
@@ -111,7 +123,7 @@ describe('QueueChannel', () => {
     const job = pushed[0]!.job as SendNotificationJob
     expect(job).toBeInstanceOf(SendNotificationJob)
     expect(job.serialize().name).toBe('SendNotificationJob')
-    const payload = job.serialize().args[0] as { channels: string[]; notificationName: string }
+    const payload = job.serialize().args[0] as { channels: string[], notificationName: string }
     expect(payload.channels).toEqual(['mail', 'log'])
     expect(payload.notificationName).toBe('WelcomeNotification')
   })

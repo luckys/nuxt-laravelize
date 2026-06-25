@@ -9,7 +9,7 @@ export interface ResendClient {
       subject: string
       html?: string
       text?: string
-      attachments?: ReadonlyArray<{ filename: string; content: string | Uint8Array }>
+      attachments?: ReadonlyArray<{ filename: string, content: string | Uint8Array }>
     }): Promise<unknown>
   }
 }
@@ -26,7 +26,7 @@ export class ResendMailer implements Mailer {
       html: message.html,
       text: message.text,
       attachments: message.attachments.length > 0
-        ? message.attachments.map((a) => ({ filename: a.filename, content: a.content }))
+        ? message.attachments.map(a => ({ filename: a.filename, content: a.content }))
         : undefined,
     })
   }
