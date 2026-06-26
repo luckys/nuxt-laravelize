@@ -142,20 +142,20 @@ describe('nuxt-laravelize integration', () => {
   })
 
   it('returns a single user serialized by UserResource', async () => {
-    const response = await $fetch<{ id: string, email: string, name: string, meta?: { role: string } }>('/api/users/user-1')
+    const response = await $fetch<{ data: { id: string, email: string, name: string, meta?: { role: string } } }>('/api/users/user-1')
 
-    expect(response.id).toBe('user-1')
-    expect(response.email).toBe('ada@example.com')
-    expect(response.name).toBe('Ada Lovelace')
-    expect(response.meta).toBeUndefined()
+    expect(response.data.id).toBe('user-1')
+    expect(response.data.email).toBe('ada@example.com')
+    expect(response.data.name).toBe('Ada Lovelace')
+    expect(response.data.meta).toBeUndefined()
   })
 
   it('includes meta.role when the x-user-role header is present (event flows to toArray)', async () => {
-    const response = await $fetch<{ meta?: { role: string } }>('/api/users/user-1', {
+    const response = await $fetch<{ data: { meta?: { role: string } } }>('/api/users/user-1', {
       headers: { 'x-user-role': 'admin' },
     })
 
-    expect(response.meta).toEqual({ role: 'admin' })
+    expect(response.data.meta).toEqual({ role: 'admin' })
   })
 
   it('returns a paginated collection of users (first page, 5 per page by default)', async () => {
@@ -174,16 +174,18 @@ describe('nuxt-laravelize integration', () => {
 
   it('serializes nested Resources (Post -> author UserResource)', async () => {
     const response = await $fetch<{
-      id: string
-      title: string
-      content: string
-      author: { id: string, email: string, name: string }
+      data: {
+        id: string
+        title: string
+        content: string
+        author: { id: string, email: string, name: string }
+      }
     }>('/api/posts/post-seed-1')
 
-    expect(response.id).toBe('post-seed-1')
-    expect(response.title).toBe('Hello')
-    expect(response.content).toBe('World')
-    expect(response.author).toEqual({
+    expect(response.data.id).toBe('post-seed-1')
+    expect(response.data.title).toBe('Hello')
+    expect(response.data.content).toBe('World')
+    expect(response.data.author).toEqual({
       id: 'user-1',
       email: 'ada@example.com',
       name: 'Ada Lovelace',

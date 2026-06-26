@@ -1,3 +1,5 @@
+import { createError } from 'h3'
+
 import type { PolicyRegistry } from './PolicyRegistry'
 import { GateRuleNotDefinedError } from './GateRuleNotDefinedError'
 
@@ -7,6 +9,7 @@ export interface Gate {
   define(rule: string, callback: GateCallback): void
   allows(rule: string, ...args: readonly unknown[]): Promise<boolean>
   denies(rule: string, ...args: readonly unknown[]): Promise<boolean>
+  authorize(rule: string, ...args: readonly unknown[]): Promise<void>
 }
 
 export class InMemoryGate implements Gate {
@@ -32,6 +35,16 @@ export class InMemoryGate implements Gate {
 
   async denies(rule: string, ...args: readonly unknown[]): Promise<boolean> {
     return !(await this.allows(rule, ...args))
+  }
+
+  async authorize(rule: string, ...args: readonly unknown[]): Promise<void> {
+    if (!(await this.allows(rule, ...args))) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        data: { message: 'This action is unauthorized.' },
+      })
+    }
   }
 
   async #tryPolicy(rule: string, args: readonly unknown[]): Promise<boolean | undefined> {

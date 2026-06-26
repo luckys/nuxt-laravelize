@@ -430,7 +430,7 @@ describe('defineLaravelizedHandler', () => {
 
     const response = await handler(createMockEvent())
 
-    expect(response).toEqual({ id: 'u-1' })
+    expect(response).toEqual({ data: { id: 'u-1' } })
   })
 
   it('auto-serializes a ResourceCollection returned by the controller', async () => {

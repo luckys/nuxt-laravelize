@@ -27,7 +27,9 @@ export class DefaultSeederRegistry implements SeederRegistry {
   async resolve(name: string): Promise<Seeder> {
     const factory = this.#factories.get(name)
     if (factory === undefined) throw new UnknownSeeder(name)
-    return await factory()
+    const seeder = await factory()
+    seeder._setRegistry(this)
+    return seeder
   }
 }
 

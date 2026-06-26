@@ -1,5 +1,5 @@
 export interface Listener<E> {
-  handle(event: E): void | Promise<void>
+  handle(event: E): void | false | Promise<void | false>
 }
 
 export interface ShouldQueue {

@@ -862,3 +862,92 @@ describe('InMemoryDispatcher — F4 queue integration', () => {
     expect(pushOrder).toEqual(['a', 'b'])
   })
 })
+
+describe('InMemoryDispatcher — propagation stop (return false)', () => {
+  it('a listener returning false stops propagation to subsequent listeners', async () => {
+    const calls: string[] = []
+    const tokenA = createToken<Listener<UserRegistered>>('a')
+    const tokenB = createToken<Listener<UserRegistered>>('b')
+    const tokenC = createToken<Listener<UserRegistered>>('c')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['a', { handle: () => { calls.push('a') } }],
+      ['b', { handle: () => {
+        calls.push('b')
+        return false
+      } }],
+      ['c', { handle: () => { calls.push('c') } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, tokenA)
+    dispatcher.listen(UserRegistered, tokenB)
+    dispatcher.listen(UserRegistered, tokenC)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['a', 'b'])
+  })
+
+  it('a listener returning undefined continues propagation', async () => {
+    const calls: string[] = []
+    const tokenA = createToken<Listener<UserRegistered>>('a')
+    const tokenB = createToken<Listener<UserRegistered>>('b')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['a', { handle: () => { calls.push('a') } }],
+      ['b', { handle: () => { calls.push('b') } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, tokenA)
+    dispatcher.listen(UserRegistered, tokenB)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['a', 'b'])
+  })
+
+  it('a listener returning true continues propagation', async () => {
+    const calls: string[] = []
+    const tokenA = createToken<Listener<UserRegistered>>('a')
+    const tokenB = createToken<Listener<UserRegistered>>('b')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['a', {
+        handle: () => {
+          calls.push('a')
+          return true
+        },
+      }],
+      ['b', { handle: () => { calls.push('b') } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, tokenA)
+    dispatcher.listen(UserRegistered, tokenB)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['a', 'b'])
+  })
+
+  it('wildcard (listenAny) listeners also respect stop', async () => {
+    const calls: string[] = []
+    const specificToken = createToken<Listener<UserRegistered>>('specific')
+    const anyToken = createToken<Listener<unknown>>('any')
+    const followAnyToken = createToken<Listener<unknown>>('follow')
+    const resolver = createResolver(new Map<string, unknown>([
+      ['specific', { handle: () => { calls.push('specific') } }],
+      ['any', {
+        handle: () => {
+          calls.push('any')
+          return false
+        },
+      }],
+      ['follow', { handle: () => { calls.push('follow') } }],
+    ]))
+    const dispatcher = new InMemoryDispatcher(resolver)
+
+    dispatcher.listen(UserRegistered, specificToken)
+    dispatcher.listenAny(anyToken)
+    dispatcher.listenAny(followAnyToken)
+    await dispatcher.dispatch(new UserRegistered('u-1'))
+
+    expect(calls).toEqual(['specific', 'any'])
+  })
+})

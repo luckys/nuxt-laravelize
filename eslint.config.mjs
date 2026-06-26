@@ -19,4 +19,10 @@ export default createConfigForNuxt({
 })
   .append(
     // your custom flat config here...
+    {
+      files: ['src/events/Listener.ts'],
+      rules: {
+        '@typescript-eslint/no-invalid-void-type': 'off',
+      },
+    },
   )

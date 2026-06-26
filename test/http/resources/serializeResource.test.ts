@@ -45,10 +45,10 @@ describe('isResource / isResourceCollection', () => {
 })
 
 describe('serializeResource', () => {
-  it('serializes a Resource into a plain object', async () => {
+  it('serializes a Resource into a plain object wrapped in { data }', async () => {
     const result = await serializeResource(new UserResource({ id: 'u-1' }), createMockEvent())
 
-    expect(result).toEqual({ id: 'u-1' })
+    expect(result).toEqual({ data: { id: 'u-1' } })
   })
 
   it('serializes a ResourceCollection into a plain array', async () => {
@@ -79,7 +79,7 @@ describe('serializeResource', () => {
     expect(result).toEqual([{ id: 'u-1' }, { static: true }])
   })
 
-  it('resolves a Resource whose toArray returns another Resource recursively', async () => {
+  it('resolves a Resource whose toArray returns another Resource recursively (wrapped)', async () => {
     class WrappingResource extends Resource<User> {
       override toArray() {
         return { inner: new UserResource(this.resource) } as unknown as Record<string, unknown>
@@ -88,7 +88,7 @@ describe('serializeResource', () => {
 
     const result = await serializeResource(new WrappingResource({ id: 'u-1' }), createMockEvent())
 
-    expect(result).toEqual({ inner: { id: 'u-1' } })
+    expect(result).toEqual({ data: { inner: { id: 'u-1' } } })
   })
 
   it('returns primitives, null, and Date untouched', async () => {

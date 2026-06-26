@@ -57,7 +57,8 @@ export class InMemoryDispatcher implements Dispatcher {
         this.#scheduleMicrotask(listener, event)
         continue
       }
-      await listener.handle(event)
+      const result = await listener.handle(event)
+      if (result === false) break
     }
   }
 

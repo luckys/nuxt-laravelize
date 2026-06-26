@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 
 import type { Resource } from './Resource'
-import { serializeResource } from './serializeResource'
+import { serialize } from './serializeResource'
 
 export class ResourceCollection<R extends Resource<unknown>> {
   readonly items: readonly R[]
@@ -11,6 +11,6 @@ export class ResourceCollection<R extends Resource<unknown>> {
   }
 
   async toArray(event: H3Event): Promise<Array<unknown>> {
-    return Promise.all(this.items.map(item => serializeResource(item, event)))
+    return Promise.all(this.items.map(item => serialize(item, event)))
   }
 }

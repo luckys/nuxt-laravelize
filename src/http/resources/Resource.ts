@@ -9,11 +9,36 @@ import { ResourceCollection } from './ResourceCollection'
 export abstract class Resource<T> {
   readonly resource: T
 
+  static #wrappingEnabled = true
+
+  static withoutWrapping(): void {
+    Resource.#wrappingEnabled = false
+  }
+
+  /** Restore wrapping after withoutWrapping() (test/restore use). */
+  static restoreWrapping(): void {
+    Resource.#wrappingEnabled = true
+  }
+
+  static get shouldWrap(): boolean {
+    return Resource.#wrappingEnabled
+  }
+
   constructor(resource: T) {
     this.resource = resource
   }
 
   abstract toArray(event: H3Event): Record<string, unknown> | Promise<Record<string, unknown>>
+
+  protected when<V>(condition: boolean, value: V): V | undefined
+  protected when<V>(condition: boolean, value: V, defaultValue: V): V
+  protected when<V>(condition: boolean, value: V, defaultValue?: V): V | undefined {
+    return condition ? value : defaultValue
+  }
+
+  protected mergeWhen(condition: boolean, fields: Record<string, unknown>): Record<string, unknown> {
+    return condition ? fields : {}
+  }
 
   static collection<R extends Resource<U>, U>(
     this: new (item: U) => R,

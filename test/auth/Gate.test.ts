@@ -62,3 +62,28 @@ describe('InMemoryGate', () => {
     expect(await gate.allows('rule')).toBe(false)
   })
 })
+
+describe('InMemoryGate — authorize()', () => {
+  it('resolves when the rule allows', async () => {
+    const gate = new InMemoryGate()
+    gate.define('update', () => true)
+
+    await expect(gate.authorize('update')).resolves.toBeUndefined()
+  })
+
+  it('throws a 403 error when the rule denies', async () => {
+    const gate = new InMemoryGate()
+    gate.define('delete', () => false)
+
+    await expect(gate.authorize('delete')).rejects.toMatchObject({
+      statusCode: 403,
+      statusMessage: 'Forbidden',
+    })
+  })
+
+  it('throws GateRuleNotDefinedError for an unknown rule (delegates to allows)', async () => {
+    const gate = new InMemoryGate()
+
+    await expect(gate.authorize('unknown')).rejects.toBeInstanceOf(GateRuleNotDefinedError)
+  })
+})

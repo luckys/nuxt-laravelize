@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 
 import type { Resource } from '../http/resources/Resource'
-import { serializeResource } from '../http/resources/serializeResource'
+import { serialize } from '../http/resources/serializeResource'
 
 import type { Paginator } from './Paginator'
 
@@ -21,7 +21,7 @@ export class PaginatedResourceCollection<R extends Resource<unknown>> {
   }> {
     const data = await Promise.all(
       this.paginator.items.map(item =>
-        serializeResource(new this.resourceCtor(item), event),
+        serialize(new this.resourceCtor(item), event),
       ),
     )
     return {
