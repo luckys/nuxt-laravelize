@@ -20,6 +20,14 @@ export class FakeQueue implements Queue {
     return this.push(job, { ...options, delay: delayMs })
   }
 
+  async sync(job: Job): Promise<void> {
+    await job.handle()
+  }
+
+  onFailed(_callback: (info: { job: Job, queue: string, error: unknown, attempts: number }) => void): void {
+    // No-op — fake queue does not execute jobs
+  }
+
   async size(queueName?: string): Promise<number> {
     if (queueName === undefined) return this.pushed.length
     return this.pushed.filter(p => (p.options?.queue ?? (p.job.constructor as { queue?: string }).queue) === queueName).length

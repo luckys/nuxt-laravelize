@@ -2,9 +2,9 @@
 import { resolve as resolvePath } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { createContainer } from '../src/core/container/Container'
-import type { ServiceProvider } from '../src/core/providers/ServiceProvider'
-import { queueWorkerToken } from '../src/queue/QueueWorkerToken'
+import { createContainer } from '../core/container/Container'
+import type { ServiceProvider } from '../core/providers/ServiceProvider'
+import { queueWorkerToken } from '../queue/QueueWorkerToken'
 
 interface QueueWorkConfig {
   providers: Array<() => Promise<ServiceProvider> | ServiceProvider>

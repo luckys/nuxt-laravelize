@@ -47,6 +47,46 @@ describe('InMemoryGate', () => {
     expect(await gate.denies('deny')).toBe(true)
   })
 
+  it('any short-circuits after the first allowed rule', async () => {
+    const calls: string[] = []
+    const gate = new InMemoryGate()
+    gate.define('first', () => {
+      calls.push('first')
+      return false
+    })
+    gate.define('second', () => {
+      calls.push('second')
+      return true
+    })
+    gate.define('third', () => {
+      calls.push('third')
+      return true
+    })
+
+    expect(await gate.any(['first', 'second', 'third'])).toBe(true)
+    expect(calls).toEqual(['first', 'second'])
+  })
+
+  it('none short-circuits after the first allowed rule', async () => {
+    const calls: string[] = []
+    const gate = new InMemoryGate()
+    gate.define('first', () => {
+      calls.push('first')
+      return false
+    })
+    gate.define('second', () => {
+      calls.push('second')
+      return true
+    })
+    gate.define('third', () => {
+      calls.push('third')
+      return false
+    })
+
+    expect(await gate.none(['first', 'second', 'third'])).toBe(false)
+    expect(calls).toEqual(['first', 'second'])
+  })
+
   it('throws GateRuleNotDefinedError when allows is called with an unknown rule', async () => {
     const gate = new InMemoryGate()
 

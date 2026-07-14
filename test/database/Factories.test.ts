@@ -56,6 +56,20 @@ describe('Factory', () => {
     expect(item.amount).toBe(1)
   })
 
+  it('applies sequence values in order and loops when count exceeds the sequence length', () => {
+    const items = new InvoiceFactory()
+      .count(3)
+      .sequence([
+        { paid: true },
+        (draft, index) => ({ amount: draft.amount + index }),
+      ])
+      .make() as InvoiceShape[]
+
+    expect(items[0]).toMatchObject({ amount: 100, paid: true })
+    expect(items[1]).toMatchObject({ amount: 101, paid: false })
+    expect(items[2]).toMatchObject({ amount: 100, paid: true })
+  })
+
   it('rejects non-positive counts', () => {
     expect(() => new InvoiceFactory().count(0)).toThrow()
     expect(() => new InvoiceFactory().count(-1)).toThrow()

@@ -1,0 +1,44 @@
+import { describe, expect, it, vi } from 'vitest'
+import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobRunner } from '../../src/runtime/index'
+
+class TestJob extends Job<{ value: number }> {
+  static runs: number[] = []
+  readonly payload: { value: number }
+  constructor(payload: Record<string, unknown>) {
+    super()
+    this.payload = payload as { value: number }
+  }
+
+  async handle(_resolver: Resolver): Promise<void> { TestJob.runs.push(this.payload.value) }
+}
+
+describe('InMemoryQueue', () => {
+  it('executes registered jobs in a disposable job scope', async () => {
+    const container = createContainer()
+    const scope = container.createScope()
+    const dispose = vi.spyOn(scope, 'dispose')
+    vi.spyOn(container, 'createScope').mockReturnValue(scope)
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(container, registry))
+
+    await queue.sync(new TestJob({ value: 7 }))
+
+    expect(TestJob.runs).toContain(7)
+    expect(dispose).toHaveBeenCalledOnce()
+  })
+
+  it('clears delayed jobs and their timers', async () => {
+    vi.useFakeTimers()
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+    await queue.later(100, new TestJob({ value: 99 }))
+    await queue.clear()
+    await vi.advanceTimersByTimeAsync(100)
+    expect(await queue.size()).toBe(0)
+    expect(TestJob.runs).not.toContain(99)
+    vi.useRealTimers()
+  })
+})

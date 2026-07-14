@@ -20,7 +20,7 @@ export default createConfigForNuxt({
   .append(
     // your custom flat config here...
     {
-      files: ['src/events/Listener.ts'],
+      files: ['src/events/Listener.ts', 'packages/events/src/runtime/contracts.ts'],
       rules: {
         '@typescript-eslint/no-invalid-void-type': 'off',
       },

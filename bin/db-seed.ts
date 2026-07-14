@@ -2,9 +2,9 @@
 import { resolve as resolvePath } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { createContainer } from '../src/core/container/Container'
-import type { ServiceProvider } from '../src/core/providers/ServiceProvider'
-import { seederRegistryToken } from '../src/database/seeding/SeederRegistryToken'
+import { createContainer } from '../core/container/Container'
+import type { ServiceProvider } from '../core/providers/ServiceProvider'
+import { seederRegistryToken } from '../database/seeding/SeederRegistryToken'
 
 interface DbSeedConfig {
   providers: Array<() => Promise<ServiceProvider> | ServiceProvider>

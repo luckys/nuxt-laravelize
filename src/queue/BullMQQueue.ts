@@ -36,6 +36,7 @@ function resolveOptions(job: Job, options: PushOptions | undefined): ResolvedOpt
 export class BullMQQueue implements Queue {
   readonly #connection: BullMQConnection
   readonly #queues = new Map<string, BullQueue>()
+  readonly #failedCallbacks: Array<(info: { job: Job, queue: string, error: unknown, attempts: number }) => void> = []
 
   constructor(connection: BullMQConnection) {
     this.#connection = connection
@@ -55,6 +56,14 @@ export class BullMQQueue implements Queue {
 
   later(delayMs: number, job: Job, options?: PushOptions): Promise<JobHandle> {
     return this.push(job, { ...options, delay: delayMs })
+  }
+
+  async sync(job: Job): Promise<void> {
+    await job.handle()
+  }
+
+  onFailed(callback: (info: { job: Job, queue: string, error: unknown, attempts: number }) => void): void {
+    this.#failedCallbacks.push(callback)
   }
 
   async size(queueName?: string): Promise<number> {

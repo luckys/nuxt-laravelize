@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Resolver } from '../../src/core/container/Container'
 import { Job } from '../../src/queue/Job'
+import { InMemoryJobRegistry } from '../../src/queue/InMemoryJobRegistry'
 import { InMemoryQueue } from '../../src/queue/InMemoryQueue'
+import { ListenerJob } from '../../src/queue/ListenerJob'
 
 let counter: { value: number, runs: string[] }
 
@@ -211,6 +214,70 @@ describe('InMemoryQueue', () => {
       }),
     )
     consoleSpy.mockRestore()
+  })
+
+  it('invokes onFailed callbacks when a job exhausts its retries', async () => {
+    const failures: Array<{ queue: string, attempts: number, error: Error }> = []
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    try {
+      const queue = new InMemoryQueue()
+      queue.onFailed((info) => {
+        failures.push({
+          queue: info.queue,
+          attempts: info.attempts,
+          error: info.error as Error,
+        })
+      })
+
+      await queue.push(new AlwaysFailJob('x'))
+
+      await flushMicrotasks()
+      await flushMicrotasks()
+      await flushMicrotasks()
+
+      expect(failures).toHaveLength(1)
+      expect(failures[0]).toMatchObject({ queue: 'default', attempts: 2 })
+      expect(failures[0]?.error.message).toBe('always-fail:x')
+    }
+    finally {
+      consoleSpy.mockRestore()
+    }
+  })
+
+  it('sync executes a ListenerJob immediately using the resolver and registry', async () => {
+    const calls: string[] = []
+
+    class DemoEvent {
+      constructor(public readonly value: string) {}
+    }
+
+    class DemoListener {
+      handle(event: DemoEvent) {
+        calls.push(event.value)
+      }
+    }
+
+    const resolver: Resolver = {
+      make<T>(token: { key: string }): T {
+        if (token.key === 'demo-listener') return (new DemoListener() as unknown) as T
+        throw new Error(`Unknown token ${token.key}`)
+      },
+      has() {
+        return true
+      },
+    }
+    const registry = new InMemoryJobRegistry()
+    registry.registerEvent('DemoEvent', DemoEvent)
+
+    const queue = new InMemoryQueue(resolver, registry)
+    await queue.sync(new ListenerJob({
+      listenerTokenKey: 'demo-listener',
+      eventConstructorName: 'DemoEvent',
+      eventArgs: ['hello'],
+    }))
+
+    expect(calls).toEqual(['hello'])
   })
 
   it('push options override Job statics', async () => {

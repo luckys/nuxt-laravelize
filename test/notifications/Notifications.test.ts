@@ -75,8 +75,12 @@ function fakeQueue(): { queue: Queue, pushed: Array<{ job: Job, options: PushOpt
         return { id: 'fake', queue: 'notifications' } as JobHandle
       },
       later: async () => ({ id: 'fake', queue: 'notifications' } as JobHandle),
+      sync: async (job) => {
+        await job.handle()
+      },
       size: async () => 0,
       clear: async () => {},
+      onFailed: () => {},
     },
     pushed,
   }

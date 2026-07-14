@@ -10,6 +10,8 @@ export interface Gate {
   allows(rule: string, ...args: readonly unknown[]): Promise<boolean>
   denies(rule: string, ...args: readonly unknown[]): Promise<boolean>
   authorize(rule: string, ...args: readonly unknown[]): Promise<void>
+  any(rules: readonly string[], ...args: readonly unknown[]): Promise<boolean>
+  none(rules: readonly string[], ...args: readonly unknown[]): Promise<boolean>
 }
 
 export class InMemoryGate implements Gate {
@@ -45,6 +47,20 @@ export class InMemoryGate implements Gate {
         data: { message: 'This action is unauthorized.' },
       })
     }
+  }
+
+  async any(rules: readonly string[], ...args: readonly unknown[]): Promise<boolean> {
+    for (const rule of rules) {
+      if (await this.allows(rule, ...args)) return true
+    }
+    return false
+  }
+
+  async none(rules: readonly string[], ...args: readonly unknown[]): Promise<boolean> {
+    for (const rule of rules) {
+      if (await this.allows(rule, ...args)) return false
+    }
+    return true
   }
 
   async #tryPolicy(rule: string, args: readonly unknown[]): Promise<boolean | undefined> {

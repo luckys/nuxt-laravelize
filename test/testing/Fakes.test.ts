@@ -63,6 +63,24 @@ describe('FakeQueue', () => {
     expect(await q.size()).toBe(1)
   })
 
+  it('sync executes jobs immediately without recording them', async () => {
+    const q = new FakeQueue()
+    const runs: string[] = []
+
+    class SyncJob extends Job {
+      override async handle() {
+        runs.push('sync')
+      }
+
+      override serialize() { return { name: 'SyncJob', args: [] as const } }
+    }
+
+    await q.sync(new SyncJob())
+
+    expect(runs).toEqual(['sync'])
+    expect(await q.size()).toBe(0)
+  })
+
   it('clear works per queue', async () => {
     const q = new FakeQueue()
     await q.push(new TestJob(), { queue: 'a' })

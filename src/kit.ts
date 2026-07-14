@@ -17,6 +17,11 @@ export function addLaravelizeProvider(nuxt: Nuxt, path: string, target: Provider
   host[collectorKey] = store
 }
 
+export function getLaravelizeProviderContributions(nuxt: Nuxt): readonly { path: string, target: ProviderTarget }[] {
+  const host = nuxt as unknown as CollectorHost
+  return host[collectorKey]?.queue.slice() ?? []
+}
+
 export function drainLaravelizeProviderQueue(nuxt: Nuxt): Array<{ path: string, target: ProviderTarget }> {
   const host = nuxt as unknown as CollectorHost
   const store = host[collectorKey]

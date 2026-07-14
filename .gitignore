@@ -30,6 +30,7 @@ dist
 # Testing
 reports
 coverage
+.pack
 *.lcov
 .nyc_output
 

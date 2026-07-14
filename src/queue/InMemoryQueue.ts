@@ -48,6 +48,7 @@ export class InMemoryQueue implements Queue {
   readonly #resolver: Resolver | null
   readonly #registry: JobRegistry | null
   #nextId = 1
+  readonly #failedCallbacks: Array<(info: { job: Job, queue: string, error: unknown, attempts: number }) => void> = []
 
   constructor(resolver?: Resolver, registry?: JobRegistry) {
     this.#resolver = resolver ?? null
@@ -87,6 +88,18 @@ export class InMemoryQueue implements Queue {
       return total
     }
     return this.#pending.get(queueName)?.length ?? 0
+  }
+
+  async sync(job: Job): Promise<void> {
+    if (job instanceof ListenerJob && this.#resolver && this.#registry) {
+      await job.handle(this.#resolver, this.#registry)
+      return
+    }
+    await job.handle()
+  }
+
+  onFailed(callback: (info: { job: Job, queue: string, error: unknown, attempts: number }) => void): void {
+    this.#failedCallbacks.push(callback)
   }
 
   async clear(queueName?: string): Promise<void> {
@@ -143,6 +156,10 @@ export class InMemoryQueue implements Queue {
           jobName: entry.job.constructor.name,
           error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
         })
+        const attempts = entry.options.tries - entry.attemptsLeft
+        for (const cb of this.#failedCallbacks) {
+          cb({ job: entry.job, queue: queueName, error, attempts })
+        }
         return
       }
       const retry = (): void => {

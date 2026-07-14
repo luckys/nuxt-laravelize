@@ -1,0 +1,28 @@
+import type { Resolver, Token } from '@nuxt-laravelize/core/runtime'
+
+export type EventConstructor<E = unknown> = new (...args: never[]) => E
+
+export interface Listener<E> {
+  handle(event: E): void | false | Promise<void | false>
+}
+
+export interface ShouldQueue {
+  readonly shouldQueue: true
+}
+
+export interface EventSubscriber {
+  subscribe(dispatcher: Dispatcher): void
+}
+
+export interface QueuedListenerAdapter {
+  enqueue(listener: Token<Listener<unknown>>, event: unknown): boolean | Promise<boolean>
+}
+
+export interface Dispatcher {
+  listen<E>(event: EventConstructor<E>, listener: Token<Listener<E>>): void
+  listenAny(listener: Token<Listener<unknown>>): void
+  subscribe(subscriber: Token<EventSubscriber>): void
+  dispatch<E>(event: E): Promise<void>
+}
+
+export type EventResolver = Resolver

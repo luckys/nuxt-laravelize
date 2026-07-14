@@ -24,6 +24,8 @@ describe('DictionaryTranslator', () => {
   const dictionaries = {
     en: {
       'greeting': 'Hello :name',
+      'greeting.title': 'Hello :Name',
+      'greeting.shout': 'HELLO :NAME',
       'invoices.count': 'No invoices|One invoice|:count invoices',
       'shared': 'Shared EN',
     },
@@ -50,6 +52,13 @@ describe('DictionaryTranslator', () => {
   it('interpolates :params', () => {
     const t = new DictionaryTranslator({ dictionaries, locale: 'en' })
     expect(t.__('greeting', { name: 'World' })).toBe('Hello World')
+  })
+
+  it('capitalizes :Name placeholders and uppercases :NAME placeholders', () => {
+    const t = new DictionaryTranslator({ dictionaries, locale: 'en' })
+
+    expect(t.__('greeting.title', { name: 'ada' })).toBe('Hello Ada')
+    expect(t.__('greeting.shout', { name: 'ada' })).toBe('HELLO ADA')
   })
 
   it('supports choice() with three-segment pluralisation and :count', () => {

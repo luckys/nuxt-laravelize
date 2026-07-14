@@ -3,7 +3,7 @@ import type { NitroConfig } from 'nitropack/types'
 
 import { discoverProvidersByConvention } from './discovery/byConvention'
 import { ProviderCollector, type ProviderTarget } from './discovery/ProviderCollector'
-import { drainLaravelizeProviderQueue } from './kit'
+import { getLaravelizeProviderContributions } from './kit'
 import { renderProvidersModule } from './templates'
 
 export interface ModuleOptions {
@@ -21,7 +21,7 @@ export default defineNuxtModule<ModuleOptions>({
     name: 'nuxt-laravelize',
     configKey: 'laravelize',
     compatibility: {
-      nuxt: '>=3.0.0',
+      nuxt: '>=4.3.0 <5',
     },
   },
   defaults: {
@@ -30,29 +30,23 @@ export default defineNuxtModule<ModuleOptions>({
   },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
-    const collector = new ProviderCollector()
-
-    collector.addFromConvention(discoverProvidersByConvention(nuxt.options.rootDir))
-
-    for (const provider of options.providers) {
-      collector.addFromConfig([provider.path], provider.target)
+    const collect = (): ReturnType<ProviderCollector['collect']> => {
+      const collector = new ProviderCollector()
+      collector.addFromConvention(discoverProvidersByConvention(nuxt.options.rootDir))
+      for (const provider of options.providers) collector.addFromConfig([provider.path], provider.target)
+      for (const entry of getLaravelizeProviderContributions(nuxt)) collector.addFromApi(entry.path, entry.target)
+      return collector.collect()
     }
-
-    for (const entry of drainLaravelizeProviderQueue(nuxt)) {
-      collector.addFromApi(entry.path, entry.target)
-    }
-
-    const collected = collector.collect()
 
     const serverTemplate = addTemplate({
       filename: 'laravelize/server-providers.ts',
-      getContents: () => renderProvidersModule(collected.server),
+      getContents: () => renderProvidersModule(collect().server),
       write: true,
     })
 
     const clientTemplate = addTemplate({
       filename: 'laravelize/client-providers.ts',
-      getContents: () => renderProvidersModule(collected.client),
+      getContents: () => renderProvidersModule(collect().client),
       write: true,
     })
 

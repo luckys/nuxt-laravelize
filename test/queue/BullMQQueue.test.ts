@@ -72,6 +72,24 @@ describe('BullMQQueue', () => {
     })
   })
 
+  it('sync invokes job.handle immediately without enqueuing', async () => {
+    const calls: string[] = []
+
+    class SyncJob extends Job {
+      handle() {
+        calls.push('run')
+      }
+
+      serialize() { return { name: 'SyncJob', args: [] } }
+    }
+
+    const queue = new BullMQQueue(buildConnection())
+    await queue.sync(new SyncJob())
+
+    expect(calls).toEqual(['run'])
+    expect(addMock).not.toHaveBeenCalled()
+  })
+
   it('push options override Job statics', async () => {
     const queue = new BullMQQueue(buildConnection())
     await queue.push(new FooJob('hi'), { tries: 10, delay: 0, backoff: 1000, queue: 'override' })
