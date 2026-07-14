@@ -52,7 +52,7 @@
     "dev": "pnpm run dev:prepare && nuxt dev playground",
     "dev:build": "nuxt build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
-    "release": "pnpm run lint && pnpm run test && pnpm run prepack && changelogen --release && pnpm publish && git push --follow-tags",
+    "release": "pnpm run release:packages",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest watch",
@@ -63,7 +63,8 @@
     "pack:tarballs": "pnpm -r --filter './packages/**' --if-present run pack:test",
     "pack:test": "pnpm run pack:tarballs && node scripts/package-smoke.mjs",
     "changeset": "changeset",
-    "version-packages": "changeset version"
+    "version-packages": "changeset version",
+    "release:packages": "pnpm run lint && pnpm run test && pnpm run typecheck && pnpm run pack:test && changeset publish"
   },
   "dependencies": {
     "@nuxt-laravelize/core": "workspace:^",

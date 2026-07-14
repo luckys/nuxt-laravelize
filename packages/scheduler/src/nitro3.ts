@@ -1,5 +1,7 @@
 import { defineTask, runTask } from 'nitro/task'
 
+export { compileSchedule, type CompiledSchedule, type TaskDefinition } from './compiler'
+
 export interface ScheduledOperation<TResult = unknown> {
   execute(payload: Record<string, unknown>): TResult | Promise<TResult>
 }

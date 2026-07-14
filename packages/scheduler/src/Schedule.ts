@@ -1,3 +1,5 @@
+import { Cron } from 'croner'
+
 export interface ScheduledTask {
   readonly name: string
   readonly cron: string
@@ -50,5 +52,12 @@ export function defineSchedule(definition: (schedule: Schedule) => void): Schedu
 
 function isFiveFieldCron(expression: string): boolean {
   const fields = expression.trim().split(/\s+/)
-  return fields.length === 5 && fields.every(field => /^[\d*/?,-]+$/.test(field))
+  if (fields.length !== 5) return false
+  try {
+    new Cron(expression, { paused: true })
+    return true
+  }
+  catch {
+    return false
+  }
 }

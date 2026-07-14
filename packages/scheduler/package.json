@@ -20,6 +20,7 @@
     "prepack": "pnpm run build",
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
+  "dependencies": { "croner": "^10.0.1" },
   "peerDependencies": { "nitro": "3.0.260610-beta" },
   "peerDependenciesMeta": { "nitro": { "optional": true } },
   "devDependencies": { "@types/node": "latest", "nitro": "3.0.260610-beta", "rollup": "^4.61.1", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5", "vue-tsc": "^3.2.8" }

@@ -5,7 +5,8 @@ Framework-neutral schedule definitions with an experimental Nitro 3 adapter.
 The `./nitro3` entry point requires exactly `nitro@3.0.260610-beta`. It is not activated by the Nuxt 4 preset and must not be used to replace Nuxt's internal Nitro version.
 
 ```ts
-import { compileSchedule, defineSchedule } from '@nuxt-laravelize/scheduler'
+import { defineSchedule } from '@nuxt-laravelize/scheduler'
+import { compileSchedule } from '@nuxt-laravelize/scheduler/nitro3'
 
 const schedule = defineSchedule((schedule) => {
   schedule.task('reports:daily').dailyAt('02:30')

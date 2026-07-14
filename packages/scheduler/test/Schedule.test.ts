@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { compileSchedule, defineSchedule } from '../src/index'
+import { defineSchedule } from '../src/index'
+import { compileSchedule } from '../src/nitro3'
 
 describe('Schedule', () => {
   it('compiles named tasks without running a cron engine', () => {
@@ -18,5 +19,6 @@ describe('Schedule', () => {
 
   it('rejects invalid cron expressions', () => {
     expect(() => defineSchedule(schedule => schedule.task('bad').cron('* * *'))).toThrow('Invalid five-field cron expression')
+    expect(() => defineSchedule(schedule => schedule.task('bad').cron('99 99 * * *'))).toThrow('Invalid five-field cron expression')
   })
 })

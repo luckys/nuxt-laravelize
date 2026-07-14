@@ -1,11 +1,8 @@
+import type { NitroConfig } from 'nitro/types'
 import type { Schedule } from './Schedule'
 
 export interface TaskDefinition { readonly handler: string, readonly description?: string }
-export interface CompiledSchedule {
-  readonly experimental: { readonly tasks: true }
-  readonly tasks: Readonly<Record<string, TaskDefinition>>
-  readonly scheduledTasks: Readonly<Record<string, string | readonly string[]>>
-}
+export type CompiledSchedule = Pick<NitroConfig, 'experimental' | 'tasks' | 'scheduledTasks'>
 
 export function compileSchedule(schedule: Schedule, definitions: Readonly<Record<string, TaskDefinition>>): CompiledSchedule {
   const scheduled = new Map<string, string[]>()
@@ -18,6 +15,6 @@ export function compileSchedule(schedule: Schedule, definitions: Readonly<Record
   return {
     experimental: { tasks: true },
     tasks: { ...definitions },
-    scheduledTasks: Object.fromEntries([...scheduled].map(([cron, names]) => [cron, names.length === 1 ? names[0]! : names])),
+    scheduledTasks: Object.fromEntries([...scheduled].map(([cron, names]) => [cron, names.length === 1 ? names[0]! : [...names]])),
   }
 }
