@@ -1,0 +1,30 @@
+{
+  "name": "@nuxt-laravelize/testing",
+  "version": "0.1.0",
+  "description": "Aggregate testing harness and fakes for Nuxt Laravelize",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": { "types": "./dist/index.d.mts", "import": "./dist/index.mjs" },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "dependencies": {
+    "@nuxt-laravelize/core": "workspace:^",
+    "@nuxt-laravelize/events": "workspace:^",
+    "@nuxt-laravelize/mail": "workspace:^",
+    "@nuxt-laravelize/notifications": "workspace:^",
+    "@nuxt-laravelize/queue": "workspace:^"
+  },
+  "devDependencies": { "@types/node": "latest", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5", "vue-tsc": "^3.2.8" }
+}

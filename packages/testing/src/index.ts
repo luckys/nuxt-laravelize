@@ -1,0 +1,37 @@
+import { createContainer, type Container } from '@nuxt-laravelize/core/runtime'
+import { EventFake } from '@nuxt-laravelize/events/testing'
+import { dispatcherToken } from '@nuxt-laravelize/events/runtime'
+import { MailFake } from '@nuxt-laravelize/mail/testing'
+import { mailerToken } from '@nuxt-laravelize/mail/runtime'
+import { NotificationFake } from '@nuxt-laravelize/notifications/testing'
+import { notificationManagerToken } from '@nuxt-laravelize/notifications/runtime'
+import { QueueFake } from '@nuxt-laravelize/queue/testing'
+import { queueToken } from '@nuxt-laravelize/queue/runtime'
+
+export { FakeLogger } from '@nuxt-laravelize/core/testing'
+export { EventFake } from '@nuxt-laravelize/events/testing'
+export { MailFake } from '@nuxt-laravelize/mail/testing'
+export { NotificationFake } from '@nuxt-laravelize/notifications/testing'
+export { QueueFake } from '@nuxt-laravelize/queue/testing'
+
+export interface MountedLaravelize {
+  readonly container: Container
+  readonly events: EventFake
+  readonly queue: QueueFake
+  readonly mail: MailFake
+  readonly notifications: NotificationFake
+}
+
+export function mountLaravelize(): MountedLaravelize {
+  const container = createContainer()
+  const events = new EventFake()
+  const queue = new QueueFake()
+  const mail = new MailFake()
+  const notifications = new NotificationFake()
+  container.instance(dispatcherToken, events)
+  container.instance(queueToken, queue)
+  container.instance(mailerToken, mail)
+  container.instance(notificationManagerToken, notifications as never)
+  container.seal()
+  return { container, events, queue, mail, notifications }
+}

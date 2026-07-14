@@ -1,7 +1,7 @@
 {
-  "name": "@nuxt-laravelize/nuxt",
+  "name": "@nuxt-laravelize/http",
   "version": "0.1.0",
-  "description": "Convenience preset for Nuxt Laravelize modules",
+  "description": "Laravel-like requests, middleware, resources, pagination and authorization for Nuxt",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -9,25 +9,21 @@
   "main": "./dist/module.mjs",
   "exports": {
     ".": { "types": "./dist/types.d.mts", "import": "./dist/module.mjs" },
+    "./runtime": { "types": "./dist/public-runtime.d.mts", "import": "./dist/public-runtime.mjs" },
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "nuxt-module-build build",
+    "build": "nuxt-module-build build && unbuild --config public.build.config.ts",
     "typecheck": "nuxt-module-build prepare && vue-tsc --noEmit",
-    "test": "nuxt-module-build prepare && vitest run --passWithNoTests",
+    "test": "nuxt-module-build prepare && vitest run",
     "prepack": "pnpm run build",
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
     "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/database": "workspace:^",
-    "@nuxt-laravelize/events": "workspace:^",
-    "@nuxt-laravelize/events-queue": "workspace:^",
-    "@nuxt-laravelize/mail": "workspace:^",
-    "@nuxt-laravelize/http": "workspace:^",
-    "@nuxt-laravelize/notifications": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^",
-    "@nuxt/kit": "^4.4.5"
+    "@nuxt/kit": "^4.4.5",
+    "@standard-schema/spec": "^1.1.0",
+    "h3": "^1.15.11"
   },
   "peerDependencies": { "nuxt": ">=4.3.0 <5" },
   "devDependencies": {
@@ -35,6 +31,7 @@
     "@types/node": "latest",
     "nuxt": "^4.4.5",
     "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
     "vitest": "^4.1.5",
     "vue-tsc": "^3.2.8"
   }
