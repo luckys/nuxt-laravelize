@@ -22,6 +22,13 @@
       "types": "./dist/kit.d.mts",
       "import": "./dist/kit.mjs"
     },
+    "./core": { "types": "./dist/compat/core.d.mts", "import": "./dist/compat/core.mjs" },
+    "./events": { "types": "./dist/compat/events.d.mts", "import": "./dist/compat/events.mjs" },
+    "./queue": { "types": "./dist/compat/queue.d.mts", "import": "./dist/compat/queue.mjs" },
+    "./mail": { "types": "./dist/compat/mail.d.mts", "import": "./dist/compat/mail.mjs" },
+    "./notifications": { "types": "./dist/compat/notifications.d.mts", "import": "./dist/compat/notifications.mjs" },
+    "./http": { "types": "./dist/compat/http.d.mts", "import": "./dist/compat/http.mjs" },
+    "./database": { "types": "./dist/compat/database.d.mts", "import": "./dist/compat/database.mjs" },
     "./package.json": "./package.json"
   },
   "main": "./dist/module.mjs",
@@ -58,6 +65,14 @@
     "version-packages": "changeset version"
   },
   "dependencies": {
+    "@nuxt-laravelize/core": "workspace:^",
+    "@nuxt-laravelize/database": "workspace:^",
+    "@nuxt-laravelize/events": "workspace:^",
+    "@nuxt-laravelize/events-queue": "workspace:^",
+    "@nuxt-laravelize/http": "workspace:^",
+    "@nuxt-laravelize/mail": "workspace:^",
+    "@nuxt-laravelize/notifications": "workspace:^",
+    "@nuxt-laravelize/queue": "workspace:^",
     "@nuxt/kit": "^4.4.5",
     "@standard-schema/spec": "^1.1.0",
     "awilix": "^12.0.5"
@@ -77,15 +92,7 @@
     }
   },
   "devDependencies": {
-    "@nuxt-laravelize/core": "workspace:*",
-    "@nuxt-laravelize/events": "workspace:*",
-    "@nuxt-laravelize/events-queue": "workspace:*",
-    "@nuxt-laravelize/database": "workspace:*",
-    "@nuxt-laravelize/http": "workspace:*",
-    "@nuxt-laravelize/mail": "workspace:*",
     "@nuxt-laravelize/nuxt": "workspace:*",
-    "@nuxt-laravelize/notifications": "workspace:*",
-    "@nuxt-laravelize/queue": "workspace:*",
     "@nuxt-laravelize/queue-bullmq": "workspace:*",
     "@nuxt-laravelize/testing": "workspace:*",
     "@changesets/cli": "^2.29.7",
