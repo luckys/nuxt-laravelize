@@ -60,7 +60,8 @@
     "typecheck": "vue-tsc --noEmit && pnpm -r --if-present run typecheck",
     "build:packages": "pnpm -r --filter './packages/**' --if-present run build",
     "test:packages": "pnpm -r --filter './packages/**' --if-present run test",
-    "pack:test": "pnpm -r --filter './packages/**' --if-present run pack:test",
+    "pack:tarballs": "pnpm -r --filter './packages/**' --if-present run pack:test",
+    "pack:test": "pnpm run pack:tarballs && node scripts/package-smoke.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version"
   },
