@@ -56,3 +56,9 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
+
+      - name: Build packages
+        run: pnpm run build:packages
+
+      - name: Test package tarballs
+        run: pnpm run pack:test

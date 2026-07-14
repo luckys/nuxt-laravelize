@@ -95,6 +95,7 @@
   "devDependencies": {
     "@nuxt-laravelize/nuxt": "workspace:*",
     "@nuxt-laravelize/queue-bullmq": "workspace:*",
+    "@nuxt-laravelize/scheduler": "workspace:*",
     "@nuxt-laravelize/testing": "workspace:*",
     "@changesets/cli": "^2.29.7",
     "@nuxt/devtools": "^3.2.4",

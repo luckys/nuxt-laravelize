@@ -14,6 +14,7 @@ const packageNames = [
   'nuxt',
   'queue',
   'queue-bullmq',
+  'scheduler',
   'testing',
 ]
 
@@ -34,6 +35,7 @@ try {
     type: 'module',
     dependencies: {
       ...dependencies,
+      nitro: '3.0.260610-beta',
       nuxt: '^4.4.5',
     },
   }, null, 2))
@@ -61,6 +63,8 @@ await Promise.all([
   import('@nuxt-laravelize/queue/runtime'),
   import('@nuxt-laravelize/queue/testing'),
   import('@nuxt-laravelize/queue-bullmq/runtime'),
+  import('@nuxt-laravelize/scheduler'),
+  import('@nuxt-laravelize/scheduler/nitro3'),
   import('@nuxt-laravelize/events-queue/runtime'),
   import('@nuxt-laravelize/mail/runtime'),
   import('@nuxt-laravelize/mail/node'),

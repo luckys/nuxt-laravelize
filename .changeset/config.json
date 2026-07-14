@@ -2,7 +2,22 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.2/schema.json",
   "changelog": false,
   "commit": false,
-  "fixed": [],
+  "fixed": [
+    [
+      "@nuxt-laravelize/core",
+      "@nuxt-laravelize/database",
+      "@nuxt-laravelize/events",
+      "@nuxt-laravelize/events-queue",
+      "@nuxt-laravelize/http",
+      "@nuxt-laravelize/mail",
+      "@nuxt-laravelize/notifications",
+      "@nuxt-laravelize/nuxt",
+      "@nuxt-laravelize/queue",
+      "@nuxt-laravelize/queue-bullmq",
+      "@nuxt-laravelize/scheduler",
+      "@nuxt-laravelize/testing"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",

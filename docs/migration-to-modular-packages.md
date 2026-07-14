@@ -49,4 +49,12 @@ pnpm add @nuxt-laravelize/queue-bullmq
 
 Nodemailer adapters are Node-only and must be imported from `@nuxt-laravelize/mail/node`.
 
-The scheduler is not published yet because Nitro 3 integration remains experimental and is not forced into Nuxt 4.
+The framework-neutral scheduler is available separately:
+
+```bash
+pnpm add @nuxt-laravelize/scheduler
+```
+
+Its experimental `@nuxt-laravelize/scheduler/nitro3` adapter requires exactly
+`nitro@3.0.260610-beta`. The scheduler is not activated by
+`@nuxt-laravelize/nuxt` and must not replace Nuxt 4's internal Nitro version.
