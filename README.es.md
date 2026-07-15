@@ -2,7 +2,7 @@
 
 [English](./README.md) | Espanol
 
-Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` para arquitectura de servidor inspirada en Laravel sobre Nuxt 4. Instala el preset para obtener el stack completo o selecciona solo las capacidades que necesita tu aplicacion.
+Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` para arquitectura de servidor inspirada en Laravel sobre Nuxt `>=4.3 <5`. Instala el preset para obtener el stack completo o selecciona solo las capacidades que necesita tu aplicacion.
 
 ## Paquetes
 
@@ -10,7 +10,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 |---|---|
 | `@nuxt-laravelize/core` | Contenedor, tokens, providers, lifecycle y logging |
 | `@nuxt-laravelize/events` | Eventos y listeners sincronicos |
-| `@nuxt-laravelize/queue` | Contratos de cola portables, jobs, workers y driver en memoria |
+| `@nuxt-laravelize/queue` | Contratos de cola portables, jobs, ejecucion por scope y driver en memoria |
 | `@nuxt-laravelize/queue-bullmq` | Driver BullMQ y worker persistente, solo para Node |
 | `@nuxt-laravelize/events-queue` | Integracion de listeners encolados entre eventos y colas |
 | `@nuxt-laravelize/mail` | Mailables, mail manager y transports |
@@ -128,7 +128,13 @@ pnpm version-packages
 pnpm release:packages
 ```
 
-Consulta [Migracion a paquetes modulares](./docs/migration-to-modular-packages.md) al actualizar una aplicacion anterior.
+Consulta [Migracion a paquetes modulares](./docs/migration-to-modular-packages.es.md) al actualizar una aplicacion anterior.
+
+## Documentacion
+
+- [Guia de modulos y API](./docs/modules.es.md): instalacion, APIs publicas y ejemplos para cada paquete.
+- [Guia de modulos y API en ingles](./docs/modules.md): la misma referencia en ingles.
+- [Guia de migracion](./docs/migration-to-modular-packages.es.md): reemplazos para la facade legacy eliminada.
 
 ## Licencia
 

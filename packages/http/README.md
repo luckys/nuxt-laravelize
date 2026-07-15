@@ -31,3 +31,5 @@ const { data: createdUser } = await useHttp<User>('/users', {
 ## Server routes
 
 Server-side requests, middleware, resources, pagination and authorization remain available from `@nuxt-laravelize/http/runtime` and as Nitro auto-imports.
+
+See the complete [English](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.md#http) or [Spanish](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.es.md#http) guide for form requests, handlers, resources, pagination, gates and policies.
