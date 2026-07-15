@@ -544,6 +544,39 @@ await notifications
   .notify(new InvoicePaid())
 ```
 
+## Validation
+
+`@nuxt-laravelize/validation` valida cualquier implementacion de [Standard Schema](https://standardschema.dev/), incluyendo Zod, Valibot y ArkType, sin acoplar servicios de aplicacion a HTTP.
+
+```bash
+pnpm add @nuxt-laravelize/validation
+```
+
+Usa `validate()` cuando input invalido sea excepcional, o `safeValidate()` cuando el caller controle el flujo.
+
+```ts
+const validator = useValidator(event)
+const user = await validator.validate(CreateUserSchema, input)
+
+const result = await validator.safeValidate(CreateUserSchema, input, { prefix: 'body' })
+if (!result.success) {
+  return {
+    message: result.errors.first('body.email'),
+    errors: result.errors.all(),
+  }
+}
+```
+
+| API | Proposito |
+|---|---|
+| `validate(schema, input, options?)` | Devuelve el output tipado y transformado o lanza `ValidationError`. |
+| `safeValidate()` | Devuelve un resultado discriminado success/error sin lanzar. |
+| `ErrorBag.first()` / `get()` / `has()` | Lee mensajes de un campo en notacion dot. |
+| `ErrorBag.all()` / `any()` | Devuelve un snapshot defensivo o comprueba si hay issues. |
+| `validatorToken` | Reemplaza o resuelve el validator compartido. |
+
+Paths de objetos y arrays anidados se convierten en notacion dot estable como `body.users.0.email`; multiples issues de un campo conservan el orden del schema. `FormRequest` usa internamente este mismo validator, por lo que validacion standalone y respuestas HTTP `422` comparten semantica de paths y mensajes.
+
 ## HTTP
 
 `@nuxt-laravelize/http` proporciona el cliente Nuxt autoimportado `useHttp`, requests, middleware, resources, paginacion, gates y policies para Nitro.
@@ -806,7 +839,7 @@ app.mail.assertSent(WelcomeMail)
 await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` devuelve `container`, `cache`, `encrypter`, `events`, `filesystem`, `hasher`, `queue`, `mail`, `notifications` y `rateLimiter`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
+`mountLaravelize()` devuelve `container`, `cache`, `encrypter`, `events`, `filesystem`, `hasher`, `queue`, `mail`, `notifications`, `rateLimiter` y `validator`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
 
 ## Scheduler
 

@@ -20,7 +20,8 @@
       "@nuxt-laravelize/queue-bullmq",
       "@nuxt-laravelize/rate-limiter",
       "@nuxt-laravelize/scheduler",
-      "@nuxt-laravelize/testing"
+      "@nuxt-laravelize/testing",
+      "@nuxt-laravelize/validation"
     ]
   ],
   "linked": [],

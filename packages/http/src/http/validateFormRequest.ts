@@ -1,6 +1,7 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { H3Event } from 'h3'
 import { createError, getQuery, readBody } from 'h3'
+import { Validator } from '@nuxt-laravelize/validation/runtime'
 
 import type { FormRequest } from './FormRequest'
 
@@ -13,6 +14,8 @@ interface ValidationResult {
   query: unknown
   params: unknown
 }
+
+const validator = new Validator()
 
 export async function validateFormRequest(event: H3Event, request: FormRequest): Promise<ValidationResult> {
   const errors: ValidationErrors = {}
@@ -50,29 +53,11 @@ async function validateSection(
   errors: ValidationErrors,
   section: Section,
 ): Promise<unknown> {
-  const validation = await schema['~standard'].validate(data)
-  if (validation.issues) {
-    collectIssues(errors, section, validation.issues)
+  const validation = await validator.safeValidate(schema, data, { prefix: section })
+  if (!validation.success) {
+    for (const [field, messages] of Object.entries(validation.errors.all())) errors[field] = [...messages]
     return undefined
   }
 
   return validation.value
-}
-
-function collectIssues(errors: ValidationErrors, section: Section, issues: ReadonlyArray<StandardSchemaV1.Issue>): void {
-  for (const issue of issues) {
-    const path = buildPath(section, issue.path)
-    const list = errors[path] ?? []
-    list.push(issue.message)
-    errors[path] = list
-  }
-}
-
-function buildPath(section: Section, issuePath: ReadonlyArray<PropertyKey | StandardSchemaV1.PathSegment> | undefined): string {
-  if (!issuePath || issuePath.length === 0) {
-    return section
-  }
-
-  const segments = issuePath.map(segment => (typeof segment === 'object' ? String(segment.key) : String(segment)))
-  return [section, ...segments].join('.')
 }

@@ -5,6 +5,7 @@ import { filesystemManagerToken } from '@nuxt-laravelize/filesystem/runtime'
 import { hasherToken } from '@nuxt-laravelize/hashing/runtime'
 import { queueToken } from '@nuxt-laravelize/queue/runtime'
 import { rateLimiterToken } from '@nuxt-laravelize/rate-limiter/runtime'
+import { validatorToken } from '@nuxt-laravelize/validation/runtime'
 import { mountLaravelize } from '../src/index'
 
 describe('mountLaravelize', () => {
@@ -16,5 +17,6 @@ describe('mountLaravelize', () => {
     expect(mounted.container.make(hasherToken)).toBe(mounted.hasher)
     expect(mounted.container.make(queueToken)).toBe(mounted.queue)
     expect(mounted.container.make(rateLimiterToken)).toBe(mounted.rateLimiter)
+    expect(mounted.container.make(validatorToken)).toBe(mounted.validator)
   })
 })

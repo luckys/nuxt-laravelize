@@ -10,7 +10,7 @@ export interface ModuleOptions {
 export default defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/http', configKey: 'laravelizeHttp', compatibility: { nuxt: '>=4.3.0 <5' } },
   defaults: { baseURL: '', signingKey: '', signingOrigin: '' },
-  moduleDependencies: { '@nuxt-laravelize/core': {} },
+  moduleDependencies: { '@nuxt-laravelize/core': {}, '@nuxt-laravelize/validation': {} },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
     const privateRuntimeOptions = nuxt.options.runtimeConfig.laravelizeHttp

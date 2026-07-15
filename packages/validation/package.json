@@ -1,23 +1,15 @@
 {
-  "name": "@nuxt-laravelize/http",
+  "name": "@nuxt-laravelize/validation",
   "version": "0.2.0",
-  "description": "Nuxt-native HTTP client and Laravel-like server architecture for Nuxt",
+  "description": "Portable Standard Schema validation and error bags for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "main": "./dist/module.mjs",
   "exports": {
-    ".": {
-      "types": "./dist/types.d.mts",
-      "import": "./dist/module.mjs"
-    },
-    "./runtime": {
-      "types": "./dist/public-runtime.d.mts",
-      "import": "./dist/public-runtime.mjs"
-    },
+    ".": { "types": "./dist/types.d.mts", "import": "./dist/module.mjs" },
+    "./runtime": { "types": "./dist/public-runtime.d.mts", "import": "./dist/public-runtime.mjs" },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -29,14 +21,10 @@
   },
   "dependencies": {
     "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/validation": "workspace:^",
     "@nuxt/kit": "^4.4.5",
-    "@standard-schema/spec": "^1.1.0",
-    "h3": "^1.15.11"
+    "@standard-schema/spec": "^1.1.0"
   },
-  "peerDependencies": {
-    "nuxt": ">=4.3.0 <5"
-  },
+  "peerDependencies": { "nuxt": ">=4.3.0 <5" },
   "devDependencies": {
     "@nuxt/module-builder": "^1.0.2",
     "@types/node": "latest",

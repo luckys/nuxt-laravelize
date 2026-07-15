@@ -23,6 +23,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/hashing` | Versioned PBKDF2 password hashing and rehash detection |
 | `@nuxt-laravelize/database` | ORM-neutral factories and seeders |
 | `@nuxt-laravelize/testing` | Aggregate test harness and fakes |
+| `@nuxt-laravelize/validation` | Standard Schema validation, typed results, and error bags |
 | `@nuxt-laravelize/scheduler` | Framework-neutral schedules and an explicit Nitro 3 adapter |
 | `@nuxt-laravelize/nuxt` | Convenience preset with `nuxt-i18n-micro` integration |
 
@@ -47,7 +48,7 @@ export default defineNuxtConfig({
 })
 ```
 
-The preset activates cache, core, database, encryption, events, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. The preset does not install BullMQ or activate the scheduler.
+The preset activates cache, core, database, encryption, events, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. The preset does not install BullMQ or activate the scheduler.
 
 ```vue
 <template>
@@ -101,6 +102,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/hashing` | `/runtime` | - |
 | `@nuxt-laravelize/database` | `/runtime` | - |
 | `@nuxt-laravelize/testing` | Package root | Package root |
+| `@nuxt-laravelize/validation` | `/runtime` | - |
 | `@nuxt-laravelize/scheduler` | Package root, `/nitro3` | - |
 | `@nuxt-laravelize/nuxt` | Package root | - |
 

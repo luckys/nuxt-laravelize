@@ -23,6 +23,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/hashing` | Hashing PBKDF2 versionado y deteccion de rehash |
 | `@nuxt-laravelize/database` | Factories y seeders independientes del ORM |
 | `@nuxt-laravelize/testing` | Test harness agregado y fakes |
+| `@nuxt-laravelize/validation` | Validacion Standard Schema, resultados tipados y error bags |
 | `@nuxt-laravelize/scheduler` | Schedules independientes del framework y adapter Nitro 3 explicito |
 | `@nuxt-laravelize/nuxt` | Preset conveniente con integracion de `nuxt-i18n-micro` |
 
@@ -47,7 +48,7 @@ export default defineNuxtConfig({
 })
 ```
 
-El preset activa cache, core, database, encryption, events, filesystem, hashing, queued listeners, HTTP, mail, notifications, rate limiting, la cola portable y `nuxt-i18n-micro`. Las traducciones usan su API nativa de Nuxt `$t()` y diccionarios JSON en lugar de `__()` al estilo Laravel. No instala BullMQ ni activa el scheduler.
+El preset activa cache, core, database, encryption, events, filesystem, hashing, queued listeners, HTTP, mail, notifications, rate limiting, validation, la cola portable y `nuxt-i18n-micro`. Las traducciones usan su API nativa de Nuxt `$t()` y diccionarios JSON en lugar de `__()` al estilo Laravel. No instala BullMQ ni activa el scheduler.
 
 ```vue
 <template>
@@ -101,6 +102,7 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/hashing` | `/runtime` | - |
 | `@nuxt-laravelize/database` | `/runtime` | - |
 | `@nuxt-laravelize/testing` | Raiz del paquete | Raiz del paquete |
+| `@nuxt-laravelize/validation` | `/runtime` | - |
 | `@nuxt-laravelize/scheduler` | Raiz del paquete, `/nitro3` | - |
 | `@nuxt-laravelize/nuxt` | Raiz del paquete | - |
 

@@ -21,6 +21,7 @@ const packageNames = [
   'rate-limiter',
   'scheduler',
   'testing',
+  'validation',
 ]
 
 const tarballDirectory = resolve('.pack')
@@ -68,6 +69,7 @@ runFixture('features', {
   '@nuxt-laravelize/hashing/runtime',
   '@nuxt-laravelize/database/runtime',
   '@nuxt-laravelize/testing',
+  '@nuxt-laravelize/validation/runtime',
   '@nuxt-laravelize/nuxt',
 ], ['@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: {
@@ -84,6 +86,7 @@ runFixture('features', {
     '@nuxt-laravelize/notifications/runtime': ['notificationManagerToken'],
     '@nuxt-laravelize/http/runtime': ['Policy', 'DefaultPolicyRegistry', 'policyRegistryToken', 'discoverPoliciesByConvention', 'HmacUrlSigner', 'ValidateSignature', 'urlSignerToken'],
     '@nuxt-laravelize/hashing/runtime': ['Pbkdf2Hasher', 'hasherToken'],
+    '@nuxt-laravelize/validation/runtime': ['ErrorBag', 'ValidationError', 'Validator', 'validatorToken'],
   },
 })
 
@@ -209,6 +212,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  mailer: Boolean(useMailer(event)),',
         '  notifications: Boolean(useNotifications(event)),',
         '  urlSigner: Boolean(useUrlSigner(event)),',
+        '  validator: Boolean(useValidator(event)),',
         '  rateLimiter: Boolean(useRateLimiter(event)),',
         '  signedUrl: await useUrlSigner(event).sign(new URL(\'/api/signed-target?scope=smoke\', useRuntimeConfig(event).laravelizeHttp.signingOrigin)),',
         '}))',
@@ -252,7 +256,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  }',
         '  if (!response?.ok) throw new Error(`Nuxt server did not become ready. ${diagnostics}`)',
         '  const health = await response.json()',
-        '  for (const service of [\'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'encrypter\', \'filesystem\', \'hasher\', \'queue\', \'mailer\', \'notifications\', \'urlSigner\', \'rateLimiter\']) {',
+        '  for (const service of [\'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'encrypter\', \'filesystem\', \'hasher\', \'queue\', \'mailer\', \'notifications\', \'urlSigner\', \'rateLimiter\', \'validator\']) {',
         '    if (health[service] !== true) throw new Error(`Missing runtime service: ${service}`)',
         '  }',
         '  const signed = new URL(health.signedUrl)',

@@ -17,6 +17,7 @@ describe('Nuxt 4 default profile', async () => {
       mailer: true,
       notifications: true,
       urlSigner: true,
+      validator: true,
       rateLimiter: true,
     })
   })
@@ -61,6 +62,14 @@ describe('Nuxt 4 default profile', async () => {
     expect(hash).not.toContain('password')
     expect(await $fetch('/api/hashing', { method: 'POST', body: { value: 'password', hash } })).toEqual({ matches: true })
     expect(await $fetch('/api/hashing', { method: 'POST', body: { value: 'wrong', hash } })).toEqual({ matches: false })
+  })
+
+  it('validates through Standard Schema and exposes a nested error bag', async () => {
+    expect(await $fetch('/api/validation', { method: 'POST', body: { name: ' Ada ' } })).toEqual({ valid: true, value: { name: 'Ada' } })
+    expect(await $fetch('/api/validation', { method: 'POST', body: { name: 'x' } })).toEqual({
+      valid: false,
+      errors: { 'body.name': ['The name must contain at least three characters.'] },
+    })
   })
 
   it('protects cache lock ownership across request scopes', async () => {

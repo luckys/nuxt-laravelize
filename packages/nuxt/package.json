@@ -37,6 +37,7 @@
     "@nuxt-laravelize/notifications": "workspace:^",
     "@nuxt-laravelize/queue": "workspace:^",
     "@nuxt-laravelize/rate-limiter": "workspace:^",
+    "@nuxt-laravelize/validation": "workspace:^",
     "@nuxt/kit": "^4.4.5",
     "h3": "^1.15.11",
     "nuxt-i18n-micro": "^3.21.4"
