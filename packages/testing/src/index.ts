@@ -1,4 +1,5 @@
 import { createContainer, type Container } from '@nuxt-laravelize/core/runtime'
+import { AesGcmEncrypter, encrypterToken } from '@nuxt-laravelize/encryption/runtime'
 import { CacheFake } from '@nuxt-laravelize/cache/testing'
 import { cacheToken } from '@nuxt-laravelize/cache/runtime'
 import { EventFake } from '@nuxt-laravelize/events/testing'
@@ -25,6 +26,7 @@ export interface MountedLaravelize {
   readonly container: Container
   readonly cache: CacheFake
   readonly events: EventFake
+  readonly encrypter: AesGcmEncrypter
   readonly filesystem: FilesystemFake
   readonly queue: QueueFake
   readonly mail: MailFake
@@ -36,12 +38,14 @@ export function mountLaravelize(): MountedLaravelize {
   const container = createContainer()
   const cache = new CacheFake()
   const events = new EventFake()
+  const encrypter = new AesGcmEncrypter('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
   const filesystem = new FilesystemFake()
   const queue = new QueueFake()
   const mail = new MailFake()
   const notifications = new NotificationFake()
   const rateLimiter = new RateLimiter(cache)
   container.instance(dispatcherToken, events)
+  container.instance(encrypterToken, encrypter)
   container.instance(filesystemManagerToken, new FilesystemManager().register('default', filesystem))
   container.instance(cacheToken, cache)
   container.instance(queueToken, queue)
@@ -49,5 +53,5 @@ export function mountLaravelize(): MountedLaravelize {
   container.instance(notificationManagerToken, notifications as never)
   container.instance(rateLimiterToken, rateLimiter)
   container.seal()
-  return { container, cache, events, filesystem, queue, mail, notifications, rateLimiter }
+  return { container, cache, encrypter, events, filesystem, queue, mail, notifications, rateLimiter }
 }

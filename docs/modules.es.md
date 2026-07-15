@@ -138,6 +138,45 @@ return await throttle.handle(event, next)
 
 La aplicacion distribuida requiere un adapter de cache compartido cuyas operaciones `add` e `increment` sean atomicas. El `InMemoryCache` por defecto solo coordina requests atendidos por un proceso persistente. Deriva keys de identificadores confiables y acotados; hashear input no acotado evita crecimiento de keys controlado por atacantes.
 
+## Encryption
+
+`@nuxt-laravelize/encryption` proporciona cifrado autenticado AES-256-GCM mediante Web Crypto.
+
+```bash
+pnpm add @nuxt-laravelize/encryption
+```
+
+Genera una clave base64url una vez y guardala en una variable de entorno privada. Nunca hagas commit de claves de produccion.
+
+```ts
+import { generateEncryptionKey } from '@nuxt-laravelize/encryption/runtime'
+
+console.log(generateEncryptionKey())
+```
+
+```ts
+export default defineNuxtConfig({
+  runtimeConfig: {
+    laravelizeEncryption: {
+      key: process.env.NUXT_LARAVELIZE_ENCRYPTION_KEY,
+      previousKeys: process.env.NUXT_LARAVELIZE_ENCRYPTION_PREVIOUS_KEYS?.split(',') ?? [],
+    },
+  },
+})
+```
+
+Usa el autoimport `useEncrypter(event)` para strings o bytes. El proposito se autentica pero no se guarda por separado; el mismo proposito es obligatorio al descifrar.
+
+```ts
+const crypt = useEncrypter(event)
+const payload = await crypt.encryptString(userId, { purpose: 'password-reset' })
+const restored = await crypt.decryptString(payload, { purpose: 'password-reset' })
+```
+
+La clave primaria cifra payloads nuevos. `previousKeys` solo se prueban al descifrar, permitiendo rotacion gradual sin aceptar claves antiguas para ciphertext nuevo. Claves invalidas fallan al resolver el servicio, mientras payloads malformados, manipulados, con otro proposito u otra clave producen el mismo `DecryptionError` sin revelar detalles de autenticacion.
+
+Los payloads cifrados proporcionan confidencialidad e integridad, no expiracion ni prevencion de replay. Guarda expiracion y estado de uso unico por separado al construir reset links o tokens de sesion.
+
 ## Filesystem
 
 `@nuxt-laravelize/filesystem` proporciona discos nombrados al estilo Laravel sobre un contrato portable orientado a bytes.
@@ -744,7 +783,7 @@ app.mail.assertSent(WelcomeMail)
 await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` devuelve `container`, `cache`, `events`, `filesystem`, `queue`, `mail`, `notifications` y `rateLimiter`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
+`mountLaravelize()` devuelve `container`, `cache`, `encrypter`, `events`, `filesystem`, `queue`, `mail`, `notifications` y `rateLimiter`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
 
 ## Scheduler
 

@@ -10,6 +10,7 @@ describe('Nuxt 4 default profile', async () => {
       cache: true,
       cacheLock: true,
       dispatcher: true,
+      encrypter: true,
       filesystem: true,
       queue: true,
       mailer: true,
@@ -45,6 +46,13 @@ describe('Nuxt 4 default profile', async () => {
   it('keeps filesystem values across request scopes', async () => {
     expect(await $fetch('/api/filesystem-counter')).toEqual({ value: 1 })
     expect(await $fetch('/api/filesystem-counter')).toEqual({ value: 2 })
+  })
+
+  it('encrypts and decrypts authenticated payloads through the provider', async () => {
+    const { payload } = await $fetch<{ payload: string }>('/api/encryption')
+    expect(payload).not.toContain('secret')
+    expect(await $fetch('/api/encryption', { query: { payload } })).toEqual({ value: 'secret' })
+    await expect($fetch('/api/encryption', { query: { payload: `${payload}A` } })).rejects.toMatchObject({ statusCode: 422 })
   })
 
   it('protects cache lock ownership across request scopes', async () => {

@@ -138,6 +138,45 @@ return await throttle.handle(event, next)
 
 Distributed enforcement requires a shared cache adapter whose `add` and `increment` operations are atomic. The default `InMemoryCache` only coordinates requests handled by one long-lived process. Derive keys from trusted, bounded identifiers; hashing unbounded user input avoids attacker-controlled cache key growth.
 
+## Encryption
+
+`@nuxt-laravelize/encryption` provides authenticated AES-256-GCM encryption through the Web Crypto API.
+
+```bash
+pnpm add @nuxt-laravelize/encryption
+```
+
+Generate a base64url key once and store it in a private environment variable. Never commit production keys.
+
+```ts
+import { generateEncryptionKey } from '@nuxt-laravelize/encryption/runtime'
+
+console.log(generateEncryptionKey())
+```
+
+```ts
+export default defineNuxtConfig({
+  runtimeConfig: {
+    laravelizeEncryption: {
+      key: process.env.NUXT_LARAVELIZE_ENCRYPTION_KEY,
+      previousKeys: process.env.NUXT_LARAVELIZE_ENCRYPTION_PREVIOUS_KEYS?.split(',') ?? [],
+    },
+  },
+})
+```
+
+Use the auto-imported `useEncrypter(event)` for strings or bytes. A purpose is authenticated but not stored separately; the same purpose is required for decryption.
+
+```ts
+const crypt = useEncrypter(event)
+const payload = await crypt.encryptString(userId, { purpose: 'password-reset' })
+const restored = await crypt.decryptString(payload, { purpose: 'password-reset' })
+```
+
+The primary key encrypts new payloads. `previousKeys` are tried only for decryption, enabling rolling rotation without accepting old keys for new ciphertext. Invalid keys fail at service resolution, while malformed, tampered, wrong-purpose and wrong-key payloads all produce the same `DecryptionError` without exposing authentication details.
+
+Encrypted payloads provide confidentiality and integrity, not expiration or replay prevention. Store expiry and one-time-use state separately when building reset links or session tokens.
+
 ## Filesystem
 
 `@nuxt-laravelize/filesystem` provides Laravel-style named disks behind a portable byte-oriented contract.
@@ -744,7 +783,7 @@ app.mail.assertSent(WelcomeMail)
 await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` returns `container`, `cache`, `events`, `filesystem`, `queue`, `mail`, `notifications` and `rateLimiter`. The package also re-exports `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
+`mountLaravelize()` returns `container`, `cache`, `encrypter`, `events`, `filesystem`, `queue`, `mail`, `notifications` and `rateLimiter`. The package also re-exports `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
 
 ## Scheduler
 

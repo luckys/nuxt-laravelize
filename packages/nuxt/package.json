@@ -28,6 +28,7 @@
     "@nuxt-laravelize/core": "workspace:^",
     "@nuxt-laravelize/database": "workspace:^",
     "@nuxt-laravelize/events": "workspace:^",
+    "@nuxt-laravelize/encryption": "workspace:^",
     "@nuxt-laravelize/events-queue": "workspace:^",
     "@nuxt-laravelize/filesystem": "workspace:^",
     "@nuxt-laravelize/http": "workspace:^",

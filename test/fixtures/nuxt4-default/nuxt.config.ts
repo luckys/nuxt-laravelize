@@ -12,6 +12,9 @@ export default defineNuxtConfig({
     autoDetectLanguage: false,
     redirects: false,
   },
+  laravelizeEncryption: {
+    key: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+  },
   laravelizeHttp: {
     baseURL: '/api',
     signingKey: 'integration-signing-key-with-32-bytes',

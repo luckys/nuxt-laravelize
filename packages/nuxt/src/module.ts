@@ -29,6 +29,7 @@ export default defineNuxtModule({
     '@nuxt-laravelize/core': {},
     '@nuxt-laravelize/database': {},
     '@nuxt-laravelize/events': {},
+    '@nuxt-laravelize/encryption': {},
     '@nuxt-laravelize/queue': {},
     '@nuxt-laravelize/rate-limiter': {},
     '@nuxt-laravelize/events-queue': {},

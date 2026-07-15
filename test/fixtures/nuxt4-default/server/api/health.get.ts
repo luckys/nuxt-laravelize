@@ -4,6 +4,7 @@ export default defineEventHandler((event) => {
     cache: Boolean(useCache(event)),
     cacheLock: Boolean(useCacheLock(event, 'health', 60)),
     dispatcher: Boolean(useDispatcher(event)),
+    encrypter: Boolean(useEncrypter(event)),
     filesystem: Boolean(useFilesystem(event)),
     queue: Boolean(useQueue(event)),
     mailer: Boolean(useMailer(event)),
