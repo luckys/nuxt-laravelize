@@ -15,6 +15,7 @@
       "@nuxt-laravelize/hashing",
       "@nuxt-laravelize/mail",
       "@nuxt-laravelize/notifications",
+      "@nuxt-laravelize/pennant",
       "@nuxt-laravelize/nuxt",
       "@nuxt-laravelize/queue",
       "@nuxt-laravelize/queue-bullmq",

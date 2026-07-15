@@ -544,6 +544,19 @@ await notifications
   .notify(new InvoicePaid())
 ```
 
+## Feature flags
+
+`@nuxt-laravelize/pennant` ofrece feature flags lazy por scope, con valores booleanos o ricos. El preset registra un store en memoria; en despliegues distribuidos reemplaza `featureManagerToken` por un manager respaldado por un `FeatureStore` compartido.
+
+```ts
+const features = useFeatures(event)
+features.define('new-checkout', scope => scope.plan === 'pro' ? 'variant-b' : false)
+const accountFeatures = features.for({ plan: 'pro', toFeatureIdentifier: () => 'account:42' })
+if (await accountFeatures.active('new-checkout')) return { variant: await accountFeatures.value('new-checkout') }
+```
+
+Las definiciones se evaluan solo despues de un miss del store y su resultado se persiste. Usa `activate()`, `deactivate()` y `forget()` para un scope, `purge()` para los datos almacenados del rollout y `flushCache()` en limites explicitos del ciclo de vida. Los scopes objeto deben implementar `toFeatureIdentifier()` para evitar identidades inestables por serializacion.
+
 ## Validation
 
 `@nuxt-laravelize/validation` valida cualquier implementacion de [Standard Schema](https://standardschema.dev/), incluyendo Zod, Valibot y ArkType, sin acoplar servicios de aplicacion a HTTP.
@@ -839,7 +852,7 @@ app.mail.assertSent(WelcomeMail)
 await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` devuelve `container`, `cache`, `encrypter`, `events`, `filesystem`, `hasher`, `queue`, `mail`, `notifications`, `rateLimiter` y `validator`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
+`mountLaravelize()` devuelve `container`, `cache`, `encrypter`, `events`, `features`, `filesystem`, `hasher`, `queue`, `mail`, `notifications`, `rateLimiter` y `validator`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
 
 ## Scheduler
 

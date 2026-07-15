@@ -1,7 +1,8 @@
 import Laravelize from '../../../packages/nuxt/src/module'
+import Pennant from '../../../packages/pennant/src/module'
 
 export default defineNuxtConfig({
-  modules: [Laravelize],
+  modules: [Pennant, Laravelize],
   compatibilityDate: '2026-07-01',
   i18n: {
     locales: [{ code: 'en', iso: 'en-US', dir: 'ltr' }],

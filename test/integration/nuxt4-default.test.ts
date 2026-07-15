@@ -11,6 +11,7 @@ describe('Nuxt 4 default profile', async () => {
       cacheLock: true,
       dispatcher: true,
       encrypter: true,
+      features: true,
       filesystem: true,
       hasher: true,
       queue: true,

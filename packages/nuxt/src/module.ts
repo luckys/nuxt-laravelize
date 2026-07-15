@@ -38,6 +38,7 @@ export default defineNuxtModule({
     '@nuxt-laravelize/http': {},
     '@nuxt-laravelize/hashing': {},
     '@nuxt-laravelize/notifications': {},
+    '@nuxt-laravelize/pennant': {},
     '@nuxt-laravelize/validation': {},
     'nuxt-i18n-micro': {},
   },

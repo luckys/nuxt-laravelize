@@ -544,6 +544,19 @@ await notifications
   .notify(new InvoicePaid())
 ```
 
+## Feature flags
+
+`@nuxt-laravelize/pennant` provides scoped, lazy feature flags with boolean or rich values. The preset registers an in-memory store; replace `featureManagerToken` with a manager backed by a shared `FeatureStore` in distributed deployments.
+
+```ts
+const features = useFeatures(event)
+features.define('new-checkout', scope => scope.plan === 'pro' ? 'variant-b' : false)
+const accountFeatures = features.for({ plan: 'pro', toFeatureIdentifier: () => 'account:42' })
+if (await accountFeatures.active('new-checkout')) return { variant: await accountFeatures.value('new-checkout') }
+```
+
+Definitions are evaluated only after a store miss and their result is persisted. Use `activate()`, `deactivate()` and `forget()` for one scope, `purge()` for stored rollout data, and `flushCache()` at explicit lifecycle boundaries. Object scopes must implement `toFeatureIdentifier()` to prevent unstable identity from object serialization.
+
 ## Validation
 
 `@nuxt-laravelize/validation` validates any [Standard Schema](https://standardschema.dev/) implementation, including Zod, Valibot and ArkType, without coupling application services to HTTP.
@@ -839,7 +852,7 @@ app.mail.assertSent(WelcomeMail)
 await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` returns `container`, `cache`, `encrypter`, `events`, `filesystem`, `hasher`, `queue`, `mail`, `notifications`, `rateLimiter` and `validator`. The package also re-exports `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
+`mountLaravelize()` returns `container`, `cache`, `encrypter`, `events`, `features`, `filesystem`, `hasher`, `queue`, `mail`, `notifications`, `rateLimiter` and `validator`. The package also re-exports `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
 
 ## Scheduler
 
