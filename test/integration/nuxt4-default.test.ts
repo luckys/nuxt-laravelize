@@ -8,6 +8,7 @@ describe('Nuxt 4 default profile', async () => {
     expect(await $fetch('/api/health')).toEqual({
       container: true,
       cache: true,
+      cacheLock: true,
       dispatcher: true,
       queue: true,
       mailer: true,
@@ -38,6 +39,14 @@ describe('Nuxt 4 default profile', async () => {
   it('keeps cache values across request scopes', async () => {
     expect(await $fetch('/api/cache-counter')).toEqual({ value: 1 })
     expect(await $fetch('/api/cache-counter')).toEqual({ value: 2 })
+  })
+
+  it('protects cache lock ownership across request scopes', async () => {
+    expect(await $fetch('/api/cache-lock?owner=owner-a')).toEqual({ acquired: true })
+    expect(await $fetch('/api/cache-lock?owner=owner-b')).toEqual({ acquired: false })
+    expect(await $fetch('/api/cache-lock?action=release&owner=owner-b')).toEqual({ released: false })
+    expect(await $fetch('/api/cache-lock?action=release&owner=owner-a')).toEqual({ released: true })
+    expect(await $fetch('/api/cache-lock?owner=owner-b')).toEqual({ acquired: true })
   })
 
   it('rate limits across request scopes', async () => {

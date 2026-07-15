@@ -58,6 +58,13 @@ export class InMemoryCache implements Cache {
     return this.#entries.delete(key)
   }
 
+  async forgetIf<T>(key: string, expected: T): Promise<boolean> {
+    const entry = this.#entry(key)
+    if (entry === undefined || !Object.is(entry.value, expected)) return false
+    this.#touch(key)
+    return this.#entries.delete(key)
+  }
+
   async flush(): Promise<void> {
     this.#entries.clear()
     this.#pending.clear()

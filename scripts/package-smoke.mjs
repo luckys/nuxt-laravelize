@@ -63,7 +63,7 @@ runFixture('features', {
   '@nuxt-laravelize/nuxt',
 ], ['@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: {
-    '@nuxt-laravelize/cache/runtime': ['InMemoryCache', 'cacheToken'],
+    '@nuxt-laravelize/cache/runtime': ['CacheLock', 'InMemoryCache', 'LockTimeoutError', 'cacheToken'],
     '@nuxt-laravelize/core/runtime': ['createContainer', 'loggerFor'],
     '@nuxt-laravelize/events/runtime': ['dispatcherToken'],
     '@nuxt-laravelize/queue/runtime': ['queueToken'],
@@ -185,6 +185,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         'export default defineEventHandler(async (event) => ({',
         '  container: Boolean(event.context.laravelizeContainer),',
         '  cache: Boolean(useCache(event)),',
+        '  cacheLock: Boolean(useCacheLock(event, \'smoke\', 60)),',
         '  dispatcher: Boolean(useDispatcher(event)),',
         '  queue: Boolean(useQueue(event)),',
         '  mailer: Boolean(useMailer(event)),',
@@ -233,7 +234,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  }',
         '  if (!response?.ok) throw new Error(`Nuxt server did not become ready. ${diagnostics}`)',
         '  const health = await response.json()',
-        '  for (const service of [\'container\', \'cache\', \'dispatcher\', \'queue\', \'mailer\', \'notifications\', \'urlSigner\', \'rateLimiter\']) {',
+        '  for (const service of [\'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'queue\', \'mailer\', \'notifications\', \'urlSigner\', \'rateLimiter\']) {',
         '    if (health[service] !== true) throw new Error(`Missing runtime service: ${service}`)',
         '  }',
         '  const signed = new URL(health.signedUrl)',

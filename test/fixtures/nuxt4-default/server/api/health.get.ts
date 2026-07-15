@@ -2,6 +2,7 @@ export default defineEventHandler((event) => {
   return {
     container: Boolean(useContainer(event)),
     cache: Boolean(useCache(event)),
+    cacheLock: Boolean(useCacheLock(event, 'health', 60)),
     dispatcher: Boolean(useDispatcher(event)),
     queue: Boolean(useQueue(event)),
     mailer: Boolean(useMailer(event)),

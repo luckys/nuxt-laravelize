@@ -38,6 +38,16 @@ describe('InMemoryCache', () => {
     ])).resolves.toEqual(['one-time', undefined])
   })
 
+  it('forgets only a matching value atomically', async () => {
+    const cache = new InMemoryCache()
+    await cache.put('lock', 'owner-a')
+
+    await expect(cache.forgetIf('lock', 'owner-b')).resolves.toBe(false)
+    await expect(cache.get('lock')).resolves.toBe('owner-a')
+    await expect(cache.forgetIf('lock', 'owner-a')).resolves.toBe(true)
+    await expect(cache.has('lock')).resolves.toBe(false)
+  })
+
   it('allows only one concurrent add for a missing key', async () => {
     const cache = new InMemoryCache()
 

@@ -62,6 +62,7 @@ export default defineEventHandler(async (event) => {
 | `add(key, value, ttl?)` | Atomically stores only when the key is absent. |
 | `pull(key, default?)` | Reads and removes a value. |
 | `forget(key)` / `flush()` | Removes one key or all keys. |
+| `forgetIf(key, expected)` | Atomically removes a key only when its value still matches. |
 | `remember(key, ttl, factory)` | Loads and caches a missing value; concurrent in-process calls share one factory promise. |
 | `rememberForever(key, factory)` | Memoizes without expiration. |
 | `increment()` / `decrement()` | Atomically changes a numeric value and creates a missing counter from zero. |
@@ -77,6 +78,22 @@ const token = await cache.pull<string>('password-reset:user_1')
 `InMemoryCache` is appropriate for tests, development and one long-lived process. It lazily removes accessed expirations and opportunistically sweeps untouched expired values during writes. It does not coordinate across workers, instances, regions or serverless invocations. Bind a shared adapter to `cacheToken` for distributed caching or cross-process atomic operations. Cache is an optimization boundary: do not make domain correctness depend on cached data.
 
 `undefined` is reserved for a cache miss and cannot be stored; use `null` when absence is itself the cached value. Mutations invalidate an in-flight `remember()` write so stale loaders cannot overwrite newer values.
+
+### Atomic locks
+
+Create an owner-safe lock with `useCacheLock(event, name, ttlSeconds)`. `run()` executes immediately when acquired and returns `undefined` when busy. `block()` polls until acquisition or throws `LockTimeoutError`.
+
+```ts
+export default defineEventHandler(async (event) => {
+  return await useCacheLock(event, 'reports:daily', 30).block(5, async () => {
+    return await generateDailyReport()
+  })
+})
+```
+
+Each lock exposes an opaque `owner` token. Pass that token as the fourth `useCacheLock()` argument to restore and release ownership from another process. Normal `release()` uses atomic compare-and-delete and cannot delete a lock reacquired by another owner after expiration. Reserve `forceRelease()` for administrative recovery because it intentionally ignores ownership.
+
+Distributed locks require shared cache adapters to implement both `add()` and `forgetIf()` atomically. Lock TTL must exceed the protected operation; expiration prevents permanent deadlocks but does not cancel a callback that runs too long.
 
 ## Rate limiting
 

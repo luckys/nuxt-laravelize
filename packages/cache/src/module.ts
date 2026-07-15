@@ -10,6 +10,7 @@ export default defineNuxtModule({
     addServerImports([
       { name: 'useCache', from: resolver.resolve('./runtime/server') },
       { name: 'cacheToken', from: resolver.resolve('./runtime/server') },
+      { name: 'useCacheLock', from: resolver.resolve('./runtime/server') },
     ])
   },
 })

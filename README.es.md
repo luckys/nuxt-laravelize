@@ -8,7 +8,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 
 | Paquete | Proposito |
 |---|---|
-| `@nuxt-laravelize/cache` | Contrato cache portable, operaciones TTL, contadores, memoizacion y driver en memoria |
+| `@nuxt-laravelize/cache` | Contrato cache portable, operaciones TTL, locks atomicos, contadores, memoizacion y driver en memoria |
 | `@nuxt-laravelize/core` | Contenedor, tokens, providers, lifecycle y logging |
 | `@nuxt-laravelize/events` | Eventos y listeners sincronicos |
 | `@nuxt-laravelize/queue` | Contratos de cola portables, jobs, ejecucion por scope y driver en memoria |
