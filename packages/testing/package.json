@@ -28,6 +28,7 @@
     "@nuxt-laravelize/cache": "workspace:^",
     "@nuxt-laravelize/core": "workspace:^",
     "@nuxt-laravelize/events": "workspace:^",
+    "@nuxt-laravelize/filesystem": "workspace:^",
     "@nuxt-laravelize/mail": "workspace:^",
     "@nuxt-laravelize/notifications": "workspace:^",
     "@nuxt-laravelize/queue": "workspace:^",

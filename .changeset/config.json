@@ -9,6 +9,7 @@
       "@nuxt-laravelize/database",
       "@nuxt-laravelize/events",
       "@nuxt-laravelize/events-queue",
+      "@nuxt-laravelize/filesystem",
       "@nuxt-laravelize/http",
       "@nuxt-laravelize/mail",
       "@nuxt-laravelize/notifications",

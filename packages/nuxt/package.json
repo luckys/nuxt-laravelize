@@ -29,6 +29,7 @@
     "@nuxt-laravelize/database": "workspace:^",
     "@nuxt-laravelize/events": "workspace:^",
     "@nuxt-laravelize/events-queue": "workspace:^",
+    "@nuxt-laravelize/filesystem": "workspace:^",
     "@nuxt-laravelize/http": "workspace:^",
     "@nuxt-laravelize/mail": "workspace:^",
     "@nuxt-laravelize/notifications": "workspace:^",

@@ -138,6 +138,43 @@ return await throttle.handle(event, next)
 
 Distributed enforcement requires a shared cache adapter whose `add` and `increment` operations are atomic. The default `InMemoryCache` only coordinates requests handled by one long-lived process. Derive keys from trusted, bounded identifiers; hashing unbounded user input avoids attacker-controlled cache key growth.
 
+## Filesystem
+
+`@nuxt-laravelize/filesystem` provides Laravel-style named disks behind a portable byte-oriented contract.
+
+```bash
+pnpm add @nuxt-laravelize/filesystem
+```
+
+The complete preset registers an in-memory default disk. Use `useFilesystem(event, disk?)` in Nitro handlers.
+
+```ts
+export default defineEventHandler(async (event) => {
+  const files = useFilesystem(event)
+  await files.write('exports/report.csv', csv)
+  return { bytes: await files.size('exports/report.csv') }
+})
+```
+
+| API | Purpose |
+|---|---|
+| `write()` / `read()` / `readText()` | Stores strings or bytes and reads defensive byte copies or UTF-8 text. |
+| `exists()` / `delete()` / `size()` | Inspects and removes files. |
+| `copy()` / `move()` | Copies or moves a file within one disk. |
+| `list(prefix?)` | Recursively lists normalized logical paths in stable order. |
+| `FilesystemManager` | Registers and resolves named disks. |
+| `FilesystemFake` | In-memory fake with assertions and reset support. |
+
+The portable `InMemoryFilesystem` is intended for tests, development, or ephemeral files in one process. For persistent Node deployments, register `LocalFilesystem` from `@nuxt-laravelize/filesystem/node` in a custom provider:
+
+```ts
+import { LocalFilesystem } from '@nuxt-laravelize/filesystem/node'
+
+manager.register('reports', new LocalFilesystem('/srv/app/storage/reports'))
+```
+
+`LocalFilesystem` normalizes separators, rejects null bytes, `..` traversal and symbolic links, and confines every operation to its configured root. Do not use it as shared storage across serverless instances; register an object-storage adapter instead.
+
 ## Core
 
 `@nuxt-laravelize/core` provides the dependency container, typed tokens, service providers, application lifecycle and logging. Feature modules install it automatically.
@@ -707,7 +744,7 @@ app.mail.assertSent(WelcomeMail)
 await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` returns `container`, `cache`, `events`, `queue`, `mail` and `notifications`. The package also re-exports `CacheFake`, `FakeLogger`, `EventFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
+`mountLaravelize()` returns `container`, `cache`, `events`, `filesystem`, `queue`, `mail`, `notifications` and `rateLimiter`. The package also re-exports `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
 
 ## Scheduler
 

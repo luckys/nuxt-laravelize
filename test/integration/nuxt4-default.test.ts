@@ -10,6 +10,7 @@ describe('Nuxt 4 default profile', async () => {
       cache: true,
       cacheLock: true,
       dispatcher: true,
+      filesystem: true,
       queue: true,
       mailer: true,
       notifications: true,
@@ -39,6 +40,11 @@ describe('Nuxt 4 default profile', async () => {
   it('keeps cache values across request scopes', async () => {
     expect(await $fetch('/api/cache-counter')).toEqual({ value: 1 })
     expect(await $fetch('/api/cache-counter')).toEqual({ value: 2 })
+  })
+
+  it('keeps filesystem values across request scopes', async () => {
+    expect(await $fetch('/api/filesystem-counter')).toEqual({ value: 1 })
+    expect(await $fetch('/api/filesystem-counter')).toEqual({ value: 2 })
   })
 
   it('protects cache lock ownership across request scopes', async () => {
