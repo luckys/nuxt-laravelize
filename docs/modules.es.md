@@ -557,6 +557,21 @@ if (await accountFeatures.active('new-checkout')) return { variant: await accoun
 
 Las definiciones se evaluan solo despues de un miss del store y su resultado se persiste. Usa `activate()`, `deactivate()` y `forget()` para un scope, `purge()` para los datos almacenados del rollout y `flushCache()` en limites explicitos del ciclo de vida. Los scopes objeto deben implementar `toFeatureIdentifier()` para evitar identidades inestables por serializacion.
 
+## Busqueda Scout
+
+`@nuxt-laravelize/scout` ofrece contratos portables para modelos y motores, builder fluido, importacion por lotes y el auto-import de servidor `useScout(event)`. El preset usa memoria para desarrollo y tests. `@nuxt-laravelize/scout-drizzle` ofrece motores explicitos para PostgreSQL, SQLite local y Turso/libSQL mediante `/postgres`, `/sqlite` y `/turso`. Aplica la migracion del dialecto elegido y registra el adapter en un provider.
+
+```ts
+const scout = useScout(event)
+const results = await scout.search('articles', 'cuidados de apoyo')
+  .where('status', 'published')
+  .whereIn('locale', ['en', 'es'])
+  .orderBy('published_at', 'desc')
+  .paginate(1, 20)
+```
+
+Los modelos implementan `searchableKey()`, `searchableType()` y `toSearchableDocument()`. Usa `update`, `delete`, `import` y `flush` para mantener el indice. PostgreSQL usa `websearch_to_tsquery` y `tsvector` con GIN; SQLite/libSQL usan FTS5 y JSON1. Todos parametrizan valores, deniegan por defecto campos de filtro/orden y hacen atomica la sincronizacion multi-escritura cuando el cliente soporta transacciones. La paginacion esta limitada a 100 y la importacion a 10.000 documentos por lote. SQLite/libSQL requiere FTS5; aplica `0001_create_scout_documents_sqlite.sql`. Autoriza el acceso antes de usar Scout y no indexes secretos ni datos personales innecesarios.
+
 ## Validation
 
 `@nuxt-laravelize/validation` valida cualquier implementacion de [Standard Schema](https://standardschema.dev/), incluyendo Zod, Valibot y ArkType, sin acoplar servicios de aplicacion a HTTP.

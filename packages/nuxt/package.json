@@ -36,6 +36,7 @@
     "@nuxt-laravelize/mail": "workspace:^",
     "@nuxt-laravelize/notifications": "workspace:^",
     "@nuxt-laravelize/pennant": "workspace:^",
+    "@nuxt-laravelize/scout": "workspace:^",
     "@nuxt-laravelize/queue": "workspace:^",
     "@nuxt-laravelize/rate-limiter": "workspace:^",
     "@nuxt-laravelize/validation": "workspace:^",

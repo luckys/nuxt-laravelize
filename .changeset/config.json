@@ -16,6 +16,8 @@
       "@nuxt-laravelize/mail",
       "@nuxt-laravelize/notifications",
       "@nuxt-laravelize/pennant",
+      "@nuxt-laravelize/scout",
+      "@nuxt-laravelize/scout-drizzle",
       "@nuxt-laravelize/nuxt",
       "@nuxt-laravelize/queue",
       "@nuxt-laravelize/queue-bullmq",

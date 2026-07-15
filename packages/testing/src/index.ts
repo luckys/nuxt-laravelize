@@ -12,6 +12,7 @@ import { mailerToken } from '@nuxt-laravelize/mail/runtime'
 import { NotificationFake } from '@nuxt-laravelize/notifications/testing'
 import { notificationManagerToken } from '@nuxt-laravelize/notifications/runtime'
 import { FeatureManager, InMemoryFeatureStore, featureManagerToken } from '@nuxt-laravelize/pennant/runtime'
+import { InMemorySearchEngine, ScoutManager, scoutManagerToken } from '@nuxt-laravelize/scout/runtime'
 import { QueueFake } from '@nuxt-laravelize/queue/testing'
 import { queueToken } from '@nuxt-laravelize/queue/runtime'
 import { RateLimiter, rateLimiterToken } from '@nuxt-laravelize/rate-limiter/runtime'
@@ -36,6 +37,7 @@ export interface MountedLaravelize {
   readonly mail: MailFake
   readonly notifications: NotificationFake
   readonly features: FeatureManager
+  readonly scout: ScoutManager
   readonly rateLimiter: RateLimiter
   readonly validator: Validator
 }
@@ -51,6 +53,7 @@ export function mountLaravelize(): MountedLaravelize {
   const mail = new MailFake()
   const notifications = new NotificationFake()
   const features = new FeatureManager(new InMemoryFeatureStore())
+  const scout = new ScoutManager(new InMemorySearchEngine())
   const rateLimiter = new RateLimiter(cache)
   const validator = new Validator()
   container.instance(dispatcherToken, events)
@@ -62,8 +65,9 @@ export function mountLaravelize(): MountedLaravelize {
   container.instance(mailerToken, mail)
   container.instance(notificationManagerToken, notifications as never)
   container.instance(featureManagerToken, features)
+  container.instance(scoutManagerToken, scout)
   container.instance(rateLimiterToken, rateLimiter)
   container.instance(validatorToken, validator)
   container.seal()
-  return { container, cache, encrypter, events, features, filesystem, hasher, queue, mail, notifications, rateLimiter, validator }
+  return { container, cache, encrypter, events, features, filesystem, hasher, queue, mail, notifications, scout, rateLimiter, validator }
 }
