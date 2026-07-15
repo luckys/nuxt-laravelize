@@ -4,10 +4,7 @@ export { defineLaravelizedHandler } from './defineLaravelizedHandler'
 export type { Middleware } from './Middleware'
 export { globalMiddlewareToken } from './GlobalMiddleware'
 
-export type { Gate, GateCallback } from '../auth/Gate'
-export { InMemoryGate } from '../auth/Gate'
-export { GateRuleNotDefinedError } from '../auth/GateRuleNotDefinedError'
-export { gateToken } from '../auth/GateToken'
+export * from '../auth/index'
 
 export { Resource } from './resources/Resource'
 export { ResourceCollection } from './resources/ResourceCollection'

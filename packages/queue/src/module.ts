@@ -1,4 +1,4 @@
-import { createResolver, defineNuxtModule } from '@nuxt/kit'
+import { addServerImportsDir, createResolver, defineNuxtModule } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
 
 export default defineNuxtModule({
@@ -7,5 +7,6 @@ export default defineNuxtModule({
   setup(_options, nuxt) {
     const resolver = createResolver(import.meta.url)
     addLaravelizeProvider(nuxt, resolver.resolve('./runtime/server/QueueServiceProvider'), 'server')
+    addServerImportsDir(resolver.resolve('./runtime/server'))
   },
 })

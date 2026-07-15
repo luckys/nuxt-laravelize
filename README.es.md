@@ -15,7 +15,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/events-queue` | Integracion de listeners encolados entre eventos y colas |
 | `@nuxt-laravelize/mail` | Mailables, mail manager y transports |
 | `@nuxt-laravelize/notifications` | Canales de notificacion y routing bajo demanda |
-| `@nuxt-laravelize/http` | Requests, middleware, resources, paginacion y autorizacion |
+| `@nuxt-laravelize/http` | Cliente HTTP nativo de Nuxt, requests, middleware, resources, paginacion y autorizacion |
 | `@nuxt-laravelize/database` | Factories y seeders independientes del ORM |
 | `@nuxt-laravelize/testing` | Test harness agregado y fakes |
 | `@nuxt-laravelize/scheduler` | Schedules independientes del framework y adapter Nitro 3 explicito |

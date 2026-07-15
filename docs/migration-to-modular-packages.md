@@ -58,8 +58,8 @@ Testing fakes are also available from feature-specific entrypoints when an aggre
 
 ```ts
 import { EventFake } from '@nuxt-laravelize/events/testing'
-import { FakeQueue } from '@nuxt-laravelize/queue/testing'
-import { FakeMailer } from '@nuxt-laravelize/mail/testing'
+import { QueueFake } from '@nuxt-laravelize/queue/testing'
+import { MailFake } from '@nuxt-laravelize/mail/testing'
 ```
 
 ## Scheduler and Nitro

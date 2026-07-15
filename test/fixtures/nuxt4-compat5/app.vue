@@ -1,3 +1,7 @@
+<script setup lang="ts">
+const { data } = await useHttp<{ message: string }>('/http-client')
+</script>
+
 <template>
-  <main>Nuxt Laravelize</main>
+  <main>{{ data?.message }}</main>
 </template>

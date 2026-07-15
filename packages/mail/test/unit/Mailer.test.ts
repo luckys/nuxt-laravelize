@@ -1,5 +1,8 @@
+import { createContainer } from '@nuxt-laravelize/core/runtime'
 import { describe, expect, it, vi } from 'vitest'
 import { Mailable, ResendMailer } from '../../src/runtime/index'
+import MailServiceProvider from '../../src/runtime/server/MailServiceProvider'
+import { mailerToken } from '../../src/runtime/tokens'
 
 class WelcomeMail extends Mailable {
   to(): string { return 'user@example.com' }
@@ -12,5 +15,18 @@ describe('ResendMailer', () => {
     const send = vi.fn().mockResolvedValue(undefined)
     await new ResendMailer({ emails: { send } }, 'from@example.com').send(new WelcomeMail())
     expect(send).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Welcome', from: 'from@example.com' }))
+  })
+})
+
+describe('MailServiceProvider', () => {
+  it('delivers through the fallback logger when no application logger is registered', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const container = createContainer()
+    new MailServiceProvider().register(container)
+
+    await container.make(mailerToken).send(new WelcomeMail())
+
+    expect(info).toHaveBeenCalledWith('[INFO]', 'mail dispatched', expect.objectContaining({ subject: 'Welcome' }))
+    info.mockRestore()
   })
 })
