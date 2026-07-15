@@ -36,6 +36,7 @@ export default defineNuxtModule({
     '@nuxt-laravelize/filesystem': {},
     '@nuxt-laravelize/mail': {},
     '@nuxt-laravelize/http': {},
+    '@nuxt-laravelize/hashing': {},
     '@nuxt-laravelize/notifications': {},
     'nuxt-i18n-micro': {},
   },

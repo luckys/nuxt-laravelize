@@ -177,6 +177,29 @@ The primary key encrypts new payloads. `previousKeys` are tried only for decrypt
 
 Encrypted payloads provide confidentiality and integrity, not expiration or replay prevention. Store expiry and one-time-use state separately when building reset links or session tokens.
 
+## Hashing
+
+`@nuxt-laravelize/hashing` provides password hashing through PBKDF2-SHA-256 and Web Crypto.
+
+```bash
+pnpm add @nuxt-laravelize/hashing
+```
+
+```ts
+const hasher = useHasher(event)
+const hash = await hasher.make(password)
+
+if (await hasher.check(password, hash) && hasher.needsRehash(hash)) {
+  await users.updatePasswordHash(userId, await hasher.make(password))
+}
+```
+
+Hashes include a random 128-bit salt, algorithm identifier and iteration count. Different calls for the same password produce different hashes. `check()` accepts older valid costs while `needsRehash()` compares them with the current configuration.
+
+The default is 600,000 iterations. Benchmark production hardware before increasing it, and configure `runtimeConfig.laravelizeHashing.iterations` consistently across instances. Embedded costs above 10,000,000 are rejected before deriving a key to bound denial-of-service risk from untrusted or corrupted hash strings.
+
+Hashing is one-way and intended for passwords. Use `@nuxt-laravelize/encryption` when the original value must be recovered. Rate-limit authentication endpoints independently; password hashing does not prevent online guessing.
+
 ## Filesystem
 
 `@nuxt-laravelize/filesystem` provides Laravel-style named disks behind a portable byte-oriented contract.
@@ -783,7 +806,7 @@ app.mail.assertSent(WelcomeMail)
 await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` returns `container`, `cache`, `encrypter`, `events`, `filesystem`, `queue`, `mail`, `notifications` and `rateLimiter`. The package also re-exports `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
+`mountLaravelize()` returns `container`, `cache`, `encrypter`, `events`, `filesystem`, `hasher`, `queue`, `mail`, `notifications` and `rateLimiter`. The package also re-exports `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
 
 ## Scheduler
 

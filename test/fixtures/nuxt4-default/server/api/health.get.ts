@@ -6,6 +6,7 @@ export default defineEventHandler((event) => {
     dispatcher: Boolean(useDispatcher(event)),
     encrypter: Boolean(useEncrypter(event)),
     filesystem: Boolean(useFilesystem(event)),
+    hasher: Boolean(useHasher(event)),
     queue: Boolean(useQueue(event)),
     mailer: Boolean(useMailer(event)),
     notifications: Boolean(useNotifications(event)),

@@ -15,6 +15,9 @@ export default defineNuxtConfig({
   laravelizeEncryption: {
     key: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   },
+  laravelizeHashing: {
+    iterations: 10_000,
+  },
   laravelizeHttp: {
     baseURL: '/api',
     signingKey: 'integration-signing-key-with-32-bytes',

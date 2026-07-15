@@ -6,6 +6,7 @@ import { EventFake } from '@nuxt-laravelize/events/testing'
 import { dispatcherToken } from '@nuxt-laravelize/events/runtime'
 import { FilesystemFake } from '@nuxt-laravelize/filesystem/testing'
 import { FilesystemManager, filesystemManagerToken } from '@nuxt-laravelize/filesystem/runtime'
+import { Pbkdf2Hasher, hasherToken } from '@nuxt-laravelize/hashing/runtime'
 import { MailFake } from '@nuxt-laravelize/mail/testing'
 import { mailerToken } from '@nuxt-laravelize/mail/runtime'
 import { NotificationFake } from '@nuxt-laravelize/notifications/testing'
@@ -28,6 +29,7 @@ export interface MountedLaravelize {
   readonly events: EventFake
   readonly encrypter: AesGcmEncrypter
   readonly filesystem: FilesystemFake
+  readonly hasher: Pbkdf2Hasher
   readonly queue: QueueFake
   readonly mail: MailFake
   readonly notifications: NotificationFake
@@ -40,6 +42,7 @@ export function mountLaravelize(): MountedLaravelize {
   const events = new EventFake()
   const encrypter = new AesGcmEncrypter('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
   const filesystem = new FilesystemFake()
+  const hasher = new Pbkdf2Hasher(10_000)
   const queue = new QueueFake()
   const mail = new MailFake()
   const notifications = new NotificationFake()
@@ -47,11 +50,12 @@ export function mountLaravelize(): MountedLaravelize {
   container.instance(dispatcherToken, events)
   container.instance(encrypterToken, encrypter)
   container.instance(filesystemManagerToken, new FilesystemManager().register('default', filesystem))
+  container.instance(hasherToken, hasher)
   container.instance(cacheToken, cache)
   container.instance(queueToken, queue)
   container.instance(mailerToken, mail)
   container.instance(notificationManagerToken, notifications as never)
   container.instance(rateLimiterToken, rateLimiter)
   container.seal()
-  return { container, cache, encrypter, events, filesystem, queue, mail, notifications, rateLimiter }
+  return { container, cache, encrypter, events, filesystem, hasher, queue, mail, notifications, rateLimiter }
 }

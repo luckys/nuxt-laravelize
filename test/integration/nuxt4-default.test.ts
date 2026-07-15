@@ -12,6 +12,7 @@ describe('Nuxt 4 default profile', async () => {
       dispatcher: true,
       encrypter: true,
       filesystem: true,
+      hasher: true,
       queue: true,
       mailer: true,
       notifications: true,
@@ -53,6 +54,13 @@ describe('Nuxt 4 default profile', async () => {
     expect(payload).not.toContain('secret')
     expect(await $fetch('/api/encryption', { query: { payload } })).toEqual({ value: 'secret' })
     await expect($fetch('/api/encryption', { query: { payload: `${payload}A` } })).rejects.toMatchObject({ statusCode: 422 })
+  })
+
+  it('hashes and verifies passwords through the provider', async () => {
+    const { hash } = await $fetch<{ hash: string }>('/api/hashing', { method: 'POST', body: { value: 'password' } })
+    expect(hash).not.toContain('password')
+    expect(await $fetch('/api/hashing', { method: 'POST', body: { value: 'password', hash } })).toEqual({ matches: true })
+    expect(await $fetch('/api/hashing', { method: 'POST', body: { value: 'wrong', hash } })).toEqual({ matches: false })
   })
 
   it('protects cache lock ownership across request scopes', async () => {

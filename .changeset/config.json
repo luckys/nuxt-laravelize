@@ -12,6 +12,7 @@
       "@nuxt-laravelize/encryption",
       "@nuxt-laravelize/filesystem",
       "@nuxt-laravelize/http",
+      "@nuxt-laravelize/hashing",
       "@nuxt-laravelize/mail",
       "@nuxt-laravelize/notifications",
       "@nuxt-laravelize/nuxt",

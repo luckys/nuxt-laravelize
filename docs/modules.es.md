@@ -177,6 +177,29 @@ La clave primaria cifra payloads nuevos. `previousKeys` solo se prueban al desci
 
 Los payloads cifrados proporcionan confidencialidad e integridad, no expiracion ni prevencion de replay. Guarda expiracion y estado de uso unico por separado al construir reset links o tokens de sesion.
 
+## Hashing
+
+`@nuxt-laravelize/hashing` proporciona hashing de passwords mediante PBKDF2-SHA-256 y Web Crypto.
+
+```bash
+pnpm add @nuxt-laravelize/hashing
+```
+
+```ts
+const hasher = useHasher(event)
+const hash = await hasher.make(password)
+
+if (await hasher.check(password, hash) && hasher.needsRehash(hash)) {
+  await users.updatePasswordHash(userId, await hasher.make(password))
+}
+```
+
+Los hashes incluyen salt aleatorio de 128 bits, identificador de algoritmo y numero de iteraciones. Distintas llamadas para el mismo password generan hashes diferentes. `check()` acepta costes anteriores validos mientras `needsRehash()` los compara con la configuracion actual.
+
+El valor por defecto es 600.000 iteraciones. Mide el hardware de produccion antes de aumentarlo y configura `runtimeConfig.laravelizeHashing.iterations` de forma consistente entre instancias. Costes embebidos superiores a 10.000.000 se rechazan antes de derivar una clave para limitar riesgo de denegacion de servicio por hashes no confiables o corruptos.
+
+El hashing es unidireccional y esta pensado para passwords. Usa `@nuxt-laravelize/encryption` cuando debas recuperar el valor original. Aplica rate limiting a endpoints de autenticacion por separado; el hashing no evita intentos online.
+
 ## Filesystem
 
 `@nuxt-laravelize/filesystem` proporciona discos nombrados al estilo Laravel sobre un contrato portable orientado a bytes.
@@ -783,7 +806,7 @@ app.mail.assertSent(WelcomeMail)
 await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` devuelve `container`, `cache`, `encrypter`, `events`, `filesystem`, `queue`, `mail`, `notifications` y `rateLimiter`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
+`mountLaravelize()` devuelve `container`, `cache`, `encrypter`, `events`, `filesystem`, `hasher`, `queue`, `mail`, `notifications` y `rateLimiter`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
 
 ## Scheduler
 
