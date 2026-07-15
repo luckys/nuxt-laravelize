@@ -19,6 +19,9 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/events-queue` | Queued-listener integration between events and queues |
 | `@nuxt-laravelize/mail` | Mailables, mail manager, and transports |
 | `@nuxt-laravelize/notifications` | Notification channels and on-demand routing |
+| `@nuxt-laravelize/pennant` | Scoped feature flags with lazy definitions, rich values, and portable stores |
+| `@nuxt-laravelize/scout` | Portable search contracts, named engines, fluent queries, and bulk indexing |
+| `@nuxt-laravelize/scout-drizzle` | Scout engines for PostgreSQL, SQLite, and Turso/libSQL through Drizzle-compatible clients |
 | `@nuxt-laravelize/http` | Nuxt-native HTTP client, requests, middleware, signed URLs, resources, pagination, and authorization |
 | `@nuxt-laravelize/hashing` | Versioned PBKDF2 password hashing and rehash detection |
 | `@nuxt-laravelize/database` | ORM-neutral factories and seeders |
@@ -48,7 +51,7 @@ export default defineNuxtConfig({
 })
 ```
 
-The preset activates cache, core, database, encryption, events, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. The preset does not install BullMQ or activate the scheduler.
+The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. The preset does not install BullMQ, Scout database adapters, or the scheduler.
 
 ```vue
 <template>
@@ -78,6 +81,7 @@ Feature modules install and activate `@nuxt-laravelize/core` transitively. Add a
 ```bash
 pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq
 pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
+pnpm add @nuxt-laravelize/scout @nuxt-laravelize/scout-drizzle drizzle-orm
 pnpm add -D @nuxt-laravelize/testing
 ```
 
@@ -98,6 +102,9 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |
 | `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
 | `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |
+| `@nuxt-laravelize/pennant` | `/runtime` | - |
+| `@nuxt-laravelize/scout` | `/runtime` | - |
+| `@nuxt-laravelize/scout-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `@nuxt-laravelize/http` | `/runtime` | - |
 | `@nuxt-laravelize/hashing` | `/runtime` | - |
 | `@nuxt-laravelize/database` | `/runtime` | - |

@@ -573,6 +573,17 @@ registerDrizzlePostgresDriver(scout, 'postgres', db, allowlists)
 scout.use('postgres')
 ```
 
+SQLite local y Turso usan la misma API de Scout con registros separados:
+
+```ts
+import { registerDrizzleSQLiteDriver } from '@nuxt-laravelize/scout-drizzle/sqlite'
+import { registerTursoDriver } from '@nuxt-laravelize/scout-drizzle/turso'
+
+registerDrizzleSQLiteDriver(scout, 'sqlite', sqliteDb, allowlists)
+registerTursoDriver(scout, 'turso', tursoClient, allowlists)
+scout.use('turso')
+```
+
 Los modelos implementan `searchableKey()`, `searchableType()` y `toSearchableDocument()`. Usa `update`, `delete`, `import` y `flush` para mantener el indice. PostgreSQL usa `websearch_to_tsquery` y `tsvector` con GIN; SQLite/libSQL usan FTS5 y JSON1. Todos parametrizan valores, deniegan por defecto campos de filtro/orden y hacen atomica la sincronizacion multi-escritura cuando el cliente soporta transacciones. La paginacion esta limitada a 100 y la importacion a 10.000 documentos por lote. SQLite/libSQL requiere FTS5; aplica `0001_create_scout_documents_sqlite.sql`. Autoriza el acceso antes de usar Scout y no indexes secretos ni datos personales innecesarios.
 
 ## Validation
