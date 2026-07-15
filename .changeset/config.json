@@ -5,6 +5,7 @@
   "fixed": [
     [
       "@nuxt-laravelize/core",
+      "@nuxt-laravelize/cache",
       "@nuxt-laravelize/database",
       "@nuxt-laravelize/events",
       "@nuxt-laravelize/events-queue",

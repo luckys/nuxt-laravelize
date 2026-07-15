@@ -28,6 +28,56 @@ export default defineNuxtConfig({
 
 Usa `$t()` en templates o `useI18n().$t()` en scripts. Define `i18n: false` para desactivar la integracion.
 
+## Cache
+
+`@nuxt-laravelize/cache` proporciona un contrato cache async portable, operaciones al estilo Laravel y un driver en memoria por defecto.
+
+```bash
+pnpm add @nuxt-laravelize/cache
+```
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/cache'],
+})
+```
+
+El preset completo ya registra este modulo.
+
+Usa el autoimport `useCache(event)` en handlers Nitro. Los TTL numericos son segundos; un `Date` es una expiracion absoluta; omitir TTL guarda para siempre.
+
+```ts
+export default defineEventHandler(async (event) => {
+  const cache = useCache(event)
+  const users = await cache.remember('users:active', 60, () => loadActiveUsers())
+  return { users }
+})
+```
+
+| API | Proposito |
+|---|---|
+| `get(key, default?)` / `has(key)` | Lee un valor o comprueba una key no expirada. |
+| `put(key, value, ttl?)` / `forever()` | Guarda temporalmente o para siempre. Un TTL no positivo elimina. |
+| `add(key, value, ttl?)` | Guarda atomicamente solo si la key no existe. |
+| `pull(key, default?)` | Lee y elimina un valor. |
+| `forget(key)` / `flush()` | Elimina una key o todas. |
+| `remember(key, ttl, factory)` | Carga y guarda un valor ausente; llamadas concurrentes en el proceso comparten una promise. |
+| `rememberForever(key, factory)` | Memoriza sin expiracion. |
+| `increment()` / `decrement()` | Cambia atomicamente un numero y crea contadores ausentes desde cero. |
+| `cacheToken` | Resuelve la implementacion `Cache` configurada desde el contenedor. |
+| `CacheFake` | Fake en memoria con `assertHas()`, `assertMissing()` y `reset()`. |
+
+```ts
+await cache.add('locks:report', ownerId, 30)
+await cache.increment('login-attempts:user_1', 1, 60)
+const token = await cache.pull<string>('password-reset:user_1')
+```
+
+`InMemoryCache` sirve para tests, desarrollo y un solo proceso persistente. Elimina expiraciones accedidas de forma lazy y limpia oportunistamente valores expirados no accedidos durante escrituras. No coordina workers, instancias, regiones ni invocaciones serverless. Liga un adapter compartido a `cacheToken` para cache distribuido u operaciones atomicas entre procesos. Cache es un limite de optimizacion: no hagas que la correccion del dominio dependa de datos cacheados.
+
+`undefined` esta reservado para un cache miss y no puede guardarse; usa `null` cuando la ausencia sea el valor cacheado. Las mutaciones invalidan la escritura de un `remember()` pendiente para que loaders antiguos no sobrescriban valores nuevos.
+
 ## Core
 
 `@nuxt-laravelize/core` proporciona el contenedor de dependencias, tokens tipados, service providers, ciclo de vida y logging. Los modulos de features lo instalan automaticamente.
@@ -586,6 +636,7 @@ pnpm add -D @nuxt-laravelize/testing
 import { mountLaravelize } from '@nuxt-laravelize/testing'
 
 const app = mountLaravelize()
+await app.cache.put('feature:user_1', true, 60)
 await app.events.dispatch(new UserRegistered('user_1'))
 await app.queue.push(new SendReport({ reportId: 'report_1' }))
 await app.mail.send(new WelcomeMail('ada@example.com'))
@@ -593,9 +644,10 @@ await app.mail.send(new WelcomeMail('ada@example.com'))
 app.events.assertDispatched(UserRegistered)
 app.queue.assertPushed(SendReport)
 app.mail.assertSent(WelcomeMail)
+await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` devuelve `container`, `events`, `queue`, `mail` y `notifications`. El paquete tambien reexporta `FakeLogger`, `EventFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
+`mountLaravelize()` devuelve `container`, `cache`, `events`, `queue`, `mail` y `notifications`. El paquete tambien reexporta `CacheFake`, `FakeLogger`, `EventFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
 
 ## Scheduler
 
@@ -641,6 +693,7 @@ Combina `compiled` con una configuracion Nitro 3 standalone. El soporte real de 
 
 | Paquete | Entrypoints de runtime | Entrypoint de testing |
 |---|---|---|
+| `cache` | `/runtime` | `/testing` |
 | `core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `events` | `/runtime` | `/testing` |
 | `queue` | `/runtime` | `/testing` |

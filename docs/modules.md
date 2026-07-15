@@ -28,6 +28,56 @@ export default defineNuxtConfig({
 
 Use `$t()` in templates or `useI18n().$t()` in scripts. Set `i18n: false` to disable the integration.
 
+## Cache
+
+`@nuxt-laravelize/cache` provides a portable async cache contract, Laravel-style convenience operations and a default in-memory driver.
+
+```bash
+pnpm add @nuxt-laravelize/cache
+```
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/cache'],
+})
+```
+
+The complete preset already registers this module.
+
+Use the auto-imported `useCache(event)` in Nitro handlers. Numeric TTL values are seconds; a `Date` is an absolute expiration; omitting TTL stores forever.
+
+```ts
+export default defineEventHandler(async (event) => {
+  const cache = useCache(event)
+  const users = await cache.remember('users:active', 60, () => loadActiveUsers())
+  return { users }
+})
+```
+
+| API | Purpose |
+|---|---|
+| `get(key, default?)` / `has(key)` | Reads a value or checks a non-expired key. |
+| `put(key, value, ttl?)` / `forever()` | Stores a value temporarily or permanently. Non-positive TTL removes it. |
+| `add(key, value, ttl?)` | Atomically stores only when the key is absent. |
+| `pull(key, default?)` | Reads and removes a value. |
+| `forget(key)` / `flush()` | Removes one key or all keys. |
+| `remember(key, ttl, factory)` | Loads and caches a missing value; concurrent in-process calls share one factory promise. |
+| `rememberForever(key, factory)` | Memoizes without expiration. |
+| `increment()` / `decrement()` | Atomically changes a numeric value and creates a missing counter from zero. |
+| `cacheToken` | Resolves the configured `Cache` implementation from the container. |
+| `CacheFake` | In-memory test fake with `assertHas()`, `assertMissing()` and `reset()`. |
+
+```ts
+await cache.add('locks:report', ownerId, 30)
+await cache.increment('login-attempts:user_1', 1, 60)
+const token = await cache.pull<string>('password-reset:user_1')
+```
+
+`InMemoryCache` is appropriate for tests, development and one long-lived process. It lazily removes accessed expirations and opportunistically sweeps untouched expired values during writes. It does not coordinate across workers, instances, regions or serverless invocations. Bind a shared adapter to `cacheToken` for distributed caching or cross-process atomic operations. Cache is an optimization boundary: do not make domain correctness depend on cached data.
+
+`undefined` is reserved for a cache miss and cannot be stored; use `null` when absence is itself the cached value. Mutations invalidate an in-flight `remember()` write so stale loaders cannot overwrite newer values.
+
 ## Core
 
 `@nuxt-laravelize/core` provides the dependency container, typed tokens, service providers, application lifecycle and logging. Feature modules install it automatically.
@@ -586,6 +636,7 @@ pnpm add -D @nuxt-laravelize/testing
 import { mountLaravelize } from '@nuxt-laravelize/testing'
 
 const app = mountLaravelize()
+await app.cache.put('feature:user_1', true, 60)
 await app.events.dispatch(new UserRegistered('user_1'))
 await app.queue.push(new SendReport({ reportId: 'report_1' }))
 await app.mail.send(new WelcomeMail('ada@example.com'))
@@ -593,9 +644,10 @@ await app.mail.send(new WelcomeMail('ada@example.com'))
 app.events.assertDispatched(UserRegistered)
 app.queue.assertPushed(SendReport)
 app.mail.assertSent(WelcomeMail)
+await app.cache.assertHas('feature:user_1')
 ```
 
-`mountLaravelize()` returns `container`, `events`, `queue`, `mail` and `notifications`. The package also re-exports `FakeLogger`, `EventFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
+`mountLaravelize()` returns `container`, `cache`, `events`, `queue`, `mail` and `notifications`. The package also re-exports `CacheFake`, `FakeLogger`, `EventFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
 
 ## Scheduler
 
@@ -641,6 +693,7 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 
 | Package | Runtime entrypoints | Testing entrypoint |
 |---|---|---|
+| `cache` | `/runtime` | `/testing` |
 | `core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `events` | `/runtime` | `/testing` |
 | `queue` | `/runtime` | `/testing` |

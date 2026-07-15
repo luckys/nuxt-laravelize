@@ -8,6 +8,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 
 | Paquete | Proposito |
 |---|---|
+| `@nuxt-laravelize/cache` | Contrato cache portable, operaciones TTL, contadores, memoizacion y driver en memoria |
 | `@nuxt-laravelize/core` | Contenedor, tokens, providers, lifecycle y logging |
 | `@nuxt-laravelize/events` | Eventos y listeners sincronicos |
 | `@nuxt-laravelize/queue` | Contratos de cola portables, jobs, ejecucion por scope y driver en memoria |
@@ -42,7 +43,7 @@ export default defineNuxtConfig({
 })
 ```
 
-El preset activa core, database, events, queued listeners, HTTP, mail, notifications, la cola portable y `nuxt-i18n-micro`. Las traducciones usan su API nativa de Nuxt `$t()` y diccionarios JSON en lugar de `__()` al estilo Laravel. No instala BullMQ ni activa el scheduler.
+El preset activa cache, core, database, events, queued listeners, HTTP, mail, notifications, la cola portable y `nuxt-i18n-micro`. Las traducciones usan su API nativa de Nuxt `$t()` y diccionarios JSON en lugar de `__()` al estilo Laravel. No instala BullMQ ni activa el scheduler.
 
 ```vue
 <template>
@@ -81,6 +82,7 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 
 | Paquete | Entrypoints de runtime y adapters | Entrypoint de testing |
 |---|---|---|
+| `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/events` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/queue` | `/runtime` | `/testing` |

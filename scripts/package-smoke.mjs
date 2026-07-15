@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const packageNames = [
+  'cache',
   'core',
   'database',
   'events',
@@ -38,6 +39,8 @@ runFixture('features', {
   nuxt: nuxtVersion,
 }, featureDependencies, [
   '@nuxt-laravelize/core',
+  '@nuxt-laravelize/cache/runtime',
+  '@nuxt-laravelize/cache/testing',
   '@nuxt-laravelize/core/runtime',
   '@nuxt-laravelize/core/kit',
   '@nuxt-laravelize/core/testing',
@@ -58,6 +61,7 @@ runFixture('features', {
   '@nuxt-laravelize/nuxt',
 ], ['@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: {
+    '@nuxt-laravelize/cache/runtime': ['InMemoryCache', 'cacheToken'],
     '@nuxt-laravelize/core/runtime': ['createContainer', 'loggerFor'],
     '@nuxt-laravelize/events/runtime': ['dispatcherToken'],
     '@nuxt-laravelize/queue/runtime': ['queueToken'],
@@ -177,6 +181,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       writeFileSync(join(fixture, 'server', 'api', 'health.get.ts'), [
         'export default defineEventHandler(async (event) => ({',
         '  container: Boolean(event.context.laravelizeContainer),',
+        '  cache: Boolean(useCache(event)),',
         '  dispatcher: Boolean(useDispatcher(event)),',
         '  queue: Boolean(useQueue(event)),',
         '  mailer: Boolean(useMailer(event)),',
@@ -224,7 +229,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  }',
         '  if (!response?.ok) throw new Error(`Nuxt server did not become ready. ${diagnostics}`)',
         '  const health = await response.json()',
-        '  for (const service of [\'container\', \'dispatcher\', \'queue\', \'mailer\', \'notifications\', \'urlSigner\']) {',
+        '  for (const service of [\'container\', \'cache\', \'dispatcher\', \'queue\', \'mailer\', \'notifications\', \'urlSigner\']) {',
         '    if (health[service] !== true) throw new Error(`Missing runtime service: ${service}`)',
         '  }',
         '  const signed = new URL(health.signedUrl)',

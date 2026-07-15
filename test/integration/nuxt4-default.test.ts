@@ -7,6 +7,7 @@ describe('Nuxt 4 default profile', async () => {
   it('provides the standard runtime services', async () => {
     expect(await $fetch('/api/health')).toEqual({
       container: true,
+      cache: true,
       dispatcher: true,
       queue: true,
       mailer: true,
@@ -31,5 +32,10 @@ describe('Nuxt 4 default profile', async () => {
 
     const tampered = localUrl.replace('download=report', 'download=private')
     await expect($fetch(tampered)).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('keeps cache values across request scopes', async () => {
+    expect(await $fetch('/api/cache-counter')).toEqual({ value: 1 })
+    expect(await $fetch('/api/cache-counter')).toEqual({ value: 2 })
   })
 })
