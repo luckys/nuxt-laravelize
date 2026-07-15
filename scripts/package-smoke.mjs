@@ -137,11 +137,22 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
 
     if (options.buildNuxt) {
       writeFileSync(join(fixture, 'tsconfig.json'), JSON.stringify({ extends: './.nuxt/tsconfig.json' }, null, 2))
-      writeFileSync(join(fixture, 'nuxt.config.mjs'), [
+      writeFileSync(join(fixture, 'nuxt.config.ts'), [
+        'import Laravelize from \'@nuxt-laravelize/nuxt\'',
+        '',
         'export default {',
         '  compatibilityDate: \'2026-07-01\',',
-        '  modules: [\'@nuxt-laravelize/nuxt\'],',
+        '  modules: [Laravelize],',
         '  laravelizeHttp: { baseURL: \'/api\' },',
+        '  i18n: {',
+        '    locales: [{ code: \'en\', iso: \'en-US\', dir: \'ltr\' }],',
+        '    defaultLocale: \'en\',',
+        '    strategy: \'no_prefix\',',
+        '    translationDir: \'locales\',',
+        '    disablePageLocales: true,',
+        '    autoDetectLanguage: false,',
+        '    redirects: false,',
+        '  },',
         ...(options.compatibilityVersion ? [`  future: { compatibilityVersion: ${options.compatibilityVersion} },`] : []),
         '}',
         '',
@@ -150,13 +161,18 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       writeFileSync(join(fixture, 'app', 'app.vue'), [
         '<script setup lang="ts">',
         'const { data } = await useHttp<{ message: string }>(\'/http-client\')',
+        'const { $t } = useI18n()',
         '</script>',
         '',
         '<template>',
-        '  <main>{{ data?.message }}</main>',
+        '  <main>{{ data?.message }} {{ $t(\'welcome\', { name: \'Laravelize\' }) }}</main>',
         '</template>',
         '',
       ].join('\n'))
+      mkdirSync(join(fixture, 'locales'), { recursive: true })
+      writeFileSync(join(fixture, 'locales', 'en.json'), JSON.stringify({
+        welcome: 'Translated with $t for {name}',
+      }, null, 2))
       mkdirSync(join(fixture, 'server', 'api'), { recursive: true })
       writeFileSync(join(fixture, 'server', 'api', 'health.get.ts'), [
         'export default defineEventHandler((event) => ({',
@@ -202,6 +218,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  }',
         '  const html = await fetch(`http://127.0.0.1:${port}/`).then(result => result.text())',
         '  if (!html.includes(\'Fetched with useHttp\')) throw new Error(\'useHttp SSR response was not rendered\')',
+        '  if (!html.includes(\'Translated with $t for Laravelize\')) throw new Error(\'nuxt-i18n-micro SSR translation was not rendered\')',
         '} finally {',
         '  server.kill()',
         '  if (server.exitCode === null) await once(server, \'exit\')',

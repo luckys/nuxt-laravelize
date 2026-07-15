@@ -1,4 +1,4 @@
-import { addImportsDir, addPlugin, addServerImportsDir, addServerPlugin, addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
+import { addImportsDir, addPlugin, addServerImports, addServerPlugin, addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
 import type { NitroConfig } from 'nitropack/types'
 
 import { discoverProvidersByConvention } from './discovery/byConvention'
@@ -49,8 +49,10 @@ export default defineNuxtModule<ModuleOptions>({
     addPlugin(resolver.resolve('./runtime/plugin'))
     addServerPlugin(resolver.resolve('./runtime/server/plugin'))
     addImportsDir(resolver.resolve('./runtime/composables'))
-    addServerImportsDir(resolver.resolve('./runtime/server/utils'))
-    addServerImportsDir(resolver.resolve('./runtime/server/logging'))
-    addServerImportsDir(resolver.resolve('./runtime/server/i18n'))
+    addServerImports([
+      { name: 'useContainer', from: resolver.resolve('./runtime/server/utils/useContainer') },
+      { name: 'useLogger', from: resolver.resolve('./runtime/server/logging') },
+      { name: 'loggerToken', from: resolver.resolve('./runtime/server/logging') },
+    ])
   },
 })

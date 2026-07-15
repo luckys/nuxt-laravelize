@@ -48,6 +48,9 @@ Feature modules install and activate `@nuxt-laravelize/core` transitively. Do no
 | `@luckys_luis/nuxt-laravelize/http` | `@nuxt-laravelize/http/runtime` |
 | `@luckys_luis/nuxt-laravelize/database` | `@nuxt-laravelize/database/runtime` |
 | `@luckys_luis/nuxt-laravelize/testing` | `@nuxt-laravelize/testing` |
+| Laravel-style `Translator`, `DictionaryTranslator`, `translatorToken`, `__()` and `choice()` | `nuxt-i18n-micro`, `useI18n()`, `$t()` and `$tc()` |
+| `useTranslator(event)` in a Nitro handler | `await useTranslationServerMiddleware(event)` |
+| Framework-neutral `selectPluralForm()` | Application-owned pluralization or the `i18n.plural` option |
 | Old queued-listener APIs | `@nuxt-laravelize/events-queue/runtime` |
 | Old BullMQ APIs | `@nuxt-laravelize/queue-bullmq/runtime` |
 | Node mail adapters | `@nuxt-laravelize/mail/node` |

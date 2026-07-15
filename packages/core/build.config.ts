@@ -14,10 +14,5 @@ export default defineBuildConfig({
       input: 'src/logging',
       outDir: 'dist/logging',
     },
-    {
-      builder: 'mkdist',
-      input: 'src/i18n',
-      outDir: 'dist/i18n',
-    },
   ],
 })

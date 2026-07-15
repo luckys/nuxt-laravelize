@@ -1,11 +1,13 @@
 {
   "name": "@nuxt-laravelize/events",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Synchronous events and listeners for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/module.mjs",
   "exports": {
     ".": {

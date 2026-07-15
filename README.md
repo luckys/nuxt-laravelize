@@ -8,7 +8,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 
 | Package | Purpose |
 |---|---|
-| `@nuxt-laravelize/core` | Container, tokens, providers, lifecycle, logging, and i18n |
+| `@nuxt-laravelize/core` | Container, tokens, providers, lifecycle, and logging |
 | `@nuxt-laravelize/events` | Synchronous events and listeners |
 | `@nuxt-laravelize/queue` | Portable queue contracts, jobs, workers, and in-memory driver |
 | `@nuxt-laravelize/queue-bullmq` | Node-only BullMQ driver and persistent worker |
@@ -19,7 +19,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/database` | ORM-neutral factories and seeders |
 | `@nuxt-laravelize/testing` | Aggregate test harness and fakes |
 | `@nuxt-laravelize/scheduler` | Framework-neutral schedules and an explicit Nitro 3 adapter |
-| `@nuxt-laravelize/nuxt` | Convenience preset for the standard Nuxt stack |
+| `@nuxt-laravelize/nuxt` | Convenience preset with `nuxt-i18n-micro` integration |
 
 ## Installation
 
@@ -30,12 +30,25 @@ pnpm add @nuxt-laravelize/nuxt
 ```
 
 ```ts
+import Laravelize from '@nuxt-laravelize/nuxt'
+
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/nuxt'],
+  modules: [Laravelize],
+  i18n: {
+    locales: [{ code: 'en', iso: 'en-US', dir: 'ltr' }],
+    defaultLocale: 'en',
+    translationDir: 'locales',
+  },
 })
 ```
 
-The preset activates core, database, events, queued listeners, HTTP, mail, notifications, and the portable queue. It does not install BullMQ or activate the scheduler.
+The preset activates core, database, events, queued listeners, HTTP, mail, notifications, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. The preset does not install BullMQ or activate the scheduler.
+
+```vue
+<template>
+  <p>{{ $t('welcome', { name: 'Ada' }) }}</p>
+</template>
+```
 
 ### Granular features
 

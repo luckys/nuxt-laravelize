@@ -17,4 +17,8 @@ describe('Nuxt 4 default profile', async () => {
   it('fetches through the Nuxt-native HTTP composable during SSR', async () => {
     expect(await $fetch<string>('/')).toContain('Fetched with useHttp')
   })
+
+  it('translates through nuxt-i18n-micro during SSR', async () => {
+    expect(await $fetch<string>('/')).toContain('Translated with $t for Laravelize')
+  })
 })

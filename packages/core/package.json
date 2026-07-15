@@ -1,11 +1,13 @@
 {
   "name": "@nuxt-laravelize/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-neutral container and provider lifecycle for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/module.mjs",
   "types": "./dist/types.d.mts",
   "exports": {

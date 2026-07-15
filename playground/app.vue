@@ -1,7 +1,7 @@
 <template>
   <main>
     <h1>Nuxt Laravelize</h1>
-    <p>Modular package playground for Nuxt 4.</p>
+    <p>{{ $t('playground.description') }}</p>
   </main>
 </template>
 
