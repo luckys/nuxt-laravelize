@@ -13,3 +13,5 @@ export { isResource, isResourceCollection } from './resources/isResource'
 
 export { LengthAwarePaginator, SimplePaginator, CursorPaginator, encodeCursor, decodeCursor, parsePageParams, parseCursorParams, isPaginator, buildPageUrl, buildCursorUrl, getRequestPath } from '../pagination'
 export type { Paginator, ParsePageParamsOptions, PageParams, CursorParams } from '../pagination'
+
+export * from '../signed-urls/index'

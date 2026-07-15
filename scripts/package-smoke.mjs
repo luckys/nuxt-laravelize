@@ -63,7 +63,7 @@ runFixture('features', {
     '@nuxt-laravelize/queue/runtime': ['queueToken'],
     '@nuxt-laravelize/mail/runtime': ['mailerToken'],
     '@nuxt-laravelize/notifications/runtime': ['notificationManagerToken'],
-    '@nuxt-laravelize/http/runtime': ['Policy', 'DefaultPolicyRegistry', 'policyRegistryToken', 'discoverPoliciesByConvention'],
+    '@nuxt-laravelize/http/runtime': ['Policy', 'DefaultPolicyRegistry', 'policyRegistryToken', 'discoverPoliciesByConvention', 'HmacUrlSigner', 'ValidateSignature', 'urlSignerToken'],
   },
 })
 
@@ -143,7 +143,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         'export default {',
         '  compatibilityDate: \'2026-07-01\',',
         '  modules: [Laravelize],',
-        '  laravelizeHttp: { baseURL: \'/api\' },',
+        '  laravelizeHttp: { baseURL: \'/api\', signingKey: \'package-smoke-signing-key-32-bytes\', signingOrigin: \'http://127.0.0.1\' },',
         '  i18n: {',
         '    locales: [{ code: \'en\', iso: \'en-US\', dir: \'ltr\' }],',
         '    defaultLocale: \'en\',',
@@ -175,17 +175,28 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       }, null, 2))
       mkdirSync(join(fixture, 'server', 'api'), { recursive: true })
       writeFileSync(join(fixture, 'server', 'api', 'health.get.ts'), [
-        'export default defineEventHandler((event) => ({',
+        'export default defineEventHandler(async (event) => ({',
         '  container: Boolean(event.context.laravelizeContainer),',
         '  dispatcher: Boolean(useDispatcher(event)),',
         '  queue: Boolean(useQueue(event)),',
         '  mailer: Boolean(useMailer(event)),',
         '  notifications: Boolean(useNotifications(event)),',
+        '  urlSigner: Boolean(useUrlSigner(event)),',
+        '  signedUrl: await useUrlSigner(event).sign(new URL(\'/api/signed-target?scope=smoke\', useRuntimeConfig(event).laravelizeHttp.signingOrigin)),',
         '}))',
         '',
       ].join('\n'))
       writeFileSync(join(fixture, 'server', 'api', 'http-client.get.ts'), [
         'export default defineEventHandler(() => ({ message: \'Fetched with useHttp\' }))',
+        '',
+      ].join('\n'))
+      writeFileSync(join(fixture, 'server', 'api', 'signed-target.get.ts'), [
+        'export default defineEventHandler(async (event) => {',
+        '  const middleware = new ValidateSignature(useUrlSigner(event), {',
+        '    origin: useRuntimeConfig(event).laravelizeHttp.signingOrigin,',
+        '  })',
+        '  return await middleware.handle(event, async () => ({ valid: true }))',
+        '})',
         '',
       ].join('\n'))
       writeFileSync(join(fixture, 'runtime-smoke.mjs'), [
@@ -213,9 +224,18 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  }',
         '  if (!response?.ok) throw new Error(`Nuxt server did not become ready. ${diagnostics}`)',
         '  const health = await response.json()',
-        '  for (const service of [\'container\', \'dispatcher\', \'queue\', \'mailer\', \'notifications\']) {',
+        '  for (const service of [\'container\', \'dispatcher\', \'queue\', \'mailer\', \'notifications\', \'urlSigner\']) {',
         '    if (health[service] !== true) throw new Error(`Missing runtime service: ${service}`)',
         '  }',
+        '  const signed = new URL(health.signedUrl)',
+        '  const localSignedUrl = `http://127.0.0.1:${port}${signed.pathname}${signed.search}`',
+        '  const signedResponse = await fetch(localSignedUrl)',
+        '  const signedBody = await signedResponse.text()',
+        '  if (!signedResponse.ok || !JSON.parse(signedBody).valid) {',
+        '    throw new Error(`Signed URL was not accepted (${signedResponse.status}): ${signedBody}; source=${health.signedUrl}`)',
+        '  }',
+        '  const tamperedResponse = await fetch(localSignedUrl.replace(\'scope=smoke\', \'scope=tampered\'))',
+        '  if (tamperedResponse.status !== 403) throw new Error(\'Tampered signed URL was not rejected\')',
         '  const html = await fetch(`http://127.0.0.1:${port}/`).then(result => result.text())',
         '  if (!html.includes(\'Fetched with useHttp\')) throw new Error(\'useHttp SSR response was not rendered\')',
         '  if (!html.includes(\'Translated with $t for Laravelize\')) throw new Error(\'nuxt-i18n-micro SSR translation was not rendered\')',

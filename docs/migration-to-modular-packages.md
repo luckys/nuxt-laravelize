@@ -56,8 +56,8 @@ Feature modules install and activate `@nuxt-laravelize/core` transitively. Do no
 | Old queued-listener APIs | `@nuxt-laravelize/events-queue/runtime` |
 | Old BullMQ APIs | `@nuxt-laravelize/queue-bullmq/runtime` |
 | Node mail adapters | `@nuxt-laravelize/mail/node` |
-| `laravelize-queue-work` command | No packaged CLI in `0.2.0`; instantiate `BullMQWorker` from `@nuxt-laravelize/queue-bullmq/runtime` |
-| `laravelize-db-seed` command | No packaged CLI in `0.2.0`; resolve and run a `Seeder` from `@nuxt-laravelize/database/runtime` |
+| `laravelize-queue-work` command | Install `@nuxt-laravelize/queue-bullmq` and provide `laravelize.queue.config.mjs` |
+| `laravelize-db-seed` command | Install `@nuxt-laravelize/database` and provide `laravelize.seed.config.mjs` |
 
 Testing fakes are also available from feature-specific entrypoints when an aggregate harness is unnecessary:
 

@@ -11,6 +11,7 @@ describe('Nuxt 4 default profile', async () => {
       queue: true,
       mailer: true,
       notifications: true,
+      urlSigner: true,
     })
   })
 
@@ -20,5 +21,15 @@ describe('Nuxt 4 default profile', async () => {
 
   it('translates through nuxt-i18n-micro during SSR', async () => {
     expect(await $fetch<string>('/')).toContain('Translated with $t for Laravelize')
+  })
+
+  it('generates and validates signed URLs through the HTTP service provider', async () => {
+    const { url } = await $fetch<{ url: string }>('/api/signed-url')
+    const signed = new URL(url)
+    const localUrl = `${signed.pathname}${signed.search}`
+    expect(await $fetch(localUrl)).toEqual({ valid: true })
+
+    const tampered = localUrl.replace('download=report', 'download=private')
+    await expect($fetch(tampered)).rejects.toMatchObject({ statusCode: 403 })
   })
 })

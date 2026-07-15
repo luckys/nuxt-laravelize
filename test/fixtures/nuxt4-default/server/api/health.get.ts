@@ -5,5 +5,6 @@ export default defineEventHandler((event) => {
     queue: Boolean(useQueue(event)),
     mailer: Boolean(useMailer(event)),
     notifications: Boolean(useNotifications(event)),
+    urlSigner: Boolean(useUrlSigner(event)),
   }
 })

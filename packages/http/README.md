@@ -1,6 +1,6 @@
 # @nuxt-laravelize/http
 
-Nuxt-native HTTP client plus Laravel-inspired form requests, middleware, API resources, pagination, gates and policies for Nitro server routes.
+Nuxt-native HTTP client plus Laravel-inspired form requests, middleware, signed URLs, API resources, pagination, gates and policies for Nitro server routes.
 
 ## Client requests
 
@@ -32,4 +32,4 @@ const { data: createdUser } = await useHttp<User>('/users', {
 
 Server-side requests, middleware, resources, pagination and authorization remain available from `@nuxt-laravelize/http/runtime` and as Nitro auto-imports.
 
-See the complete [English](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.md#http) or [Spanish](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.es.md#http) guide for form requests, handlers, resources, pagination, gates and policies.
+See the complete [English](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.md#http) or [Spanish](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.es.md#http) guide for form requests, handlers, signed URLs, resources, pagination, gates and policies.

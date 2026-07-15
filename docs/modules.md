@@ -230,7 +230,18 @@ await worker.stop()
 await queue.close()
 ```
 
-`FailureReporter.listen()` observes terminal failures and `report()` notifies registered observers. The declared worker CLI is not included in the `0.2.0` tarball; start `BullMQWorker` from your process lifecycle until that entrypoint is published.
+`FailureReporter.listen()` observes terminal failures and `report()` notifies registered observers. The worker CLI loads a default-exported `{ worker }` from `laravelize.queue.config.mjs` (or `--config=path`):
+
+```js
+// laravelize.queue.config.mjs
+import { worker } from './server/queue.js'
+
+export default { worker }
+```
+
+```bash
+pnpm exec laravelize-queue-work --queue=reports --concurrency=4
+```
 
 ## Queued event listeners
 
@@ -332,9 +343,15 @@ await notifications
 // nuxt.config.ts
 export default defineNuxtConfig({
   modules: ['@nuxt-laravelize/http'],
-  laravelizeHttp: { baseURL: 'https://api.example.com' },
+  laravelizeHttp: {
+    baseURL: 'https://api.example.com',
+    signingKey: '',
+    signingOrigin: 'https://app.example.com',
+  },
 })
 ```
+
+Generate at least 32 random bytes with `openssl rand -base64 32` and set the private key through `NUXT_LARAVELIZE_HTTP_SIGNING_KEY`. Never place it under `runtimeConfig.public` or commit a production key. `signingOrigin` gives validation a canonical, allowlisted origin instead of trusting request `Host` and forwarded-protocol headers.
 
 ```ts
 const { data, error, status, refresh } = await useHttp<User>('/users/1')
@@ -380,6 +397,57 @@ export default defineLaravelizedHandler({
 ```
 
 Implement `Middleware.handle(event, next)` and register its token in the handler's `middleware` array. `globalMiddlewareToken` stores middleware tokens applied to every Laravelized handler.
+
+### Signed and temporary URLs
+
+`HmacUrlSigner` protects the origin, path and query with HMAC-SHA256. The configured service is available through `useUrlSigner(event)` and `urlSignerToken`.
+
+```ts
+// server/api/invitations/[id]/link.get.ts
+export default defineEventHandler(async (event) => {
+  const { signingOrigin } = useRuntimeConfig().laravelizeHttp
+  const target = new URL(`/api/invitations/${getRouterParam(event, 'id')}`, signingOrigin)
+  const url = await useUrlSigner(event).sign(target, {
+    expiresAt: Date.now() + 30 * 60 * 1000,
+  })
+  return { url }
+})
+```
+
+Protect a Laravelized handler with the auto-imported `validateSignatureToken`:
+
+```ts
+export default defineLaravelizedHandler({
+  controller: invitationControllerToken,
+  method: 'accept',
+  middleware: [validateSignatureToken],
+})
+```
+
+Use the same middleware in an ordinary Nitro handler:
+
+```ts
+export default defineEventHandler(async (event) => {
+  const { signingOrigin } = useRuntimeConfig().laravelizeHttp
+  const middleware = new ValidateSignature(useUrlSigner(event), { origin: signingOrigin })
+  return await middleware.handle(event, async () => ({ accepted: true }))
+})
+```
+
+| API | Purpose |
+|---|---|
+| `HmacUrlSigner(secret)` | Creates a portable Web Crypto HMAC-SHA256 signer. Keys shorter than 32 bytes throw `MissingUrlSigningKeyError`. |
+| `sign(url, options?)` | Replaces an existing signature; options support expiration, relative mode and HTTP method binding. |
+| `hasValidSignature(url, options?)` | Rejects missing, malformed, modified or expired signatures and can require expiration. |
+| `ValidateSignature` | Middleware that rejects invalid requests with HTTP 403; it supports canonical origin, required expiration and method binding. |
+| `urlSignerToken` / `useUrlSigner(event)` | Resolves the configured signer from the request container. |
+| `validateSignatureToken` | Default absolute-signature middleware; resolving it requires configured `signingOrigin`. |
+
+Absolute signing is the default and includes the origin. For proxy-independent links, call both signing and validation with `{ absolute: false }`; relative mode protects only path and query and must not cross host-based tenant boundaries. Query order is canonicalized, fragments are ignored because browsers do not send them to the server, and a temporary URL is invalid at its exact expiration second. Rotating the key invalidates existing links.
+
+Signed URLs are bearer credentials and are replayable. Use short expirations for verification, invitation and state-changing links; bind those signatures to the HTTP method with `sign(..., { method: 'POST' })` and `new ValidateSignature(signer, { bindMethod: true, requireExpiration: true })`. Enforce HTTPS at a trusted proxy and use application storage when a link must be single-use.
+
+The `signature` and `expires` query names are reserved. Signing replaces `signature`; pass `expiresAt` explicitly to create or replace `expires`.
 
 ### Resources and pagination
 
@@ -489,7 +557,22 @@ seeders.register('database', () => new DatabaseSeeder())
 await (await seeders.resolve('database')).run()
 ```
 
-The declared seeder CLI is not included in the `0.2.0` tarball; resolve and run the seeder from your application lifecycle until that entrypoint is published.
+The seeder CLI loads provider factories from `laravelize.seed.config.mjs` (or `--config=path`). Providers must register `seederRegistryToken` and the requested seeders.
+
+```js
+// laravelize.seed.config.mjs
+import DatabaseServiceProvider from './server/providers/DatabaseServiceProvider.js'
+
+export default {
+  providers: [() => new DatabaseServiceProvider()],
+}
+```
+
+```bash
+pnpm exec laravelize-db-seed --class=database
+```
+
+Omit `--class` to run every registered seeder in registry order.
 
 ## Testing
 

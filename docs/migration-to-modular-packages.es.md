@@ -56,8 +56,8 @@ Los modulos de features instalan y activan `@nuxt-laravelize/core` transitivamen
 | APIs anteriores de listeners encolados | `@nuxt-laravelize/events-queue/runtime` |
 | APIs anteriores de BullMQ | `@nuxt-laravelize/queue-bullmq/runtime` |
 | Adapters de mail para Node | `@nuxt-laravelize/mail/node` |
-| Comando `laravelize-queue-work` | No hay CLI empaquetada en `0.2.0`; instancia `BullMQWorker` desde `@nuxt-laravelize/queue-bullmq/runtime` |
-| Comando `laravelize-db-seed` | No hay CLI empaquetada en `0.2.0`; resuelve y ejecuta un `Seeder` desde `@nuxt-laravelize/database/runtime` |
+| Comando `laravelize-queue-work` | Instala `@nuxt-laravelize/queue-bullmq` y proporciona `laravelize.queue.config.mjs` |
+| Comando `laravelize-db-seed` | Instala `@nuxt-laravelize/database` y proporciona `laravelize.seed.config.mjs` |
 
 Los fakes de testing tambien estan disponibles desde entrypoints especificos:
 
