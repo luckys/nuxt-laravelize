@@ -78,6 +78,49 @@ const token = await cache.pull<string>('password-reset:user_1')
 
 `undefined` is reserved for a cache miss and cannot be stored; use `null` when absence is itself the cached value. Mutations invalidate an in-flight `remember()` write so stale loaders cannot overwrite newer values.
 
+## Rate limiting
+
+`@nuxt-laravelize/rate-limiter` provides cache-backed fixed-window limits. The complete preset registers it automatically; granular installations can add it directly.
+
+```bash
+pnpm add @nuxt-laravelize/rate-limiter
+```
+
+Consume an attempt with the auto-imported `useRateLimiter(event)`. The returned metadata is suitable for application responses and logs.
+
+```ts
+export default defineEventHandler(async (event) => {
+  const result = await useRateLimiter(event).hit(`login:${userId}`, 5, 60)
+  return {
+    allowed: result.allowed,
+    remaining: result.remaining,
+    retryAfter: result.retryAfter,
+  }
+})
+```
+
+Use `ThrottleRequests` in a Laravelized middleware pipeline to reject excess requests with `429 Too Many Requests`. It adds `X-RateLimit-Remaining`, `X-RateLimit-Reset`, and, when rejected, `Retry-After`.
+
+```ts
+const throttle = new ThrottleRequests(useRateLimiter(event), {
+  key: event => getRequestIP(event, { xForwardedFor: true }) ?? 'unknown',
+  maxAttempts: 60,
+  decaySeconds: 60,
+})
+
+return await throttle.handle(event, next)
+```
+
+| API | Purpose |
+|---|---|
+| `hit(key, maxAttempts, decaySeconds?)` | Atomically consumes one attempt and returns window metadata. |
+| `attempts(key)` / `remaining(key, max)` | Inspects current usage without consuming an attempt. |
+| `clear(key)` | Removes attempts and timer for one logical key. |
+| `rateLimiterToken` | Resolves or replaces the configured limiter. |
+| `useRateLimiter(event)` | Resolves the request-scoped singleton in Nitro. |
+
+Distributed enforcement requires a shared cache adapter whose `add` and `increment` operations are atomic. The default `InMemoryCache` only coordinates requests handled by one long-lived process. Derive keys from trusted, bounded identifiers; hashing unbounded user input avoids attacker-controlled cache key growth.
+
 ## Core
 
 `@nuxt-laravelize/core` provides the dependency container, typed tokens, service providers, application lifecycle and logging. Feature modules install it automatically.

@@ -15,6 +15,7 @@
       "@nuxt-laravelize/nuxt",
       "@nuxt-laravelize/queue",
       "@nuxt-laravelize/queue-bullmq",
+      "@nuxt-laravelize/rate-limiter",
       "@nuxt-laravelize/scheduler",
       "@nuxt-laravelize/testing"
     ]

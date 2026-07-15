@@ -9,6 +9,7 @@ import { NotificationFake } from '@nuxt-laravelize/notifications/testing'
 import { notificationManagerToken } from '@nuxt-laravelize/notifications/runtime'
 import { QueueFake } from '@nuxt-laravelize/queue/testing'
 import { queueToken } from '@nuxt-laravelize/queue/runtime'
+import { RateLimiter, rateLimiterToken } from '@nuxt-laravelize/rate-limiter/runtime'
 
 export { FakeLogger } from '@nuxt-laravelize/core/testing'
 export { CacheFake } from '@nuxt-laravelize/cache/testing'
@@ -24,6 +25,7 @@ export interface MountedLaravelize {
   readonly queue: QueueFake
   readonly mail: MailFake
   readonly notifications: NotificationFake
+  readonly rateLimiter: RateLimiter
 }
 
 export function mountLaravelize(): MountedLaravelize {
@@ -33,11 +35,13 @@ export function mountLaravelize(): MountedLaravelize {
   const queue = new QueueFake()
   const mail = new MailFake()
   const notifications = new NotificationFake()
+  const rateLimiter = new RateLimiter(cache)
   container.instance(dispatcherToken, events)
   container.instance(cacheToken, cache)
   container.instance(queueToken, queue)
   container.instance(mailerToken, mail)
   container.instance(notificationManagerToken, notifications as never)
+  container.instance(rateLimiterToken, rateLimiter)
   container.seal()
-  return { container, cache, events, queue, mail, notifications }
+  return { container, cache, events, queue, mail, notifications, rateLimiter }
 }

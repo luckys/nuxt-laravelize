@@ -30,7 +30,8 @@
     "@nuxt-laravelize/events": "workspace:^",
     "@nuxt-laravelize/mail": "workspace:^",
     "@nuxt-laravelize/notifications": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^"
+    "@nuxt-laravelize/queue": "workspace:^",
+    "@nuxt-laravelize/rate-limiter": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "latest",

@@ -7,5 +7,6 @@ export default defineEventHandler((event) => {
     mailer: Boolean(useMailer(event)),
     notifications: Boolean(useNotifications(event)),
     urlSigner: Boolean(useUrlSigner(event)),
+    rateLimiter: Boolean(useRateLimiter(event)),
   }
 })

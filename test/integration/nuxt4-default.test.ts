@@ -13,6 +13,7 @@ describe('Nuxt 4 default profile', async () => {
       mailer: true,
       notifications: true,
       urlSigner: true,
+      rateLimiter: true,
     })
   })
 
@@ -37,5 +38,11 @@ describe('Nuxt 4 default profile', async () => {
   it('keeps cache values across request scopes', async () => {
     expect(await $fetch('/api/cache-counter')).toEqual({ value: 1 })
     expect(await $fetch('/api/cache-counter')).toEqual({ value: 2 })
+  })
+
+  it('rate limits across request scopes', async () => {
+    expect(await $fetch('/api/rate-limit')).toEqual({ allowed: true })
+    expect(await $fetch('/api/rate-limit')).toEqual({ allowed: true })
+    await expect($fetch('/api/rate-limit')).rejects.toMatchObject({ statusCode: 429 })
   })
 })
