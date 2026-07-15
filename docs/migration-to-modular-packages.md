@@ -1,10 +1,13 @@
 # Migrating to modular packages
 
-The legacy `@luckys_luis/nuxt-laravelize` package remains available during the 0.x transition. New applications should install only the capabilities they use.
+The old `@luckys_luis/nuxt-laravelize` package and facade have been removed. There are no compatibility re-exports or wrapper commands. Replace the dependency, Nuxt module declaration, imports, and CLI ownership with the corresponding `@nuxt-laravelize/*` packages.
 
-## Full preset
+## Choose an installation
+
+For the standard stack, replace the old module with the preset:
 
 ```bash
+pnpm remove @luckys_luis/nuxt-laravelize
 pnpm add @nuxt-laravelize/nuxt
 ```
 
@@ -14,9 +17,10 @@ export default defineNuxtConfig({
 })
 ```
 
-## Feature-by-feature migration
+For a granular installation, add and declare only the features in use:
 
 ```bash
+pnpm remove @luckys_luis/nuxt-laravelize
 pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue
 ```
 
@@ -29,10 +33,13 @@ export default defineNuxtConfig({
 })
 ```
 
-Do not install or declare `@nuxt-laravelize/core`; feature modules activate it transitively.
+Feature modules install and activate `@nuxt-laravelize/core` transitively. Do not declare core separately unless the application uses the core module by itself.
 
-| Legacy subpath | New package |
+## Direct mappings
+
+| Removed package or subpath | Replacement |
 |---|---|
+| `@luckys_luis/nuxt-laravelize` in `modules` | `@nuxt-laravelize/nuxt` or the selected feature modules |
 | `@luckys_luis/nuxt-laravelize/core` | `@nuxt-laravelize/core/runtime` |
 | `@luckys_luis/nuxt-laravelize/events` | `@nuxt-laravelize/events/runtime` |
 | `@luckys_luis/nuxt-laravelize/queue` | `@nuxt-laravelize/queue/runtime` |
@@ -40,21 +47,29 @@ Do not install or declare `@nuxt-laravelize/core`; feature modules activate it t
 | `@luckys_luis/nuxt-laravelize/notifications` | `@nuxt-laravelize/notifications/runtime` |
 | `@luckys_luis/nuxt-laravelize/http` | `@nuxt-laravelize/http/runtime` |
 | `@luckys_luis/nuxt-laravelize/database` | `@nuxt-laravelize/database/runtime` |
+| `@luckys_luis/nuxt-laravelize/testing` | `@nuxt-laravelize/testing` |
+| Old queued-listener APIs | `@nuxt-laravelize/events-queue/runtime` |
+| Old BullMQ APIs | `@nuxt-laravelize/queue-bullmq/runtime` |
+| Node mail adapters | `@nuxt-laravelize/mail/node` |
+| `laravelize-queue-work` command | Install `@nuxt-laravelize/queue-bullmq` |
+| `laravelize-db-seed` command | Install `@nuxt-laravelize/database` |
 
-BullMQ is intentionally separate:
+Testing fakes are also available from feature-specific entrypoints when an aggregate harness is unnecessary:
 
-```bash
-pnpm add @nuxt-laravelize/queue-bullmq
+```ts
+import { EventFake } from '@nuxt-laravelize/events/testing'
+import { FakeQueue } from '@nuxt-laravelize/queue/testing'
+import { FakeMailer } from '@nuxt-laravelize/mail/testing'
 ```
 
-Nodemailer adapters are Node-only and must be imported from `@nuxt-laravelize/mail/node`.
+## Scheduler and Nitro
 
-The framework-neutral scheduler is available separately:
+The scheduler is a separate package and is not activated by `@nuxt-laravelize/nuxt`:
 
 ```bash
 pnpm add @nuxt-laravelize/scheduler
 ```
 
-Its experimental `@nuxt-laravelize/scheduler/nitro3` adapter requires exactly
-`nitro@3.0.260610-beta`. The scheduler is not activated by
-`@nuxt-laravelize/nuxt` and must not replace Nuxt 4's internal Nitro version.
+The framework-neutral API is exported from `@nuxt-laravelize/scheduler`. Its experimental `@nuxt-laravelize/scheduler/nitro3` adapter requires exactly `nitro@3.0.260610-beta`.
+
+Nuxt 4 uses its own Nitro 2 dependency. Do not install Nitro 3 to replace Nuxt's internal version; use the adapter only in an explicit Nitro 3 application.

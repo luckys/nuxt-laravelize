@@ -1,63 +1,24 @@
 {
-  "name": "@luckys_luis/nuxt-laravelize",
+  "name": "nuxt-laravelize-workspace",
+  "private": true,
   "version": "0.1.0",
   "description": "Nuxt module that brings Laravel-like architecture primitives to Nuxt and Nitro",
   "repository": "nuxt-laravelize/nuxt-laravelize",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.28.2",
-  "publishConfig": {
-    "access": "public"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/types.d.mts",
-      "import": "./dist/module.mjs"
-    },
-    "./testing": {
-      "types": "./dist/public-testing.d.mts",
-      "import": "./dist/public-testing.mjs"
-    },
-    "./kit": {
-      "types": "./dist/kit.d.mts",
-      "import": "./dist/kit.mjs"
-    },
-    "./core": { "types": "./dist/compat/core.d.mts", "import": "./dist/compat/core.mjs" },
-    "./events": { "types": "./dist/compat/events.d.mts", "import": "./dist/compat/events.mjs" },
-    "./queue": { "types": "./dist/compat/queue.d.mts", "import": "./dist/compat/queue.mjs" },
-    "./mail": { "types": "./dist/compat/mail.d.mts", "import": "./dist/compat/mail.mjs" },
-    "./notifications": { "types": "./dist/compat/notifications.d.mts", "import": "./dist/compat/notifications.mjs" },
-    "./http": { "types": "./dist/compat/http.d.mts", "import": "./dist/compat/http.mjs" },
-    "./database": { "types": "./dist/compat/database.d.mts", "import": "./dist/compat/database.mjs" },
-    "./package.json": "./package.json"
-  },
-  "main": "./dist/module.mjs",
-  "typesVersions": {
-    "*": {
-      ".": [
-        "./dist/types.d.mts"
-      ]
-    }
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
-  "bin": {
-    "laravelize-queue-work": "./dist/bin/queue-work.mjs",
-    "laravelize-db-seed": "./dist/bin/db-seed.mjs"
-  },
   "scripts": {
-    "prepack": "nuxt-module-build build && unbuild --config public.build.config.ts",
-    "dev": "pnpm run dev:prepare && nuxt dev playground",
-    "dev:build": "nuxt build playground",
-    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
+    "dev": "pnpm run dev:prepare && pnpm --dir playground dev",
+    "dev:build": "pnpm run build:packages && pnpm --dir playground build",
+    "dev:prepare": "pnpm run build:packages && pnpm --dir playground exec nuxt prepare",
+    "build": "pnpm run build:packages",
+    "pack": "pnpm run pack:test",
     "release": "pnpm run release:packages",
     "lint": "eslint .",
-    "test": "vitest run",
-    "test:watch": "vitest watch",
-    "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit",
-    "typecheck": "vue-tsc --noEmit && pnpm -r --if-present run typecheck",
+    "test": "pnpm run test:packages && pnpm run test:integration",
+    "test:watch": "vitest watch test/integration/nuxt4-default.test.ts test/integration/nuxt4-compat5.test.ts",
+    "test:integration": "vitest run test/integration/nuxt4-default.test.ts test/integration/nuxt4-compat5.test.ts",
+    "typecheck": "tsc --noEmit && pnpm -r --if-present run typecheck",
     "build:packages": "pnpm -r --filter './packages/**' --if-present run build",
     "test:packages": "pnpm -r --filter './packages/**' --if-present run test",
     "pack:tarballs": "pnpm -r --filter './packages/**' --if-present run pack:test",
@@ -66,57 +27,14 @@
     "version-packages": "changeset version",
     "release:packages": "pnpm run lint && pnpm run test && pnpm run typecheck && pnpm run pack:test && changeset publish"
   },
-  "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/database": "workspace:^",
-    "@nuxt-laravelize/events": "workspace:^",
-    "@nuxt-laravelize/events-queue": "workspace:^",
-    "@nuxt-laravelize/http": "workspace:^",
-    "@nuxt-laravelize/mail": "workspace:^",
-    "@nuxt-laravelize/notifications": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^",
-    "@nuxt/kit": "^4.4.5",
-    "@standard-schema/spec": "^1.1.0",
-    "awilix": "^12.0.5"
-  },
-  "peerDependencies": {
-    "h3": ">=1.15.0 <2",
-    "nuxt": ">=4.3.0 <5",
-    "bullmq": "^5.0.0",
-    "ioredis": "^5.0.0"
-  },
-  "peerDependenciesMeta": {
-    "bullmq": {
-      "optional": true
-    },
-    "ioredis": {
-      "optional": true
-    }
-  },
   "devDependencies": {
-    "@nuxt-laravelize/nuxt": "workspace:*",
-    "@nuxt-laravelize/queue-bullmq": "workspace:*",
-    "@nuxt-laravelize/scheduler": "workspace:*",
-    "@nuxt-laravelize/testing": "workspace:*",
     "@changesets/cli": "^2.29.7",
-    "@nuxt/devtools": "^3.2.4",
     "@nuxt/eslint-config": "^1.15.2",
-    "@nuxt/module-builder": "^1.0.2",
-    "@nuxt/schema": "^4.4.5",
     "@nuxt/test-utils": "^4.0.3",
-    "@oxc-parser/binding-linux-x64-gnu": "^0.132.0",
     "@types/node": "latest",
-    "bullmq": "^5.77.3",
-    "changelogen": "^0.6.2",
     "eslint": "^9.39.1",
-    "h3": "^1.15.11",
-    "ioredis": "^5.10.1",
     "nuxt": "^4.4.5",
     "typescript": "^5.9.3",
-    "unbuild": "^3.6.1",
-    "valibot": "^1.4.0",
-    "vitest": "^4.1.5",
-    "vue-tsc": "^3.2.8",
-    "zod": "^4.4.3"
+    "vitest": "^4.1.5"
   }
 }

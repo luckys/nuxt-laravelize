@@ -11,16 +11,17 @@ export default createConfigForNuxt({
   },
   dirs: {
     src: [
-      './src',
+      './packages',
       './test',
       './playground',
+      './scripts',
     ],
   },
 })
   .append(
     // your custom flat config here...
     {
-      files: ['src/events/Listener.ts', 'packages/events/src/runtime/contracts.ts'],
+      files: ['packages/events/src/runtime/contracts.ts'],
       rules: {
         '@typescript-eslint/no-invalid-void-type': 'off',
       },

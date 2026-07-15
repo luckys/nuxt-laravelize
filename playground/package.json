@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
-    "generate": "nuxt generate"
+    "generate": "nuxt generate",
+    "typecheck": "nuxt typecheck"
   },
   "dependencies": {
-    "@luckys_luis/nuxt-laravelize": "workspace:*",
+    "@nuxt-laravelize/nuxt": "workspace:*",
     "nuxt": "^4.4.5"
   }
 }

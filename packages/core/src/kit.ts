@@ -27,9 +27,4 @@ export function getLaravelizeProviderContributions(nuxt: Nuxt): readonly { path:
   return store.queue.slice()
 }
 
-/** @deprecated Use getLaravelizeProviderContributions. */
-export function drainLaravelizeProviderQueue(nuxt: Nuxt): Array<{ path: string, target: ProviderTarget }> {
-  return [...getLaravelizeProviderContributions(nuxt)]
-}
-
 export type { ProviderTarget } from './discovery/ProviderCollector'
