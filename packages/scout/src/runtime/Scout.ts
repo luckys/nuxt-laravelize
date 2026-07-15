@@ -26,6 +26,7 @@ export interface SearchEngine {
   delete(index: string, documents: readonly Pick<Searchable, 'searchableKey' | 'searchableType'>[]): Promise<void>
   flush(index: string): Promise<void>
 }
+export type SearchEngineFactory = () => SearchEngine
 
 export class InMemorySearchEngine implements SearchEngine {
   readonly #documents = new Map<string, SearchHit>()
@@ -46,12 +47,31 @@ export class InMemorySearchEngine implements SearchEngine {
 }
 
 export class ScoutManager {
-  constructor(private readonly engine: SearchEngine) {}
-  search(index: string, query = ''): SearchBuilder { return new SearchBuilder(this.engine, assertIndex(index), query) }
-  update(index: string, documents: readonly Searchable[]): Promise<void> { return this.engine.update(assertIndex(index), documents) }
-  delete(index: string, documents: readonly Pick<Searchable, 'searchableKey' | 'searchableType'>[]): Promise<void> { return this.engine.delete(assertIndex(index), documents) }
-  import(index: string, documents: Iterable<Searchable> | AsyncIterable<Searchable>, batchSize = 500): Promise<void> { return importDocuments(this.engine, assertIndex(index), documents, batchSize) }
-  flush(index: string): Promise<void> { return this.engine.flush(assertIndex(index)) }
+  readonly #factories = new Map<string, SearchEngineFactory>()
+  readonly #engines = new Map<string, SearchEngine>()
+  constructor(private defaultDriver?: string) {}
+  extend(name: string, factory: SearchEngineFactory): this { this.#factories.set(assertDriver(name), factory); this.#engines.delete(name); return this }
+  use(name: string): this { this.defaultDriver = assertDriver(name); return this }
+  setDefaultDriver(name: string): this { return this.use(name) }
+  engine(name = this.defaultDriver): SearchEngine {
+    if (!name) throw new Error('Scout default driver is not configured.')
+    const driver = assertDriver(name)
+    const cached = this.#engines.get(driver)
+    if (cached) return cached
+    const factory = this.#factories.get(driver)
+    if (!factory) throw new Error(`Scout driver "${driver}" is not registered.`)
+    const engine = factory()
+    this.#engines.set(driver, engine)
+    return engine
+  }
+
+  purge(name = this.defaultDriver): this { if (name) this.#engines.delete(assertDriver(name)); return this }
+  clear(): this { this.#engines.clear(); return this }
+  search(index: string, query = ''): SearchBuilder { return new SearchBuilder(this.engine(), assertIndex(index), query) }
+  update(index: string, documents: readonly Searchable[]): Promise<void> { return this.engine().update(assertIndex(index), documents) }
+  delete(index: string, documents: readonly Pick<Searchable, 'searchableKey' | 'searchableType'>[]): Promise<void> { return this.engine().delete(assertIndex(index), documents) }
+  import(index: string, documents: Iterable<Searchable> | AsyncIterable<Searchable>, batchSize = 500): Promise<void> { return importDocuments(this.engine(), assertIndex(index), documents, batchSize) }
+  flush(index: string): Promise<void> { return this.engine().flush(assertIndex(index)) }
 }
 
 export class SearchBuilder {
@@ -89,5 +109,6 @@ async function importDocuments(engine: SearchEngine, index: string, documents: I
 }
 function assertIndex(value: string): string { if (!/^[a-z][\w-]{0,62}$/i.test(value)) throw new Error('Scout index is invalid.'); return value }
 function assertField(value: string): string { if (!/^[a-z]\w{0,62}$/i.test(value)) throw new Error('Scout field is invalid.'); return value }
+function assertDriver(value: string): string { if (!/^[a-z][\w-]{0,62}$/i.test(value)) throw new Error('Scout driver name is invalid.'); return value }
 function equalSearchValue(actual: SearchDocument[string] | undefined, expected: SearchValue): boolean { return Array.isArray(actual) ? actual.includes(expected) : actual === expected }
 function compareSearchValues(left: SearchDocument[string] | undefined, right: SearchDocument[string] | undefined): number { return String(left ?? '').localeCompare(String(right ?? ''), undefined, { numeric: true }) }

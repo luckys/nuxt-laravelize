@@ -559,7 +559,7 @@ Las definiciones se evaluan solo despues de un miss del store y su resultado se 
 
 ## Busqueda Scout
 
-`@nuxt-laravelize/scout` ofrece contratos portables para modelos y motores, builder fluido, importacion por lotes y el auto-import de servidor `useScout(event)`. El preset usa memoria para desarrollo y tests. `@nuxt-laravelize/scout-drizzle` ofrece motores explicitos para PostgreSQL, SQLite local y Turso/libSQL mediante `/postgres`, `/sqlite` y `/turso`. Aplica la migracion del dialecto elegido y registra el adapter en un provider.
+`@nuxt-laravelize/scout` ofrece contratos portables para modelos y motores, builder fluido, importacion por lotes y el auto-import de servidor `useScout(event)`. Configura `laravelizeScout.driver` (por defecto: `memory`). Los motores tienen nombre, se crean de forma diferida y se cachean; registra adapters en un provider antes de seleccionarlos. `@nuxt-laravelize/scout-drizzle` ofrece helpers para PostgreSQL, SQLite local y Turso/libSQL mediante `/postgres`, `/sqlite` y `/turso`.
 
 ```ts
 const scout = useScout(event)
@@ -568,6 +568,9 @@ const results = await scout.search('articles', 'cuidados de apoyo')
   .whereIn('locale', ['en', 'es'])
   .orderBy('published_at', 'desc')
   .paginate(1, 20)
+
+registerDrizzlePostgresDriver(scout, 'postgres', db, allowlists)
+scout.use('postgres')
 ```
 
 Los modelos implementan `searchableKey()`, `searchableType()` y `toSearchableDocument()`. Usa `update`, `delete`, `import` y `flush` para mantener el indice. PostgreSQL usa `websearch_to_tsquery` y `tsvector` con GIN; SQLite/libSQL usan FTS5 y JSON1. Todos parametrizan valores, deniegan por defecto campos de filtro/orden y hacen atomica la sincronizacion multi-escritura cuando el cliente soporta transacciones. La paginacion esta limitada a 100 y la importacion a 10.000 documentos por lote. SQLite/libSQL requiere FTS5; aplica `0001_create_scout_documents_sqlite.sql`. Autoriza el acceso antes de usar Scout y no indexes secretos ni datos personales innecesarios.

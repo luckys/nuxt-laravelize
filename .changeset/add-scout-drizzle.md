@@ -5,4 +5,4 @@
 '@nuxt-laravelize/testing': minor
 ---
 
-Add portable Scout search APIs, Nuxt integration, and explicit PostgreSQL, SQLite FTS5, and Turso/libSQL full-text search adapters.
+Add portable Scout search APIs with lazy named engine management, runtime driver selection, and PostgreSQL, SQLite FTS5, and Turso/libSQL registration helpers.

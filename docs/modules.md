@@ -559,7 +559,7 @@ Definitions are evaluated only after a store miss and their result is persisted.
 
 ## Scout search
 
-`@nuxt-laravelize/scout` provides portable searchable-model and engine contracts, a fluent builder, bulk import, and the server auto-import `useScout(event)`. The preset uses an in-memory engine for development and tests. `@nuxt-laravelize/scout-drizzle` provides explicit PostgreSQL, local SQLite, and Turso/libSQL engines as `/postgres`, `/sqlite`, and `/turso` subpaths. Apply the migration for the selected dialect and bind the adapter in an application provider.
+`@nuxt-laravelize/scout` provides portable searchable-model and engine contracts, a fluent builder, bulk import, and the server auto-import `useScout(event)`. Configure `laravelizeScout.driver` (default: `memory`). Engines are named, lazy, and cached; register adapters in an application provider before selecting them. `@nuxt-laravelize/scout-drizzle` provides PostgreSQL, local SQLite, and Turso/libSQL helpers as `/postgres`, `/sqlite`, and `/turso` subpaths.
 
 ```ts
 const scout = useScout(event)
@@ -569,21 +569,21 @@ const results = await scout.search('articles', 'supportive care')
   .orderBy('published_at', 'desc')
   .paginate(1, 20)
 
-const engine = new DrizzlePostgresSearchEngine(db, {
+registerDrizzlePostgresDriver(scout, 'postgres', db, {
   filterableFields: ['status', 'locale'],
   sortableFields: ['published_at'],
 })
-container.instance(scoutManagerToken, new ScoutManager(engine))
+scout.use('postgres')
 ```
 
 ```ts
-import { DrizzleSQLiteSearchEngine } from '@nuxt-laravelize/scout-drizzle/sqlite'
-import { TursoLibSQLSearchEngine } from '@nuxt-laravelize/scout-drizzle/turso'
+import { registerDrizzleSQLiteDriver } from '@nuxt-laravelize/scout-drizzle/sqlite'
+import { registerTursoDriver } from '@nuxt-laravelize/scout-drizzle/turso'
 
 // Local Drizzle SQLite database (for example drizzle-orm/better-sqlite3)
-const local = new DrizzleSQLiteSearchEngine(sqliteDb, allowlists)
+registerDrizzleSQLiteDriver(scout, 'sqlite', sqliteDb, allowlists)
 // @libsql/client-compatible client; batch(..., 'write') is transactional
-const remote = new TursoLibSQLSearchEngine(tursoClient, allowlists)
+registerTursoDriver(scout, 'turso', tursoClient, allowlists)
 ```
 
 Models implement `searchableKey()`, `searchableType()`, and `toSearchableDocument()`. Use `update`, `delete`, `import`, and `flush` for index maintenance. PostgreSQL uses `websearch_to_tsquery` and a GIN-indexed `tsvector`; SQLite/libSQL use FTS5 and JSON1. All engines parameterize values, deny filter/sort fields by default, and make multi-write synchronization atomic where the client supports transactions. Pagination is capped at 100 and imports at 10,000 documents per batch. SQLite/libSQL requires a build with FTS5 enabled; apply `0001_create_scout_documents_sqlite.sql`. Authorize access before calling Scout and do not index secrets or unnecessary personal data.

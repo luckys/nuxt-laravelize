@@ -1,11 +1,15 @@
 /* eslint-disable @stylistic/max-statements-per-line */
-import type { SearchEngine, SearchPage, SearchRequest, Searchable } from '@nuxt-laravelize/scout/runtime'
+import type { ScoutManager, SearchEngine, SearchPage, SearchRequest, Searchable } from '@nuxt-laravelize/scout/runtime'
 import { buildSQLiteDelete, buildSQLiteFlush, buildSQLiteSearch, buildSQLiteUpdate, compileLibSQL, pageFromRows, validateOptions, type LibSQLStatement, type SQLiteScoutOptions } from './sqlite'
 
 interface LibSQLResultSet { readonly rows: readonly Record<string, unknown>[] }
 export interface LibSQLScoutClient {
   execute(statement: LibSQLStatement): Promise<LibSQLResultSet>
   batch(statements: LibSQLStatement[], mode?: 'write' | 'read' | 'deferred'): Promise<readonly LibSQLResultSet[]>
+}
+
+export function registerTursoDriver(manager: ScoutManager, name: string, client: LibSQLScoutClient, options: SQLiteScoutOptions = {}): ScoutManager {
+  return manager.extend(name, () => new TursoLibSQLSearchEngine(client, options))
 }
 
 export class TursoLibSQLSearchEngine implements SearchEngine {

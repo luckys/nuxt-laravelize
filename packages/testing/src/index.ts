@@ -53,7 +53,7 @@ export function mountLaravelize(): MountedLaravelize {
   const mail = new MailFake()
   const notifications = new NotificationFake()
   const features = new FeatureManager(new InMemoryFeatureStore())
-  const scout = new ScoutManager(new InMemorySearchEngine())
+  const scout = new ScoutManager('memory').extend('memory', () => new InMemorySearchEngine())
   const rateLimiter = new RateLimiter(cache)
   const validator = new Validator()
   container.instance(dispatcherToken, events)

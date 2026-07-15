@@ -1,3 +1,3 @@
 # @nuxt-laravelize/scout
 
-Portable search contracts, `ScoutManager`, fluent query builder, and Nuxt `useScout(event)` integration. Bind `scoutManagerToken` to `new ScoutManager(engine)` in an application provider. See the workspace module guide for examples.
+Portable search contracts, lazy named engines through `ScoutManager`, fluent query builder, and Nuxt `useScout(event)` integration. The Nuxt provider registers `memory`; select it or a custom registered driver with `laravelizeScout.driver`. See the workspace module guide for examples.

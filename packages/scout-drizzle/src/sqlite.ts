@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line, @stylistic/lines-between-class-members */
 import { sql, type SQL } from 'drizzle-orm'
 import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core'
-import type { SearchDocument, SearchEngine, SearchHit, SearchPage, SearchRequest, SearchValue, Searchable } from '@nuxt-laravelize/scout/runtime'
+import type { ScoutManager, SearchDocument, SearchEngine, SearchHit, SearchPage, SearchRequest, SearchValue, Searchable } from '@nuxt-laravelize/scout/runtime'
 import { sqliteScoutDocuments } from './sqlite-schema'
 
 export { sqliteScoutDocuments } from './sqlite-schema'
@@ -13,6 +13,10 @@ export interface DrizzleSQLiteDatabase {
 }
 export interface SQLiteScoutOptions { readonly filterableFields?: readonly string[], readonly sortableFields?: readonly string[] }
 export interface LibSQLStatement { readonly sql: string, readonly args: readonly (string | number | null)[] }
+
+export function registerDrizzleSQLiteDriver(manager: ScoutManager, name: string, database: DrizzleSQLiteDatabase, options: SQLiteScoutOptions = {}): ScoutManager {
+  return manager.extend(name, () => new DrizzleSQLiteSearchEngine(database, options))
+}
 
 export class DrizzleSQLiteSearchEngine implements SearchEngine {
   readonly #options: ValidatedSQLiteOptions

@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { and, eq, inArray, sql, type SQL } from 'drizzle-orm'
-import type { SearchDocument, SearchEngine, SearchHit, SearchPage, SearchRequest, SearchValue, Searchable } from '@nuxt-laravelize/scout/runtime'
+import type { ScoutManager, SearchDocument, SearchEngine, SearchHit, SearchPage, SearchRequest, SearchValue, Searchable } from '@nuxt-laravelize/scout/runtime'
 import { scoutDocuments } from './schema'
 
 export { scoutDocuments } from './schema'
@@ -14,6 +14,10 @@ export interface DrizzleScoutOptions {
   readonly filterableFields?: readonly string[]
   readonly sortableFields?: readonly string[]
   readonly textSearchConfig?: string
+}
+
+export function registerDrizzlePostgresDriver(manager: ScoutManager, name: string, database: DrizzleScoutDatabase, options: DrizzleScoutOptions = {}): ScoutManager {
+  return manager.extend(name, () => new DrizzlePostgresSearchEngine(database, options))
 }
 
 export class DrizzlePostgresSearchEngine implements SearchEngine {
