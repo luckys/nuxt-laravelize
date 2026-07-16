@@ -1,3 +1,5 @@
+import routes from '#laravelize/routes'
+
 export default defineEventHandler((event) => {
   return {
     audit: Boolean(useAudit(event)),
@@ -7,5 +9,6 @@ export default defineEventHandler((event) => {
     queue: Boolean(useQueue(event)),
     mailer: Boolean(useMailer(event)),
     notifications: Boolean(useNotifications(event)),
+    route: routes.users.show({ user: 42 }, { query: { preview: true, tags: ['b', 'a'] } }),
   }
 })

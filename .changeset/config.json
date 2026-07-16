@@ -30,6 +30,7 @@
       "@nuxt-laravelize/rate-limiter",
       "@nuxt-laravelize/reliability",
       "@nuxt-laravelize/reliability-drizzle",
+      "@nuxt-laravelize/routes",
       "@nuxt-laravelize/scheduler",
       "@nuxt-laravelize/testing",
       "@nuxt-laravelize/validation",

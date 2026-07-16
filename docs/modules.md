@@ -28,6 +28,34 @@ export default defineNuxtConfig({
 
 Use `$t()` in templates or `useI18n().$t()` in scripts. Set `i18n: false` to disable the integration.
 
+## Typed routes
+
+`@nuxt-laravelize/routes` generates `#laravelize/routes` from explicit declarations and is included in the preset. It infers URL parameters and HTTP methods only; request bodies and responses are intentionally **not inferred**.
+
+```ts
+// routes.ts
+import { route } from '@nuxt-laravelize/routes/runtime'
+
+export default {
+  users: {
+    show: route('GET', '/users/{user}/{section?}'),
+    files: route('GET', '/users/{user}/files/{path+}'),
+    browse: route('GET', '/files/{path*}'),
+  },
+} as const
+```
+
+The conventional `routes.ts` is loaded automatically. Configure `laravelizeRoutes.declarations` for other explicit files and `baseURL` for a shared prefix. Use `{id}` for required values, `{id?}` for optional values, `{path+}` for a required non-empty catch-all, and `{path*}` for an optional catch-all.
+
+```ts
+import routes from '#laravelize/routes'
+
+routes.users.show({ user: 42 }, { query: { preview: true } })
+// { method: 'GET', url: '/users/42?preview=1' }
+```
+
+Path values are encoded. Catch-all arrays retain segment boundaries, while `.` and `..` segments are rejected to prevent traversal-style URLs. Query keys are sorted, array order is retained, booleans use `1`/`0`, and nullish values are omitted. Package authors can register declarations with `addRoutesDeclaration()` from `@nuxt-laravelize/routes/kit`.
+
 ## Cache
 
 `@nuxt-laravelize/cache` provides a portable async cache contract, Laravel-style convenience operations and a default in-memory driver.
@@ -1033,6 +1061,7 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 | `queue-bullmq` | `/runtime` | - |
 | `reliability` | package root | `/testing` |
 | `reliability-drizzle` | package root, `/postgres`, `/sqlite`, `/turso` | - |
+| `routes` | package root, `/runtime`, `/kit` | - |
 | `events-queue` | `/runtime` | - |
 | `mail` | `/runtime`, `/node` | `/testing` |
 | `notifications` | `/runtime` | `/testing` |

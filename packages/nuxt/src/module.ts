@@ -35,6 +35,7 @@ export default defineNuxtModule({
     '@nuxt-laravelize/encryption': {},
     '@nuxt-laravelize/queue': {},
     '@nuxt-laravelize/rate-limiter': {},
+    '@nuxt-laravelize/routes': {},
     '@nuxt-laravelize/events-queue': {},
     '@nuxt-laravelize/filesystem': {},
     '@nuxt-laravelize/mail': {},

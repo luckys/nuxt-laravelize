@@ -28,6 +28,34 @@ export default defineNuxtConfig({
 
 Usa `$t()` en templates o `useI18n().$t()` en scripts. Define `i18n: false` para desactivar la integracion.
 
+## Rutas tipadas
+
+`@nuxt-laravelize/routes` genera `#laravelize/routes` desde declaraciones explicitas y esta incluido en el preset. Solo infiere parametros de URL y metodos HTTP; intencionalmente **no infiere** bodies de request ni responses.
+
+```ts
+// routes.ts
+import { route } from '@nuxt-laravelize/routes/runtime'
+
+export default {
+  users: {
+    show: route('GET', '/users/{user}/{section?}'),
+    files: route('GET', '/users/{user}/files/{path+}'),
+    browse: route('GET', '/files/{path*}'),
+  },
+} as const
+```
+
+El archivo convencional `routes.ts` se carga automaticamente. Configura `laravelizeRoutes.declarations` para otros archivos explicitos y `baseURL` para un prefijo comun. Usa `{id}` para valores obligatorios, `{id?}` para opcionales, `{path+}` para un catch-all obligatorio no vacio y `{path*}` para uno opcional.
+
+```ts
+import routes from '#laravelize/routes'
+
+routes.users.show({ user: 42 }, { query: { preview: true } })
+// { method: 'GET', url: '/users/42?preview=1' }
+```
+
+Los valores de path se codifican. Los arrays catch-all conservan sus segmentos, mientras `.` y `..` se rechazan para impedir URLs con traversal. Las keys query se ordenan, los arrays conservan su orden, los booleanos usan `1`/`0` y los valores nullish se omiten. Los autores de paquetes pueden registrar declaraciones con `addRoutesDeclaration()` desde `@nuxt-laravelize/routes/kit`.
+
 ## Cache
 
 `@nuxt-laravelize/cache` proporciona un contrato cache async portable, operaciones al estilo Laravel y un driver en memoria por defecto.
@@ -1022,6 +1050,7 @@ Combina `compiled` con una configuracion Nitro 3 standalone. El soporte real de 
 | `queue-bullmq` | `/runtime` | - |
 | `reliability` | raiz del paquete | `/testing` |
 | `reliability-drizzle` | raiz del paquete, `/postgres`, `/sqlite`, `/turso` | - |
+| `routes` | raiz del paquete, `/runtime`, `/kit` | - |
 | `events-queue` | `/runtime` | - |
 | `mail` | `/runtime`, `/node` | `/testing` |
 | `notifications` | `/runtime` | `/testing` |

@@ -24,6 +24,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/rate-limiter` | Cache-backed fixed-window rate limiting and Nitro middleware |
 | `@nuxt-laravelize/reliability` | Framework-neutral at-least-once outbox and idempotent inbox primitives |
 | `@nuxt-laravelize/reliability-drizzle` | Optional durable PostgreSQL, SQLite, and Turso reliability stores |
+| `@nuxt-laravelize/routes` | Generated typed URL helpers from explicit route declarations |
 | `@nuxt-laravelize/events-queue` | Queued-listener integration between events and queues |
 | `@nuxt-laravelize/mail` | Mailables, mail manager, and transports |
 | `@nuxt-laravelize/notifications` | Notification channels and on-demand routing |
@@ -61,6 +62,8 @@ export default defineNuxtConfig({
 ```
 
 The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. Reliability and webhooks are framework-neutral opt-ins, not Nuxt modules; the preset also does not install BullMQ, cloud filesystem adapters, Scout database adapters, or the scheduler.
+
+Generated typed routes from explicit declarations are also included in the preset.
 
 ```vue
 <template>

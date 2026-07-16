@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.base.json","compilerOptions":{"moduleResolution":"Bundler","types":["node","vitest/globals"]},"include":["src","test","type-test"],"exclude":["dist","node_modules",".nuxt"]}

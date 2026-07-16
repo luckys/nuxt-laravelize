@@ -1,3 +1,5 @@
+import routes from '#laravelize/routes'
+
 export default defineEventHandler((event) => {
   return {
     audit: Boolean(useAudit(event)),
@@ -16,5 +18,6 @@ export default defineEventHandler((event) => {
     urlSigner: Boolean(useUrlSigner(event)),
     validator: Boolean(useValidator(event)),
     rateLimiter: Boolean(useRateLimiter(event)),
+    route: routes.users.show({ user: 42 }, { query: { preview: true, tags: ['b', 'a'] } }),
   }
 })
