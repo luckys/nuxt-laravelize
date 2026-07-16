@@ -1,5 +1,6 @@
 export default defineEventHandler((event) => {
   return {
+    audit: Boolean(useAudit(event)),
     container: Boolean(useContainer(event)),
     dispatcher: Boolean(useDispatcher(event)),
     executionContext: Boolean(useExecutionContext(event)),

@@ -1,5 +1,6 @@
 export default defineEventHandler((event) => {
   return {
+    audit: Boolean(useAudit(event)),
     container: Boolean(useContainer(event)),
     cache: Boolean(useCache(event)),
     cacheLock: Boolean(useCacheLock(event, 'health', 60)),

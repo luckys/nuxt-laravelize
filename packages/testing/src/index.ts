@@ -1,4 +1,6 @@
 import { createContainer, type Container } from '@nuxt-laravelize/core/runtime'
+import { auditStoreToken } from '@nuxt-laravelize/audit/runtime'
+import { AuditFake } from '@nuxt-laravelize/audit/testing'
 import { AesGcmEncrypter, encrypterToken } from '@nuxt-laravelize/encryption/runtime'
 import { executionContextToken, type ExecutionContext } from '@nuxt-laravelize/execution-context/runtime'
 import { fakeExecutionContext } from '@nuxt-laravelize/execution-context/testing'
@@ -21,6 +23,7 @@ import { RateLimiter, rateLimiterToken } from '@nuxt-laravelize/rate-limiter/run
 import { Validator, validatorToken } from '@nuxt-laravelize/validation/runtime'
 
 export { FakeLogger } from '@nuxt-laravelize/core/testing'
+export { AuditFake } from '@nuxt-laravelize/audit/testing'
 export { ExecutionContextBuilder, fakeExecutionContext } from '@nuxt-laravelize/execution-context/testing'
 export { CacheFake } from '@nuxt-laravelize/cache/testing'
 export { EventFake } from '@nuxt-laravelize/events/testing'
@@ -31,6 +34,7 @@ export { QueueFake } from '@nuxt-laravelize/queue/testing'
 
 export interface MountedLaravelize {
   readonly container: Container
+  readonly audit: AuditFake
   readonly cache: CacheFake
   readonly events: EventFake
   readonly encrypter: AesGcmEncrypter
@@ -48,6 +52,7 @@ export interface MountedLaravelize {
 
 export function mountLaravelize(): MountedLaravelize {
   const container = createContainer()
+  const audit = new AuditFake()
   const cache = new CacheFake()
   const events = new EventFake()
   const encrypter = new AesGcmEncrypter('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
@@ -62,6 +67,7 @@ export function mountLaravelize(): MountedLaravelize {
   const rateLimiter = new RateLimiter(cache)
   const validator = new Validator()
   container.instance(dispatcherToken, events)
+  container.instance(auditStoreToken, audit)
   container.instance(encrypterToken, encrypter)
   container.instance(executionContextToken, executionContext)
   container.instance(filesystemManagerToken, new FilesystemManager().register('default', filesystem))
@@ -75,5 +81,5 @@ export function mountLaravelize(): MountedLaravelize {
   container.instance(rateLimiterToken, rateLimiter)
   container.instance(validatorToken, validator)
   container.seal()
-  return { container, cache, encrypter, executionContext, events, features, filesystem, hasher, queue, mail, notifications, scout, rateLimiter, validator }
+  return { container, audit, cache, encrypter, executionContext, events, features, filesystem, hasher, queue, mail, notifications, scout, rateLimiter, validator }
 }

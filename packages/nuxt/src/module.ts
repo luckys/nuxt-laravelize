@@ -25,6 +25,7 @@ declare module 'nuxt/schema' {
 export default defineNuxtModule({
   meta: { name: '@nuxt-laravelize/nuxt', configKey: 'laravelize', compatibility: { nuxt: '>=4.3.0 <5' } },
   moduleDependencies: {
+    '@nuxt-laravelize/audit': {},
     '@nuxt-laravelize/cache': {},
     '@nuxt-laravelize/core': {},
     '@nuxt-laravelize/execution-context': {},

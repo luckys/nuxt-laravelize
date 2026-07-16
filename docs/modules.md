@@ -381,6 +381,25 @@ await events.dispatch(new UserRegistered('user_1'))
 events.assertDispatched(UserRegistered, event => event.userId === 'user_1')
 ```
 
+## Audit
+
+`@nuxt-laravelize/audit` is included in the preset and exposes `useAudit(event)`. Recording is explicit:
+
+```ts
+await useAudit(event).record({
+  action: 'patient.viewed',
+  outcome: 'success',
+  target: { type: 'patient', id: patientId },
+  metadata: { reason: 'care-plan' },
+})
+```
+
+The recorder generates the ID/time and enriches actor, tenant, execution, correlation, causation, source, and trace fields from trusted scoped execution context. Callers cannot override them. Actions/references use bounded safe identifiers. Changes and metadata must be bounded plain JSON; functions, symbols, cycles, custom prototypes, and excessive depth, keys, arrays, or bytes are rejected. Common credential keys and configured redaction keys become `[REDACTED]`.
+
+The preset defaults to bounded, non-evicting memory in development and disabled persistence in production; both warn, and disabled recording fails closed. Configure `laravelizeAudit.driver: 'memory'` explicitly only when volatility is acceptable, or override `auditStoreToken` with durable storage. Set `requireTenantId: true` for tenant-scoped systems. Optional `@nuxt-laravelize/audit-drizzle` provides append-only-by-interface PostgreSQL, SQLite, and Turso/libSQL stores; database immutability still requires least-privilege credentials and retention controls. `occurredAt` is application time, not authoritative ingestion order. `AuditFake` provides defensive assertions.
+
+Audit is neither logging nor domain-event serialization. Do not pass request/response bodies or arbitrary models. Automatic policy/HTTP auditing is deferred to a future neutral `audit-http` bridge.
+
 ## Queue
 
 `@nuxt-laravelize/queue` defines portable jobs and includes an in-memory queue. The Nitro auto-import `useQueue(event)` resolves the active driver.

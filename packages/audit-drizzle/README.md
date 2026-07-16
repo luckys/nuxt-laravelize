@@ -1,0 +1,7 @@
+# @nuxt-laravelize/audit-drizzle
+
+Explicit append-only-by-interface stores: `DrizzlePostgresAuditStore`, `DrizzleSQLiteAuditStore`, and structural-client `TursoAuditStore`. Apply the matching migration and override `auditStoreToken`. The adapters expose no update/delete API, but the base migrations do not make the database immutable.
+
+For PostgreSQL, adapt `migrations/postgres-hardening.example.sql`: use a dedicated insert-only runtime role, keep administrative/migration credentials out of the application, and consider tenant RLS with a transaction-local trusted tenant setting. Test that application credentials cannot update, delete, or truncate. Do not enable the sample RLS policy until every write transaction sets and validates its tenant context; tenant-less/system records require a separately designed policy.
+
+SQLite/libSQL/Turso provide weaker database-side enforcement. Restrict writer credentials and administrative access, and replicate/export audit data to immutable or WORM retention where evidence requirements demand it. PostgreSQL stores JSONB/timestamptz; SQLite/libSQL stores JSON text and epoch-millisecond timestamps. `occurred_at` is supplied by the application and is not authoritative ingestion order; add a database-generated ingestion timestamp/sequence in an application-owned migration if required. The Drizzle peer is optional so Turso consumers can use the structural adapter without installing a Drizzle driver.

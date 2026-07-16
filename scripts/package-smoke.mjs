@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const packageNames = [
+  'audit',
+  'audit-drizzle',
   'cache',
   'core',
   'database',
@@ -50,6 +52,14 @@ runFixture('features', {
   ...featureDependencies,
   nuxt: nuxtVersion,
 }, featureDependencies, [
+  '@nuxt-laravelize/audit',
+  '@nuxt-laravelize/audit/runtime',
+  '@nuxt-laravelize/audit/runtime/server',
+  '@nuxt-laravelize/audit/testing',
+  '@nuxt-laravelize/audit-drizzle',
+  '@nuxt-laravelize/audit-drizzle/postgres',
+  '@nuxt-laravelize/audit-drizzle/sqlite',
+  '@nuxt-laravelize/audit-drizzle/turso',
   '@nuxt-laravelize/core',
   '@nuxt-laravelize/cache/runtime',
   '@nuxt-laravelize/cache/testing',
@@ -92,6 +102,10 @@ runFixture('features', {
   '@nuxt-laravelize/nuxt',
 ], ['@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: {
+    '@nuxt-laravelize/audit/runtime': ['DefaultAuditRecorder', 'InMemoryAuditStore', 'auditRecorderToken', 'auditStoreToken'],
+    '@nuxt-laravelize/audit/runtime/server': ['useAudit'],
+    '@nuxt-laravelize/audit/testing': ['AuditFake'],
+    '@nuxt-laravelize/audit-drizzle': ['DrizzlePostgresAuditStore', 'DrizzleSQLiteAuditStore', 'TursoAuditStore'],
     '@nuxt-laravelize/cache/runtime': ['CacheLock', 'InMemoryCache', 'LockTimeoutError', 'cacheToken'],
     '@nuxt-laravelize/core/runtime': ['createContainer', 'loggerFor'],
     '@nuxt-laravelize/encryption/runtime': ['AesGcmEncrypter', 'DecryptionError', 'encrypterToken', 'generateEncryptionKey'],
@@ -125,7 +139,7 @@ runFixture('preset-default', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/scheduler', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
 })
@@ -135,7 +149,7 @@ runFixture('preset-compat5', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/scheduler', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
   compatibilityVersion: 5,
@@ -231,6 +245,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       mkdirSync(join(fixture, 'server', 'api'), { recursive: true })
       writeFileSync(join(fixture, 'server', 'api', 'health.get.ts'), [
         'export default defineEventHandler(async (event) => ({',
+        '  audit: Boolean(useAudit(event)),',
         '  container: Boolean(event.context.laravelizeContainer),',
         '  cache: Boolean(useCache(event)),',
         '  cacheLock: Boolean(useCacheLock(event, \'smoke\', 60)),',
@@ -288,7 +303,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  }',
         '  if (!response?.ok) throw new Error(`Nuxt server did not become ready. ${diagnostics}`)',
         '  const health = await response.json()',
-        '  for (const service of [\'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'encrypter\', \'executionContext\', \'filesystem\', \'hasher\', \'queue\', \'mailer\', \'notifications\', \'scout\', \'urlSigner\', \'rateLimiter\', \'validator\']) {',
+        '  for (const service of [\'audit\', \'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'encrypter\', \'executionContext\', \'filesystem\', \'hasher\', \'queue\', \'mailer\', \'notifications\', \'scout\', \'urlSigner\', \'rateLimiter\', \'validator\']) {',
         '    if (health[service] !== true) throw new Error(`Missing runtime service: ${service}`)',
         '  }',
         '  if (!response.headers.get(\'x-correlation-id\')) throw new Error(\'Missing correlation response header\')',

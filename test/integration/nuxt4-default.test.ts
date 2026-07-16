@@ -6,6 +6,7 @@ describe('Nuxt 4 default profile', async () => {
   await setup({ rootDir: fileURLToPath(new URL('../fixtures/nuxt4-default', import.meta.url)) })
   it('provides the standard runtime services', async () => {
     expect(await $fetch('/api/health')).toEqual({
+      audit: true,
       container: true,
       cache: true,
       cacheLock: true,

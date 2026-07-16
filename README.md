@@ -8,6 +8,8 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 
 | Package | Purpose |
 |---|---|
+| `@nuxt-laravelize/audit` | Secure append-only audit recording enriched by execution context |
+| `@nuxt-laravelize/audit-drizzle` | Optional PostgreSQL, SQLite, and Turso/libSQL audit stores |
 | `@nuxt-laravelize/cache` | Portable cache contract, TTL operations, atomic locks, counters, memoization, and in-memory driver |
 | `@nuxt-laravelize/core` | Container, tokens, providers, lifecycle, and logging |
 | `@nuxt-laravelize/execution-context` | Immutable request/work identity, trusted correlation, and contextual logging |
@@ -86,6 +88,7 @@ Feature modules install and activate `@nuxt-laravelize/core` transitively. Add a
 pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq
 pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
 pnpm add @nuxt-laravelize/scout @nuxt-laravelize/scout-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/audit @nuxt-laravelize/audit-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
 pnpm add -D @nuxt-laravelize/testing
@@ -97,6 +100,8 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 
 | Package | Runtime and adapter entrypoints | Testing entrypoint |
 |---|---|---|
+| `@nuxt-laravelize/audit` | `/runtime`, `/runtime/server` | `/testing` |
+| `@nuxt-laravelize/audit-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |

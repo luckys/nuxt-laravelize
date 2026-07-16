@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { auditStoreToken } from '@nuxt-laravelize/audit/runtime'
 import { cacheToken } from '@nuxt-laravelize/cache/runtime'
 import { encrypterToken } from '@nuxt-laravelize/encryption/runtime'
 import { filesystemManagerToken } from '@nuxt-laravelize/filesystem/runtime'
@@ -11,6 +12,7 @@ import { mountLaravelize } from '../src/index'
 describe('mountLaravelize', () => {
   it('mounts the official fakes in a sealed container', () => {
     const mounted = mountLaravelize()
+    expect(mounted.container.make(auditStoreToken)).toBe(mounted.audit)
     expect(mounted.container.make(cacheToken)).toBe(mounted.cache)
     expect(mounted.container.make(encrypterToken)).toBe(mounted.encrypter)
     expect(mounted.container.make(filesystemManagerToken).disk()).toBe(mounted.filesystem)

@@ -8,6 +8,8 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 
 | Paquete | Proposito |
 |---|---|
+| `@nuxt-laravelize/audit` | Auditoria append-only segura enriquecida por el contexto de ejecucion |
+| `@nuxt-laravelize/audit-drizzle` | Stores opcionales para PostgreSQL, SQLite y Turso/libSQL |
 | `@nuxt-laravelize/cache` | Contrato cache portable, operaciones TTL, locks atomicos, contadores, memoizacion y driver en memoria |
 | `@nuxt-laravelize/core` | Contenedor, tokens, providers, lifecycle y logging |
 | `@nuxt-laravelize/execution-context` | Identidad inmutable, correlacion confiable y logging contextual |
@@ -86,6 +88,7 @@ Los modulos de features instalan y activan `@nuxt-laravelize/core` transitivamen
 pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq
 pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
 pnpm add @nuxt-laravelize/scout @nuxt-laravelize/scout-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/audit @nuxt-laravelize/audit-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
 pnpm add -D @nuxt-laravelize/testing
@@ -97,6 +100,8 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 
 | Paquete | Entrypoints de runtime y adapters | Entrypoint de testing |
 |---|---|---|
+| `@nuxt-laravelize/audit` | `/runtime`, `/runtime/server` | `/testing` |
+| `@nuxt-laravelize/audit-drizzle` | Raiz del paquete, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |

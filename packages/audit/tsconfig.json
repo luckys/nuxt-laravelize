@@ -1,0 +1,1 @@
+{"extends":"./.nuxt/tsconfig.json","include":["src","test","build.config.ts","public.build.config.ts"],"exclude":["dist","node_modules",".nuxt"]}
