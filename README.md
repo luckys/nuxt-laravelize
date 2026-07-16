@@ -22,6 +22,8 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/queue` | Portable queue contracts, jobs, scoped execution, and in-memory driver |
 | `@nuxt-laravelize/queue-bullmq` | Node-only BullMQ driver and persistent worker |
 | `@nuxt-laravelize/rate-limiter` | Cache-backed fixed-window rate limiting and Nitro middleware |
+| `@nuxt-laravelize/reliability` | Framework-neutral at-least-once outbox and idempotent inbox primitives |
+| `@nuxt-laravelize/reliability-drizzle` | Optional durable PostgreSQL, SQLite, and Turso reliability stores |
 | `@nuxt-laravelize/events-queue` | Queued-listener integration between events and queues |
 | `@nuxt-laravelize/mail` | Mailables, mail manager, and transports |
 | `@nuxt-laravelize/notifications` | Notification channels and on-demand routing |
@@ -34,6 +36,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/testing` | Aggregate test harness and fakes |
 | `@nuxt-laravelize/validation` | Standard Schema validation, typed results, and error bags |
 | `@nuxt-laravelize/scheduler` | Framework-neutral schedules and an explicit Nitro 3 adapter |
+| `@nuxt-laravelize/webhooks` | Node-only signed outgoing and idempotent incoming webhooks |
 | `@nuxt-laravelize/nuxt` | Convenience preset with `nuxt-i18n-micro` integration |
 
 ## Installation
@@ -57,7 +60,7 @@ export default defineNuxtConfig({
 })
 ```
 
-The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. The preset does not install BullMQ, cloud filesystem adapters, Scout database adapters, or the scheduler.
+The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. Reliability and webhooks are framework-neutral opt-ins, not Nuxt modules; the preset also does not install BullMQ, cloud filesystem adapters, Scout database adapters, or the scheduler.
 
 ```vue
 <template>
@@ -89,6 +92,8 @@ pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq
 pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
 pnpm add @nuxt-laravelize/scout @nuxt-laravelize/scout-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/audit @nuxt-laravelize/audit-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
+pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/reliability-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
 pnpm add -D @nuxt-laravelize/testing
@@ -114,6 +119,8 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/queue` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/queue-bullmq` | `/runtime` | - |
 | `@nuxt-laravelize/rate-limiter` | `/runtime` | - |
+| `@nuxt-laravelize/reliability` | Package root | `/testing` |
+| `@nuxt-laravelize/reliability-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso` | - |
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |
 | `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
 | `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |
@@ -126,6 +133,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/testing` | Package root | Package root |
 | `@nuxt-laravelize/validation` | `/runtime` | - |
 | `@nuxt-laravelize/scheduler` | Package root, `/nitro3` | - |
+| `@nuxt-laravelize/webhooks` | Package root | `/testing` |
 | `@nuxt-laravelize/nuxt` | Package root | - |
 
 Examples:

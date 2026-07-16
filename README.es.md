@@ -22,6 +22,8 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/queue` | Contratos de cola portables, jobs, ejecucion por scope y driver en memoria |
 | `@nuxt-laravelize/queue-bullmq` | Driver BullMQ y worker persistente, solo para Node |
 | `@nuxt-laravelize/rate-limiter` | Rate limiting de ventana fija sobre cache y middleware Nitro |
+| `@nuxt-laravelize/reliability` | Outbox at-least-once e inbox idempotente independientes del framework |
+| `@nuxt-laravelize/reliability-drizzle` | Stores durables opcionales para PostgreSQL, SQLite y Turso |
 | `@nuxt-laravelize/events-queue` | Integracion de listeners encolados entre eventos y colas |
 | `@nuxt-laravelize/mail` | Mailables, mail manager y transports |
 | `@nuxt-laravelize/notifications` | Canales de notificacion y routing bajo demanda |
@@ -34,6 +36,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/testing` | Test harness agregado y fakes |
 | `@nuxt-laravelize/validation` | Validacion Standard Schema, resultados tipados y error bags |
 | `@nuxt-laravelize/scheduler` | Schedules independientes del framework y adapter Nitro 3 explicito |
+| `@nuxt-laravelize/webhooks` | Webhooks salientes firmados y entrantes idempotentes, solo para Node |
 | `@nuxt-laravelize/nuxt` | Preset conveniente con integracion de `nuxt-i18n-micro` |
 
 ## Instalacion
@@ -57,7 +60,7 @@ export default defineNuxtConfig({
 })
 ```
 
-El preset activa cache, core, database, encryption, events, feature flags, filesystem, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout con su driver en memoria, validation, la cola portable y `nuxt-i18n-micro`. Las traducciones usan su API nativa de Nuxt `$t()` y diccionarios JSON en lugar de `__()` al estilo Laravel. No instala BullMQ, adapters filesystem cloud, adapters de base de datos para Scout ni activa el scheduler.
+El preset activa cache, core, database, encryption, events, feature flags, filesystem, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout con su driver en memoria, validation, la cola portable y `nuxt-i18n-micro`. Las traducciones usan su API nativa de Nuxt `$t()` y diccionarios JSON en lugar de `__()` al estilo Laravel. Reliability y webhooks son opt-ins independientes del framework, no modulos Nuxt; el preset tampoco instala BullMQ, adapters filesystem cloud, adapters de base de datos para Scout ni activa el scheduler.
 
 ```vue
 <template>
@@ -89,6 +92,8 @@ pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq
 pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
 pnpm add @nuxt-laravelize/scout @nuxt-laravelize/scout-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/audit @nuxt-laravelize/audit-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
+pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/reliability-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
 pnpm add -D @nuxt-laravelize/testing
@@ -114,6 +119,8 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/queue` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/queue-bullmq` | `/runtime` | - |
 | `@nuxt-laravelize/rate-limiter` | `/runtime` | - |
+| `@nuxt-laravelize/reliability` | Raiz del paquete | `/testing` |
+| `@nuxt-laravelize/reliability-drizzle` | Raiz del paquete, `/postgres`, `/sqlite`, `/turso` | - |
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |
 | `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
 | `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |
@@ -126,6 +133,7 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/testing` | Raiz del paquete | Raiz del paquete |
 | `@nuxt-laravelize/validation` | `/runtime` | - |
 | `@nuxt-laravelize/scheduler` | Raiz del paquete, `/nitro3` | - |
+| `@nuxt-laravelize/webhooks` | Raiz del paquete | `/testing` |
 | `@nuxt-laravelize/nuxt` | Raiz del paquete | - |
 
 Ejemplos:

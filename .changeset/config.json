@@ -28,9 +28,12 @@
       "@nuxt-laravelize/queue",
       "@nuxt-laravelize/queue-bullmq",
       "@nuxt-laravelize/rate-limiter",
+      "@nuxt-laravelize/reliability",
+      "@nuxt-laravelize/reliability-drizzle",
       "@nuxt-laravelize/scheduler",
       "@nuxt-laravelize/testing",
-      "@nuxt-laravelize/validation"
+      "@nuxt-laravelize/validation",
+      "@nuxt-laravelize/webhooks"
     ]
   ],
   "linked": [],

@@ -28,9 +28,12 @@ const packageNames = [
   'queue',
   'queue-bullmq',
   'rate-limiter',
+  'reliability',
+  'reliability-drizzle',
   'scheduler',
   'testing',
   'validation',
+  'webhooks',
 ]
 
 const tarballDirectory = resolve('.pack')
@@ -77,6 +80,12 @@ runFixture('features', {
   '@nuxt-laravelize/queue/testing',
   '@nuxt-laravelize/queue-bullmq/runtime',
   '@nuxt-laravelize/rate-limiter/runtime',
+  '@nuxt-laravelize/reliability',
+  '@nuxt-laravelize/reliability/testing',
+  '@nuxt-laravelize/reliability-drizzle',
+  '@nuxt-laravelize/reliability-drizzle/postgres',
+  '@nuxt-laravelize/reliability-drizzle/sqlite',
+  '@nuxt-laravelize/reliability-drizzle/turso',
   '@nuxt-laravelize/events-queue/runtime',
   '@nuxt-laravelize/filesystem/runtime',
   '@nuxt-laravelize/filesystem/node',
@@ -100,6 +109,8 @@ runFixture('features', {
   '@nuxt-laravelize/testing',
   '@nuxt-laravelize/validation/runtime',
   '@nuxt-laravelize/nuxt',
+  '@nuxt-laravelize/webhooks',
+  '@nuxt-laravelize/webhooks/testing',
 ], ['@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: {
     '@nuxt-laravelize/audit/runtime': ['DefaultAuditRecorder', 'InMemoryAuditStore', 'auditRecorderToken', 'auditStoreToken'],
@@ -120,6 +131,12 @@ runFixture('features', {
     '@nuxt-laravelize/filesystem-cloudflare': ['CloudflareR2Filesystem'],
     '@nuxt-laravelize/queue/runtime': ['queueToken'],
     '@nuxt-laravelize/rate-limiter/runtime': ['RateLimiter', 'rateLimiterToken'],
+    '@nuxt-laravelize/reliability': ['createEnvelope', 'OutboxProcessor', 'InboxConsumer'],
+    '@nuxt-laravelize/reliability/testing': ['InMemoryReliabilityStore', 'OutboxStoreFake', 'InboxStoreFake'],
+    '@nuxt-laravelize/reliability-drizzle': ['DrizzlePostgresReliabilityStore', 'DrizzleSQLiteReliabilityStore'],
+    '@nuxt-laravelize/reliability-drizzle/postgres': ['DrizzlePostgresReliabilityStore'],
+    '@nuxt-laravelize/reliability-drizzle/sqlite': ['DrizzleSQLiteReliabilityStore'],
+    '@nuxt-laravelize/reliability-drizzle/turso': ['TursoReliabilityStore'],
     '@nuxt-laravelize/mail/runtime': ['mailerToken'],
     '@nuxt-laravelize/notifications/runtime': ['notificationManagerToken'],
     '@nuxt-laravelize/pennant/runtime': ['FeatureManager', 'InMemoryFeatureStore', 'featureManagerToken'],
@@ -131,6 +148,8 @@ runFixture('features', {
     '@nuxt-laravelize/http/runtime': ['Policy', 'DefaultPolicyRegistry', 'policyRegistryToken', 'discoverPoliciesByConvention', 'HmacUrlSigner', 'ValidateSignature', 'urlSignerToken'],
     '@nuxt-laravelize/hashing/runtime': ['Pbkdf2Hasher', 'hasherToken'],
     '@nuxt-laravelize/validation/runtime': ['ErrorBag', 'ValidationError', 'Validator', 'validatorToken'],
+    '@nuxt-laravelize/webhooks': ['OutgoingWebhookProcessor', 'WebhookInboxReceiver', 'assertSafeWebhookUrl', 'signWebhook', 'verifyWebhook'],
+    '@nuxt-laravelize/webhooks/testing': ['WebhookTransportFake'],
   },
 })
 
@@ -139,7 +158,7 @@ runFixture('preset-default', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/scheduler', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
 })
@@ -149,7 +168,7 @@ runFixture('preset-compat5', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/scheduler', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
   compatibilityVersion: 5,

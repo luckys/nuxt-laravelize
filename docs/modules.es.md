@@ -391,6 +391,55 @@ El preset usa memoria acotada y sin eviction en desarrollo, y persistencia desha
 
 Audit no es logging ni serializacion de domain events. No se pasan bodies request/response ni modelos arbitrarios. La auditoria automatica policy/HTTP queda para un futuro bridge neutral `audit-http`.
 
+## Reliability y webhooks
+
+`@nuxt-laravelize/reliability` y `@nuxt-laravelize/webhooks` son opt-ins independientes del framework: no son modulos Nuxt ni forman parte del preset. Reliability proporciona envelopes JSON-safe versionados, procesamiento outbox con leases y deduplicacion inbox. La entrega es **at least once**: un worker puede repetir un mensaje tras un timeout o crash, asi que cada handler y receptor webhook debe ser idempotente.
+
+```bash
+pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
+# Adapter Drizzle durable opcional:
+pnpm add @nuxt-laravelize/reliability-drizzle drizzle-orm
+```
+
+```ts
+import { createEnvelope } from '@nuxt-laravelize/reliability'
+import { DrizzlePostgresReliabilityStore } from '@nuxt-laravelize/reliability-drizzle/postgres'
+
+const store = new DrizzlePostgresReliabilityStore(db)
+const envelope = createEnvelope({
+  type: 'invoice.paid.v1',
+  payload: { invoiceId: 'inv_1' },
+})
+
+await db.transaction(async (tx) => {
+  await markInvoicePaid(tx, 'inv_1')
+  await store.appendWith(tx, envelope)
+})
+```
+
+La escritura de negocio y `appendWith(tx, envelope)` **deben usar la misma transaccion y conexion de base de datos**. Agregar antes o despues reintroduce el dual-write gap y puede perder un evento o publicar estado revertido. Aplica la migracion PostgreSQL o SQLite incluida y ejecuta `OutboxProcessor.runOnce()` desde un worker supervisado. El store en memoria de `/testing` es acotado, volatil y solo sirve para tests/desarrollo; produccion requiere store durable compartido, IDs de owner estables, leases/reintentos acotados, monitorizacion de mensajes dead y operaciones de retencion/reconciliacion. Drizzle sigue siendo opcional y solo se instala al elegir este adapter.
+
+`@nuxt-laravelize/webhooks` ofrece `OutgoingWebhookProcessor`, verificacion HMAC del body raw y `WebhookInboxReceiver`. Su transport es **solo para Node** porque usa DNS, crypto, buffers y fetch de servidor de Node. Resuelve secrets de firma al entregar; el outbox solo guarda `secretId`. Los constructores de produccion exigen stores outbox/inbox durables.
+
+```ts
+import { OutgoingWebhookProcessor, createWebhookEnvelope } from '@nuxt-laravelize/webhooks'
+
+await store.append(createWebhookEnvelope({
+  url: 'https://hooks.example.com/orders',
+  secretId: 'customer-42-current',
+  body: { orderId: 'order_1' },
+}))
+
+const webhooks = new OutgoingWebhookProcessor(store, {
+  owner: 'webhooks-worker-1',
+  resolveSecret: secrets.resolve,
+  production: true,
+})
+await webhooks.runOnce()
+```
+
+Las URLs salientes exigen HTTPS por puerto 443, rechazan credenciales y direcciones privadas/reservadas, desactivan redirects y limitan timeouts. Los transports personalizados deben conservar esas restricciones de redirect, timeout, DNS/IP y TLS. El riesgo SSRF se reduce, no se elimina: la validacion DNS y la conexion posterior no estan fijadas atomicamente, dejando un residual DNS-rebinding/TOCTOU. Para destinos no confiables, exige un proxy egress con allowlist o pinning de direccion a nivel de conexion, ademas de politica de red saliente. Verifica firmas entrantes contra los bytes raw exactos, limita la tolerancia temporal, autentica/autoriza ownership del endpoint por separado y conserva la deduplicacion inbox al menos durante la ventana de reintentos del sender.
+
 ## Queue
 
 `@nuxt-laravelize/queue` define jobs portables e incluye una cola en memoria. El autoimport Nitro `useQueue(event)` resuelve el driver activo.
@@ -971,6 +1020,8 @@ Combina `compiled` con una configuracion Nitro 3 standalone. El soporte real de 
 | `events` | `/runtime` | `/testing` |
 | `queue` | `/runtime` | `/testing` |
 | `queue-bullmq` | `/runtime` | - |
+| `reliability` | raiz del paquete | `/testing` |
+| `reliability-drizzle` | raiz del paquete, `/postgres`, `/sqlite`, `/turso` | - |
 | `events-queue` | `/runtime` | - |
 | `mail` | `/runtime`, `/node` | `/testing` |
 | `notifications` | `/runtime` | `/testing` |
@@ -978,6 +1029,7 @@ Combina `compiled` con una configuracion Nitro 3 standalone. El soporte real de 
 | `database` | `/runtime` | - |
 | `testing` | raiz del paquete | raiz del paquete |
 | `scheduler` | raiz del paquete, `/nitro3` | - |
+| `webhooks` | raiz del paquete | `/testing` |
 | `nuxt` | raiz del paquete | - |
 ## Contexto de ejecucion
 
