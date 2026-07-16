@@ -28,6 +28,7 @@ export interface Container extends Resolver {
   scoped<T>(token: Token<T>, factory: ServiceFactory<T>): void
   instance<T>(token: Token<T>, value: T): void
   createScope(): Container
+  override<T>(token: Token<T>, value: T): void
   seal(): void
   dispose(): Promise<void>
 }
@@ -69,16 +70,26 @@ class CradleResolver implements Resolver {
   }
 
   has(token: Token<unknown>): boolean {
-    return this.#owner.has(token)
+    if (this.#owner.has(token)) return true
+    try {
+      void this.#cradle[token.key]
+      return true
+    }
+    catch (error) {
+      if (error instanceof AwilixResolutionError) return false
+      throw error
+    }
   }
 }
 
 class AwilixBackedContainer implements Container {
   readonly #awilix: AwilixContainer
+  readonly #isScope: boolean
   #sealed = false
 
-  constructor(awilixContainer: AwilixContainer) {
+  constructor(awilixContainer: AwilixContainer, isScope = false) {
     this.#awilix = awilixContainer
+    this.#isScope = isScope
   }
 
   bind<T>(token: Token<T>, factory: ServiceFactory<T>): void {
@@ -112,7 +123,12 @@ class AwilixBackedContainer implements Container {
   }
 
   createScope(): Container {
-    return new AwilixBackedContainer(this.#awilix.createScope())
+    return new AwilixBackedContainer(this.#awilix.createScope(), true)
+  }
+
+  override<T>(token: Token<T>, value: T): void {
+    if (!this.#isScope) throw new KernelAlreadyBootedError()
+    this.#awilix.register(token.key, asValue(value))
   }
 
   seal(): void {

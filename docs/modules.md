@@ -455,9 +455,10 @@ pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq bullmq ioredis
 ```ts
 import Redis from 'ioredis'
 import { BullMQConnection, BullMQQueue, BullMQWorker } from '@nuxt-laravelize/queue-bullmq/runtime'
+import { jobSerializerToken } from '@nuxt-laravelize/queue/runtime'
 
 const connection = new BullMQConnection(new Redis(process.env.REDIS_URL!))
-const queue = new BullMQQueue(connection, runner)
+const queue = new BullMQQueue(connection, runner, container.make(jobSerializerToken))
 const worker = new BullMQWorker(connection, registry, runner)
 
 await queue.push(new SendReport({ reportId: 'report_1' }))
@@ -970,3 +971,8 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 | `testing` | package root | package root |
 | `scheduler` | package root, `/nitro3` | - |
 | `nuxt` | package root | - |
+## Execution Context
+
+`@nuxt-laravelize/execution-context` gives every Nitro request an immutable, validated, JSON-safe context. `useExecutionContext(event)` returns the request-scoped value. Incoming correlation IDs are accepted only when `trustIncomingCorrelationHeader` is explicitly enabled and valid; actor and tenant headers are never trusted. Attributes are limited to 16 string entries of 256 characters.
+
+Use `snapshot()` for transport, `derive()` for child work, authenticated `enrich()` for actor/tenant, and `withExecutionContext()` for sanitized logs. HTTP handlers pass their request context explicitly when dispatching: `runWithExecutionContext(useExecutionContext(event), () => queue.push(job))`. The queue bridge preserves correlation, creates a worker execution ID, and sets causation to the producer execution ID; the same registered `JobSerializer` must be passed to persistent queue adapters.

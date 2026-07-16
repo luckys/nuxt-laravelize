@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { $fetch, setup } from '@nuxt/test-utils/e2e'
+import { $fetch, setup, url } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
 
 describe('Nuxt 4 default profile', async () => {
@@ -11,6 +11,7 @@ describe('Nuxt 4 default profile', async () => {
       cacheLock: true,
       dispatcher: true,
       encrypter: true,
+      executionContext: true,
       features: true,
       filesystem: true,
       hasher: true,
@@ -21,6 +22,32 @@ describe('Nuxt 4 default profile', async () => {
       validator: true,
       rateLimiter: true,
     })
+  })
+
+  it('emits isolated correlation IDs and ignores untrusted incoming values', async () => {
+    const [first, second] = await Promise.all([
+      fetch(url('/api/health'), { headers: { 'x-correlation-id': 'untrusted' } }),
+      fetch(url('/api/health')),
+    ])
+    expect(first.headers.get('x-correlation-id')).not.toBe('untrusted')
+    expect(first.headers.get('x-correlation-id')).not.toBe(second.headers.get('x-correlation-id'))
+  })
+
+  it('automatically propagates HTTP context through a request-scoped queue', async () => {
+    const result = await $fetch<{ responseCorrelationId: string, emittedCorrelationId: string }>('/api/queue-context')
+    expect(result.emittedCorrelationId).toBe(result.responseCorrelationId)
+  })
+
+  it('keeps delayed concurrent requests isolated and does not leak failed requests', async () => {
+    const [first, second] = await Promise.all([
+      $fetch<{ executionId: string, ambientExecutionId: string | null }>('/api/context?delay=20'),
+      $fetch<{ executionId: string, ambientExecutionId: string | null }>('/api/context?delay=1'),
+    ])
+    expect(first.executionId).not.toBe(second.executionId)
+    expect(first.ambientExecutionId).toBeNull()
+    expect(second.ambientExecutionId).toBeNull()
+    await expect($fetch('/api/context?fail=true')).rejects.toThrow()
+    expect((await $fetch<{ ambientExecutionId: string | null }>('/api/context')).ambientExecutionId).toBeNull()
   })
 
   it('fetches through the Nuxt-native HTTP composable during SSR', async () => {

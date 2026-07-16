@@ -10,6 +10,8 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 |---|---|
 | `@nuxt-laravelize/cache` | Portable cache contract, TTL operations, atomic locks, counters, memoization, and in-memory driver |
 | `@nuxt-laravelize/core` | Container, tokens, providers, lifecycle, and logging |
+| `@nuxt-laravelize/execution-context` | Immutable request/work identity, trusted correlation, and contextual logging |
+| `@nuxt-laravelize/execution-context-queue` | Transparent execution context propagation through queues |
 | `@nuxt-laravelize/encryption` | AES-256-GCM application encryption, purpose binding, and key rotation |
 | `@nuxt-laravelize/events` | Synchronous events and listeners |
 | `@nuxt-laravelize/filesystem` | Portable named disks, in-memory storage, and a root-confined local Node adapter |
@@ -97,6 +99,8 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 |---|---|---|
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
+| `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |
+| `@nuxt-laravelize/execution-context-queue` | `/runtime` | - |
 | `@nuxt-laravelize/encryption` | `/runtime` | - |
 | `@nuxt-laravelize/events` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/filesystem` | `/runtime`, `/node` | `/testing` |

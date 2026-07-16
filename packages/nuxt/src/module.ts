@@ -27,6 +27,8 @@ export default defineNuxtModule({
   moduleDependencies: {
     '@nuxt-laravelize/cache': {},
     '@nuxt-laravelize/core': {},
+    '@nuxt-laravelize/execution-context': {},
+    '@nuxt-laravelize/execution-context-queue': {},
     '@nuxt-laravelize/database': {},
     '@nuxt-laravelize/events': {},
     '@nuxt-laravelize/encryption': {},

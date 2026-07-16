@@ -115,6 +115,17 @@ describe('Container', () => {
     expect(firstScope.make(scopedToken)).not.toBe(secondScope.make(scopedToken))
   })
 
+  it('lets a scoped factory resolver discover scope-only overrides', () => {
+    const container = createContainer()
+    const requestToken = createToken<string>('request-only')
+    const consumerToken = createToken<boolean>('scope-aware-consumer')
+    container.scoped(consumerToken, resolver => resolver.has(requestToken))
+    const scope = container.createScope()
+    scope.override(requestToken, 'request')
+
+    expect(scope.make(consumerToken)).toBe(true)
+  })
+
   it('rejects registrations after the container is sealed', () => {
     const container = createContainer()
     const token = createToken<string>('late')
@@ -122,5 +133,21 @@ describe('Container', () => {
     container.seal()
 
     expect(() => container.bind(token, () => 'too late')).toThrow(KernelAlreadyBootedError)
+  })
+
+  it('allows a sealed child scope to override a binding without affecting parent or siblings', () => {
+    const container = createContainer()
+    const token = createToken<string>('request-value')
+    container.instance(token, 'parent')
+    container.seal()
+    const first = container.createScope()
+    const second = container.createScope()
+
+    first.override(token, 'first')
+
+    expect(first.make(token)).toBe('first')
+    expect(second.make(token)).toBe('parent')
+    expect(container.make(token)).toBe('parent')
+    expect(() => container.override(token, 'root')).toThrow(KernelAlreadyBootedError)
   })
 })

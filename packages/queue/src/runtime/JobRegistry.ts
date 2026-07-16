@@ -14,7 +14,7 @@ export class InMemoryJobRegistry {
   }
 
   rehydrate(serialized: SerializedJob): Job {
-    if (serialized.version !== 1) throw new Error(`Unsupported queue payload version: ${String(serialized.version)}`)
+    if (serialized.version !== 1 && serialized.version !== 2) throw new Error('Unsupported queue payload version')
     const Constructor = this.#constructors.get(serialized.name)
     if (!Constructor) throw new JobNotRegisteredError(serialized.name)
     return new Constructor(serialized.payload)

@@ -12,6 +12,13 @@ class TestJob extends Job<{ value: number }> {
 
   async handle(_resolver: Resolver): Promise<void> { TestJob.runs.push(this.payload.value) }
 }
+class FailedJob extends Job {
+  readonly payload = {}
+  static didFail = false
+  constructor(_payload: Record<string, unknown>) { super() }
+  handle() {}
+  override failed() { FailedJob.didFail = true }
+}
 
 describe('InMemoryQueue', () => {
   it('executes registered jobs in a disposable job scope', async () => {
@@ -40,5 +47,21 @@ describe('InMemoryQueue', () => {
     expect(await queue.size()).toBe(0)
     expect(TestJob.runs).not.toContain(99)
     vi.useRealTimers()
+  })
+
+  it('creates, contributes, and disposes a scope for terminal failed hooks', async () => {
+    const container = createContainer()
+    const scope = container.createScope()
+    const dispose = vi.spyOn(scope, 'dispose')
+    vi.spyOn(container, 'createScope').mockReturnValue(scope)
+    const registry = new InMemoryJobRegistry()
+    registry.register(FailedJob.name, FailedJob)
+    const runner = new JobRunner(container, registry)
+    const contribute = vi.fn()
+    runner.contributeScope(contribute)
+    await runner.failed(new FailedJob({}).serialize(), new Error('terminal'))
+    expect(FailedJob.didFail).toBe(true)
+    expect(contribute).toHaveBeenCalledOnce()
+    expect(dispose).toHaveBeenCalledOnce()
   })
 })

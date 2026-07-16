@@ -1,5 +1,5 @@
 import { Queue as BullQueue } from 'bullmq'
-import type { Job, JobHandle, PushOptions, Queue, JobRunner } from '@nuxt-laravelize/queue/runtime'
+import type { Job, JobHandle, PushOptions, Queue, JobRunner, JobSerializer } from '@nuxt-laravelize/queue/runtime'
 import type { BullMQConnection } from './BullMQConnection'
 import { FailureReporter } from './FailureReporter'
 
@@ -8,13 +8,14 @@ export class BullMQQueue implements Queue {
   constructor(
     private readonly connection: BullMQConnection,
     private readonly runner: JobRunner,
+    private readonly serializer: JobSerializer,
     private readonly failures: FailureReporter = new FailureReporter(),
   ) {}
 
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {
     const config = job.constructor as typeof Job
     const queueName = options.queue ?? config.queue
-    const queued = await this.#queue(queueName).add(job.constructor.name, job.serialize(), {
+    const queued = await this.#queue(queueName).add(job.constructor.name, this.serializer.serialize(job), {
       attempts: Math.max(options.tries ?? config.tries, 1),
       delay: Math.max(options.delay ?? config.delay, 0),
       backoff: { type: 'fixed', delay: readBackoff(options.backoff ?? config.backoff) },
@@ -23,7 +24,7 @@ export class BullMQQueue implements Queue {
   }
 
   later(delay: number, job: Job, options: PushOptions = {}): Promise<JobHandle> { return this.push(job, { ...options, delay }) }
-  sync(job: Job): Promise<void> { return this.runner.run(job.serialize()) }
+  sync(job: Job): Promise<void> { return this.runner.run(this.serializer.serialize(job)) }
   onFailed(callback: Parameters<FailureReporter['listen']>[0]): void { this.failures.listen(callback) }
   async size(queue?: string): Promise<number> {
     if (queue) return this.#queue(queue).count()

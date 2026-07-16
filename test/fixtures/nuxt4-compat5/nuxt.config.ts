@@ -14,5 +14,6 @@ export default defineNuxtConfig({
     autoDetectLanguage: false,
     redirects: false,
   },
+  laravelizeExecutionContext: { trustIncomingCorrelationHeader: true },
   laravelizeHttp: { baseURL: '/api' },
 })

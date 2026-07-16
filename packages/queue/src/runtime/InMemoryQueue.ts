@@ -1,4 +1,4 @@
-import type { Job, SerializedJob } from './Job'
+import { JobSerializer, type Job, type SerializedJob } from './Job'
 import type { JobRunner } from './JobRunner'
 import type { FailedJobCallback, JobHandle, PushOptions, Queue } from './Queue'
 
@@ -23,13 +23,13 @@ export class InMemoryQueue implements Queue {
   readonly #failedCallbacks: FailedJobCallback[] = []
   #nextId = 1
 
-  constructor(private readonly runner: JobRunner) {}
+  constructor(private readonly runner: JobRunner, private readonly serializer: JobSerializer = new JobSerializer()) {}
 
   async push(job: Job, options?: PushOptions): Promise<JobHandle> {
     const resolved = resolveOptions(job, options)
     const entry: PendingJob = {
       original: job,
-      serialized: job.serialize(),
+      serialized: this.serializer.serialize(job),
       options: resolved,
       handle: { id: `memory-${this.#nextId++}`, queue: resolved.queue },
       attempt: 0,
@@ -42,7 +42,7 @@ export class InMemoryQueue implements Queue {
     return this.push(job, { ...options, delay: delayMs })
   }
 
-  sync(job: Job): Promise<void> { return this.runner.run(job.serialize()) }
+  sync(job: Job): Promise<void> { return this.runner.run(this.serializer.serialize(job)) }
 
   async size(queueName?: string): Promise<number> {
     if (queueName) return this.#pending.get(queueName)?.length ?? 0

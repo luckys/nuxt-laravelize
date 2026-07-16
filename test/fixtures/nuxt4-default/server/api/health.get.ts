@@ -5,6 +5,7 @@ export default defineEventHandler((event) => {
     cacheLock: Boolean(useCacheLock(event, 'health', 60)),
     dispatcher: Boolean(useDispatcher(event)),
     encrypter: Boolean(useEncrypter(event)),
+    executionContext: Boolean(useExecutionContext(event)),
     features: Boolean(useFeatures(event)),
     filesystem: Boolean(useFilesystem(event)),
     hasher: Boolean(useHasher(event)),

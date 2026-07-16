@@ -27,6 +27,7 @@
   "dependencies": {
     "@nuxt-laravelize/cache": "workspace:^",
     "@nuxt-laravelize/core": "workspace:^",
+    "@nuxt-laravelize/execution-context": "workspace:^",
     "@nuxt-laravelize/encryption": "workspace:^",
     "@nuxt-laravelize/events": "workspace:^",
     "@nuxt-laravelize/filesystem": "workspace:^",
