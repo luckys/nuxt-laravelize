@@ -11,6 +11,8 @@
       "@nuxt-laravelize/events-queue",
       "@nuxt-laravelize/encryption",
       "@nuxt-laravelize/filesystem",
+      "@nuxt-laravelize/filesystem-aws",
+      "@nuxt-laravelize/filesystem-cloudflare",
       "@nuxt-laravelize/http",
       "@nuxt-laravelize/hashing",
       "@nuxt-laravelize/mail",

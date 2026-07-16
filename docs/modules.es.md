@@ -237,6 +237,34 @@ manager.register('reports', new LocalFilesystem('/srv/app/storage/reports'))
 
 `LocalFilesystem` normaliza separadores, rechaza bytes null, traversal `..` y enlaces simbolicos, y confina cada operacion al root configurado. No lo uses como almacenamiento compartido entre instancias serverless; registra un adapter de object storage.
 
+Los adapters cloud son paquetes opcionales y el preset completo no los instala:
+
+```ts
+import { CloudflareR2Filesystem } from '@nuxt-laravelize/filesystem-cloudflare'
+
+manager.register('uploads', new CloudflareR2Filesystem(env.UPLOADS, {
+  prefix: 'production/uploads',
+  maxListObjects: 20_000,
+}))
+```
+
+El adapter Cloudflare es estructural y nativo del binding: no importa tipos de Workers ni el AWS SDK. El binding debe proporcionar `get`, `head`, `put`, `delete` y `list` paginado. Para AWS S3, o Cloudflare R2 mediante su API compatible con S3 fuera de Workers, usa el paquete AWS aislado:
+
+```ts
+import { createAwsS3Filesystem } from '@nuxt-laravelize/filesystem-aws'
+
+manager.register('archive', createAwsS3Filesystem({
+  bucket: 'app-archive',
+  prefix: 'production',
+  region: 'eu-west-1',
+  credentials: { accessKeyId, secretAccessKey },
+}))
+```
+
+Para R2 usa el endpoint `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, region `auto` y `forcePathStyle: true`. Ambos adapters exigen paths y prefijos relativos ya normalizados: rechazan paths absolutos, backslashes, separadores repetidos, segmentos punto, traversal y bytes null. El listado sigue la paginacion del proveedor, verifica los limites del prefijo y falla en vez de devolver datos parciales si supera el limite configurable o el token no avanza. Guarda credenciales en configuracion privada del servidor; los factories nunca leen variables de entorno ni muestran credenciales.
+
+Los moves cloud hacen copy y despues delete; no son atomicos. El source solo se elimina tras escribir/copiar correctamente el destino. Si el delete posterior falla pueden quedar ambos objetos; reintenta o reconcilia ese estado cuando el workflow exija una sola copia. Un move al mismo path verifica que exista y no muta nada.
+
 ## Core
 
 `@nuxt-laravelize/core` proporciona el contenedor de dependencias, tokens tipados, service providers, ciclo de vida y logging. Los modulos de features lo instalan automaticamente.

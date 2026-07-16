@@ -13,6 +13,8 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/encryption` | AES-256-GCM application encryption, purpose binding, and key rotation |
 | `@nuxt-laravelize/events` | Synchronous events and listeners |
 | `@nuxt-laravelize/filesystem` | Portable named disks, in-memory storage, and a root-confined local Node adapter |
+| `@nuxt-laravelize/filesystem-cloudflare` | Optional Cloudflare R2 binding-native filesystem adapter without the AWS SDK |
+| `@nuxt-laravelize/filesystem-aws` | Optional AWS SDK S3 filesystem adapter, also usable with R2's S3 API |
 | `@nuxt-laravelize/queue` | Portable queue contracts, jobs, scoped execution, and in-memory driver |
 | `@nuxt-laravelize/queue-bullmq` | Node-only BullMQ driver and persistent worker |
 | `@nuxt-laravelize/rate-limiter` | Cache-backed fixed-window rate limiting and Nitro middleware |
@@ -51,7 +53,7 @@ export default defineNuxtConfig({
 })
 ```
 
-The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. The preset does not install BullMQ, Scout database adapters, or the scheduler.
+The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. The preset does not install BullMQ, cloud filesystem adapters, Scout database adapters, or the scheduler.
 
 ```vue
 <template>
@@ -82,6 +84,8 @@ Feature modules install and activate `@nuxt-laravelize/core` transitively. Add a
 pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq
 pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
 pnpm add @nuxt-laravelize/scout @nuxt-laravelize/scout-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
+pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
 pnpm add -D @nuxt-laravelize/testing
 ```
 
@@ -96,6 +100,8 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/encryption` | `/runtime` | - |
 | `@nuxt-laravelize/events` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/filesystem` | `/runtime`, `/node` | `/testing` |
+| `@nuxt-laravelize/filesystem-cloudflare` | Package root | - |
+| `@nuxt-laravelize/filesystem-aws` | Package root | - |
 | `@nuxt-laravelize/queue` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/queue-bullmq` | `/runtime` | - |
 | `@nuxt-laravelize/rate-limiter` | `/runtime` | - |

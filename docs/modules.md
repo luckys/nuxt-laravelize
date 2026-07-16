@@ -237,6 +237,34 @@ manager.register('reports', new LocalFilesystem('/srv/app/storage/reports'))
 
 `LocalFilesystem` normalizes separators, rejects null bytes, `..` traversal and symbolic links, and confines every operation to its configured root. Do not use it as shared storage across serverless instances; register an object-storage adapter instead.
 
+Cloud storage adapters are optional packages and are not installed by the complete preset:
+
+```ts
+import { CloudflareR2Filesystem } from '@nuxt-laravelize/filesystem-cloudflare'
+
+manager.register('uploads', new CloudflareR2Filesystem(env.UPLOADS, {
+  prefix: 'production/uploads',
+  maxListObjects: 20_000,
+}))
+```
+
+The Cloudflare adapter is structural and binding-native: it does not import Workers types or the AWS SDK. The binding must provide `get`, `head`, `put`, `delete`, and paginated `list`. For AWS S3, or Cloudflare R2 through its S3-compatible API outside Workers, use the isolated AWS package:
+
+```ts
+import { createAwsS3Filesystem } from '@nuxt-laravelize/filesystem-aws'
+
+manager.register('archive', createAwsS3Filesystem({
+  bucket: 'app-archive',
+  prefix: 'production',
+  region: 'eu-west-1',
+  credentials: { accessKeyId, secretAccessKey },
+}))
+```
+
+For R2 use endpoint `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, region `auto`, and `forcePathStyle: true`. Both adapters require already-normalized relative paths and prefixes: absolute paths, backslashes, repeated separators, dot segments, traversal, and null bytes are rejected. Listing follows provider pagination, verifies prefix boundaries, and fails instead of returning partial data if the configurable object cap is exceeded or a continuation token does not progress. Keep credentials in private server configuration; factories never read environment variables or emit credentials.
+
+Cloud object moves are copy-then-delete, not atomic. The source is deleted only after a successful destination write/copy. A later delete failure can leave both objects; retry or reconcile that state in application workflows that require exactly one copy. Same-path moves verify existence and perform no mutation.
+
 ## Core
 
 `@nuxt-laravelize/core` provides the dependency container, typed tokens, service providers, application lifecycle and logging. Feature modules install it automatically.

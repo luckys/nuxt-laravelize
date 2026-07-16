@@ -11,6 +11,8 @@ const packageNames = [
   'events',
   'events-queue',
   'filesystem',
+  'filesystem-aws',
+  'filesystem-cloudflare',
   'http',
   'hashing',
   'mail',
@@ -63,6 +65,8 @@ runFixture('features', {
   '@nuxt-laravelize/filesystem/runtime',
   '@nuxt-laravelize/filesystem/node',
   '@nuxt-laravelize/filesystem/testing',
+  '@nuxt-laravelize/filesystem-aws',
+  '@nuxt-laravelize/filesystem-cloudflare',
   '@nuxt-laravelize/mail/runtime',
   '@nuxt-laravelize/mail/node',
   '@nuxt-laravelize/mail/testing',
@@ -89,6 +93,8 @@ runFixture('features', {
     '@nuxt-laravelize/filesystem/runtime': ['FilesystemManager', 'InMemoryFilesystem', 'filesystemManagerToken'],
     '@nuxt-laravelize/filesystem/node': ['LocalFilesystem'],
     '@nuxt-laravelize/filesystem/testing': ['FilesystemFake'],
+    '@nuxt-laravelize/filesystem-aws': ['AwsS3Filesystem', 'createAwsS3Filesystem'],
+    '@nuxt-laravelize/filesystem-cloudflare': ['CloudflareR2Filesystem'],
     '@nuxt-laravelize/queue/runtime': ['queueToken'],
     '@nuxt-laravelize/rate-limiter/runtime': ['RateLimiter', 'rateLimiterToken'],
     '@nuxt-laravelize/mail/runtime': ['mailerToken'],
@@ -110,7 +116,7 @@ runFixture('preset-default', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/scheduler', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
 })
@@ -120,7 +126,7 @@ runFixture('preset-compat5', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/scheduler', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
   compatibilityVersion: 5,

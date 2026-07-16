@@ -1,5 +1,6 @@
 export type { FileContents, Filesystem } from './Filesystem'
 export { FileNotFoundError } from './Filesystem'
+export { normalizeStoragePath, toBytes } from './paths'
 export { FilesystemDiskNotFoundError, FilesystemManager } from './FilesystemManager'
 export { InMemoryFilesystem } from './InMemoryFilesystem'
 export { filesystemManagerToken } from './tokens'
