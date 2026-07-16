@@ -10,6 +10,8 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 |---|---|
 | `@nuxt-laravelize/audit` | Secure append-only audit recording enriched by execution context |
 | `@nuxt-laravelize/audit-drizzle` | Optional PostgreSQL, SQLite, and Turso/libSQL audit stores |
+| `@nuxt-laravelize/broadcasting` | Server-side public, private, and presence channel broadcasting |
+| `@nuxt-laravelize/broadcasting-pusher` | Optional server-side Pusher Channels adapter |
 | `@nuxt-laravelize/cache` | Portable cache contract, TTL operations, atomic locks, counters, memoization, and in-memory driver |
 | `@nuxt-laravelize/core` | Container, tokens, providers, lifecycle, and logging |
 | `@nuxt-laravelize/execution-context` | Immutable request/work identity, trusted correlation, and contextual logging |

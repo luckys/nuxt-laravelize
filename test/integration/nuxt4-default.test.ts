@@ -22,6 +22,9 @@ describe('Nuxt 4 default profile', async () => {
       urlSigner: true,
       validator: true,
       rateLimiter: true,
+      broadcasting: true,
+      broadcastChannels: true,
+      eventBridge: true,
       route: { method: 'GET', url: '/api/users/42?preview=1&tags=b&tags=a' },
     })
   })

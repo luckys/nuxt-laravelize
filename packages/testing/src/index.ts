@@ -24,6 +24,7 @@ import { Validator, validatorToken } from '@nuxt-laravelize/validation/runtime'
 
 export { FakeLogger } from '@nuxt-laravelize/core/testing'
 export { AuditFake } from '@nuxt-laravelize/audit/testing'
+export { BroadcastFake } from '@nuxt-laravelize/broadcasting/testing'
 export { ExecutionContextBuilder, fakeExecutionContext } from '@nuxt-laravelize/execution-context/testing'
 export { CacheFake } from '@nuxt-laravelize/cache/testing'
 export { EventFake } from '@nuxt-laravelize/events/testing'

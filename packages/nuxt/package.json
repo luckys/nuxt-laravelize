@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@nuxt-laravelize/audit": "workspace:^",
+    "@nuxt-laravelize/broadcasting": "workspace:^",
     "@nuxt-laravelize/cache": "workspace:^",
     "@nuxt-laravelize/core": "workspace:^",
     "@nuxt-laravelize/execution-context": "workspace:^",

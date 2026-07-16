@@ -4,8 +4,11 @@ import Pennant from '../../../packages/pennant/src/module'
 import Routes from '../../../packages/routes/src/module'
 
 export default defineNuxtConfig({
-  alias: { '@nuxt-laravelize/routes/runtime': fileURLToPath(new URL('../../../packages/routes/src/public-runtime.ts', import.meta.url)) },
   modules: [Pennant, Routes, Laravelize],
+  alias: {
+    '@nuxt-laravelize/routes/runtime': fileURLToPath(new URL('../../../packages/routes/src/public-runtime.ts', import.meta.url)),
+    '@nuxt-laravelize/broadcasting/runtime': fileURLToPath(new URL('../../../packages/broadcasting/src/public-runtime.ts', import.meta.url)),
+  },
   compatibilityDate: '2026-07-01',
   i18n: {
     locales: [{ code: 'en', iso: 'en-US', dir: 'ltr' }],
@@ -16,6 +19,7 @@ export default defineNuxtConfig({
     autoDetectLanguage: false,
     redirects: false,
   },
+  laravelizeBroadcasting: { driver: 'memory', memoryCapacity: 10 },
   laravelizeEncryption: {
     key: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
   },

@@ -409,6 +409,25 @@ await events.dispatch(new UserRegistered('user_1'))
 events.assertDispatched(UserRegistered, event => event.userId === 'user_1')
 ```
 
+## Broadcasting
+
+`@nuxt-laravelize/broadcasting` is included in the preset and bridges dispatched `ShouldBroadcast` events to public, private, or presence channels. Every event must implement `broadcastWith()` explicitly; event properties are never reflected, preventing accidental payload leakage. Register private and presence authorization rules with the request-scoped `useBroadcastChannels(event)` registry. The preset fails closed by default; the bounded memory driver must be enabled explicitly for development or tests.
+
+```ts
+import { PrivateChannel } from '@nuxt-laravelize/broadcasting/runtime'
+
+class OrderUpdated {
+  constructor(readonly orderId: string, readonly internalNote: string) {}
+  broadcastOn() { return new PrivateChannel(`orders.${this.orderId}`) }
+  broadcastAs() { return 'order.updated' }
+  broadcastWith() { return { orderId: this.orderId } }
+}
+
+useBroadcastChannels(event).channel('orders.{orderId}', (user, { orderId }) => userCanView(user, orderId))
+```
+
+`@nuxt-laravelize/broadcasting-pusher` is an opt-in **server adapter**. Inject `PusherBroadcaster` through `broadcasterToken` and keep credentials in private runtime config. It does not provide or install a browser WebSocket client or Laravel Echo; choose and configure client subscriptions separately.
+
 ## Audit
 
 `@nuxt-laravelize/audit` is included in the preset and exposes `useAudit(event)`. Recording is explicit:
