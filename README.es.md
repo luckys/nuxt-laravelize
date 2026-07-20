@@ -26,6 +26,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/rate-limiter` | Rate limiting de ventana fija sobre cache y middleware Nitro |
 | `@nuxt-laravelize/reliability` | Outbox at-least-once e inbox idempotente independientes del framework |
 | `@nuxt-laravelize/reliability-drizzle` | Stores durables opcionales para PostgreSQL, SQLite y Turso |
+| `@nuxt-laravelize/reliability-queue` | Bridge Nuxt de mensajes Inbox/Outbox durables a jobs registrados |
 | `@nuxt-laravelize/routes` | Helpers de URL tipados generados desde declaraciones explicitas |
 | `@nuxt-laravelize/events-queue` | Integracion de listeners encolados entre eventos y colas |
 | `@nuxt-laravelize/mail` | Mailables, mail manager y transports |
@@ -63,7 +64,7 @@ export default defineNuxtConfig({
 })
 ```
 
-El preset activa cache, core, database, encryption, events, feature flags, filesystem, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout con su driver en memoria, validation, la cola portable y `nuxt-i18n-micro`. Las traducciones usan su API nativa de Nuxt `$t()` y diccionarios JSON en lugar de `__()` al estilo Laravel. Reliability y webhooks son opt-ins independientes del framework, no modulos Nuxt; el preset tampoco instala BullMQ, adapters filesystem cloud, adapters de base de datos para Scout ni activa el scheduler.
+El preset activa cache, core, database, encryption, events, feature flags, filesystem, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout con su driver en memoria, validation, la cola portable, el bridge reliability-queue y `nuxt-i18n-micro`. No liga ningun store Inbox u Outbox volatil en produccion: la aplicacion debe proporcionar stores durables. Las traducciones usan su API nativa de Nuxt `$t()` y diccionarios JSON en lugar de `__()` al estilo Laravel. Webhooks sigue siendo opt-in; el preset tampoco instala BullMQ, `reliability-drizzle`, adapters filesystem cloud, adapters de base de datos para Scout ni activa el scheduler.
 
 Las rutas tipadas generadas desde declaraciones explicitas tambien estan incluidas en el preset.
 
@@ -126,6 +127,7 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/rate-limiter` | `/runtime` | - |
 | `@nuxt-laravelize/reliability` | Raiz del paquete | `/testing` |
 | `@nuxt-laravelize/reliability-drizzle` | Raiz del paquete, `/postgres`, `/sqlite`, `/turso` | - |
+| `@nuxt-laravelize/reliability-queue` | Raiz del paquete, `/runtime` | - |
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |
 | `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
 | `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |

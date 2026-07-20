@@ -38,4 +38,11 @@ describe('BullMQQueue', () => {
     await new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, serializer).push(new ProbeJob())
     expect(add.mock.calls[0]?.[1]).toMatchObject({ metadata: { propagated: 'request-context' } })
   })
+
+  it('rejects job ids that BullMQ cannot persist', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+    await expect(queue.push(new ProbeJob(), { id: 'outbox:message' })).rejects.toThrow(/must not contain a colon/)
+    expect(add).not.toHaveBeenCalled()
+  })
 })

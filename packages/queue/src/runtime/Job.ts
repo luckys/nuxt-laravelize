@@ -14,6 +14,7 @@ export interface SerializedJobV2 {
 export type SerializedJob = SerializedJobV1 | SerializedJobV2
 
 export abstract class Job<TPayload extends Record<string, unknown> = Record<string, unknown>> {
+  static readonly jobName?: string
   static readonly tries: number = 1
   static readonly delay: number = 0
   static readonly queue: string = 'default'
@@ -24,7 +25,8 @@ export abstract class Job<TPayload extends Record<string, unknown> = Record<stri
   failed?(error: unknown): void | Promise<void>
 
   serialize(): SerializedJob {
-    return { version: 1, name: this.constructor.name, payload: this.payload }
+    const constructor = this.constructor as typeof Job
+    return { version: 1, name: constructor.jobName ?? constructor.name, payload: this.payload }
   }
 }
 
@@ -46,6 +48,8 @@ export class JobSerializer {
 
   serialize(job: Job): SerializedJob {
     const metadata = Object.assign({}, ...this.contributors.contributions(job, this.resolver)) as Record<string, unknown>
-    return Object.keys(metadata).length ? { version: 2, name: job.constructor.name, payload: job.payload, metadata } : job.serialize()
+    const constructor = job.constructor as typeof Job
+    const name = constructor.jobName ?? constructor.name
+    return Object.keys(metadata).length ? { version: 2, name, payload: job.payload, metadata } : job.serialize()
   }
 }

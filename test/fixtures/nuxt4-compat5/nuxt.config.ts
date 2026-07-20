@@ -2,12 +2,14 @@ import { fileURLToPath } from 'node:url'
 import Laravelize from '../../../packages/nuxt/src/module'
 import Pennant from '../../../packages/pennant/src/module'
 import Routes from '../../../packages/routes/src/module'
+import ReliabilityQueue from '../../../packages/reliability-queue/src/module'
 
 export default defineNuxtConfig({
-  modules: [Pennant, Routes, Laravelize],
+  modules: [Pennant, Routes, ReliabilityQueue, Laravelize],
   alias: {
     '@nuxt-laravelize/routes/runtime': fileURLToPath(new URL('../../../packages/routes/src/public-runtime.ts', import.meta.url)),
     '@nuxt-laravelize/broadcasting/runtime': fileURLToPath(new URL('../../../packages/broadcasting/src/public-runtime.ts', import.meta.url)),
+    '@nuxt-laravelize/reliability-queue/runtime': fileURLToPath(new URL('../../../packages/reliability-queue/src/public-runtime.ts', import.meta.url)),
   },
   future: { compatibilityVersion: 5 },
   compatibilityDate: '2026-07-01',

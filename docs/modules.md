@@ -6,7 +6,7 @@ This guide covers every public Nuxt Laravelize package. Imports from paths not l
 
 ## Nuxt preset
 
-Install `@nuxt-laravelize/nuxt` when you want the stable modules and `nuxt-i18n-micro` configured together. BullMQ and the experimental scheduler are intentionally excluded.
+Install `@nuxt-laravelize/nuxt` when you want the stable modules, the reliability queue bridge, and `nuxt-i18n-micro` configured together. BullMQ, durable reliability adapters, and the experimental scheduler are intentionally excluded.
 
 ```bash
 pnpm add @nuxt-laravelize/nuxt
@@ -449,13 +449,15 @@ Audit is neither logging nor domain-event serialization. Do not pass request/res
 
 ## Reliability and webhooks
 
-`@nuxt-laravelize/reliability` and `@nuxt-laravelize/webhooks` are framework-neutral opt-ins, not Nuxt modules and not part of the preset. Reliability provides versioned JSON-safe envelopes, leased outbox processing, and inbox deduplication. Delivery is **at least once**: a worker may repeat a message after a timeout or crash, so every handler and webhook receiver must be idempotent.
+`@nuxt-laravelize/reliability` provides versioned JSON-safe envelopes, leased outbox processing, and inbox deduplication. The preset includes `@nuxt-laravelize/reliability-queue` so reliable handlers and `ReliableMessageJob` are registered, but deliberately binds no volatile production store. Every production application must bind durable, shared Inbox and Outbox stores; `reliability-drizzle` is optional. Webhooks remain a framework-neutral opt-in. Delivery is **at least once**: retries, lease expiry, worker crashes, and acknowledgement ambiguity (the effect committed but its acknowledgement was lost) can all repeat a message, so every handler and webhook receiver must be idempotent.
 
 ```bash
 pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
 # Optional durable Drizzle adapter:
 pnpm add @nuxt-laravelize/reliability-drizzle drizzle-orm
 ```
+
+The envelope execution-context snapshot is correlation provenance only. It **MUST NOT** authorize a tenant, actor, role, or resource. Re-authenticate and re-authorize against trusted current application state inside the consumer.
 
 ```ts
 import { createEnvelope } from '@nuxt-laravelize/reliability'
@@ -473,7 +475,15 @@ await db.transaction(async (tx) => {
 })
 ```
 
-The business write and `appendWith(tx, envelope)` **must use the same database transaction and connection**. Appending before or after that transaction reintroduces the dual-write gap and can lose an event or publish one for rolled-back state. Apply the supplied PostgreSQL or SQLite migration and run `OutboxProcessor.runOnce()` from a supervised worker. The in-memory `/testing` store is bounded, volatile, and only for tests/development; production requires a durable shared store, stable worker owner IDs, bounded leases/retries, dead-message monitoring, and retention/reconciliation operations. Drizzle remains optional and is installed only when this adapter is selected.
+The business write and `appendWith(tx, envelope)` **must use the same database transaction and connection**. Appending before or after that transaction reintroduces the dual-write gap and can lose an event or publish one for rolled-back state. Apply the supplied PostgreSQL or SQLite migration. The in-memory `/testing` store is bounded, volatile, and only for tests/development; production requires a durable shared store, stable worker owner IDs, bounded leases/retries, heartbeat/lease renewal for work that may outlive its lease, dead-message monitoring, and retention/reconciliation operations. Drizzle remains optional and is installed only when this adapter is selected.
+
+Run outbox delivery as a supervised process. Its config module exports an `OutboxWorker`; SIGINT/SIGTERM stop intake, drain in-flight work, then close resources. Use `--once` for one operational pass (including scheduler invocation), never `run()` from a scheduler because overlapping long-lived workers break ownership assumptions.
+
+```bash
+pnpm exec outbox-work --config ./outbox-worker.config.js
+pnpm exec outbox-work --once --config ./outbox-worker.config.js
+pnpm exec webhook-work --config ./webhook-worker.config.js
+```
 
 `@nuxt-laravelize/webhooks` supplies `OutgoingWebhookProcessor`, raw-body HMAC verification, and `WebhookInboxReceiver`. Its transport is **Node-only** because it uses Node DNS, crypto, buffers, and server-side fetch. Resolve signing secrets at delivery time; only `secretId` belongs in an outbox payload. Production constructors require durable outbox/inbox stores.
 
@@ -561,7 +571,7 @@ queue.assertPushed(SendReport)
 
 ## BullMQ adapter
 
-`@nuxt-laravelize/queue-bullmq` is a Node-only persistent driver. Install it with the portable queue and provide an `ioredis` client.
+`@nuxt-laravelize/queue-bullmq` is an optional Node-only persistent driver; the preset and reliability queue bridge do not install it. Install it with the portable queue and provide an `ioredis` client.
 
 ```bash
 pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq bullmq ioredis
@@ -1080,6 +1090,7 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 | `queue-bullmq` | `/runtime` | - |
 | `reliability` | package root | `/testing` |
 | `reliability-drizzle` | package root, `/postgres`, `/sqlite`, `/turso` | - |
+| `reliability-queue` | package root, `/runtime` | - |
 | `routes` | package root, `/runtime`, `/kit` | - |
 | `events-queue` | `/runtime` | - |
 | `mail` | `/runtime`, `/node` | `/testing` |
@@ -1094,4 +1105,4 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 
 `@nuxt-laravelize/execution-context` gives every Nitro request an immutable, validated, JSON-safe context. `useExecutionContext(event)` returns the request-scoped value. Incoming correlation IDs are accepted only when `trustIncomingCorrelationHeader` is explicitly enabled and valid; actor and tenant headers are never trusted. Attributes are limited to 16 string entries of 256 characters.
 
-Use `snapshot()` for transport, `derive()` for child work, authenticated `enrich()` for actor/tenant, and `withExecutionContext()` for sanitized logs. HTTP handlers pass their request context explicitly when dispatching: `runWithExecutionContext(useExecutionContext(event), () => queue.push(job))`. The queue bridge preserves correlation, creates a worker execution ID, and sets causation to the producer execution ID; the same registered `JobSerializer` must be passed to persistent queue adapters.
+Use `snapshot()` for transport, `derive()` for child work, authenticated `enrich()` for actor/tenant, and `withExecutionContext()` for sanitized logs. A transported snapshot is correlation provenance and **MUST NOT** be used to authorize its actor or tenant. HTTP handlers pass their request context explicitly when dispatching: `runWithExecutionContext(useExecutionContext(event), () => queue.push(job))`. The queue bridge preserves correlation, creates a worker execution ID, and sets causation to the producer execution ID; the same registered `JobSerializer` must be passed to persistent queue adapters.

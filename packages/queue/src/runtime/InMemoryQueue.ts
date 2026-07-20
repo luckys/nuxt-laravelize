@@ -3,6 +3,7 @@ import type { JobRunner } from './JobRunner'
 import type { FailedJobCallback, JobHandle, PushOptions, Queue } from './Queue'
 
 interface ResolvedOptions {
+  readonly id?: string
   readonly tries: number
   readonly delay: number
   readonly queue: string
@@ -31,7 +32,7 @@ export class InMemoryQueue implements Queue {
       original: job,
       serialized: this.serializer.serialize(job),
       options: resolved,
-      handle: { id: `memory-${this.#nextId++}`, queue: resolved.queue },
+      handle: { id: resolved.id ?? `memory-${this.#nextId++}`, queue: resolved.queue },
       attempt: 0,
     }
     this.#enqueue(entry, resolved.delay)
@@ -116,14 +117,24 @@ export class InMemoryQueue implements Queue {
 function resolveOptions(job: Job, options?: PushOptions): ResolvedOptions {
   const config = job.constructor as typeof Job
   return {
-    tries: Math.max(options?.tries ?? config.tries, 1),
-    delay: Math.max(options?.delay ?? config.delay, 0),
+    ...(options?.id ? { id: options.id } : {}),
+    tries: integer(options?.tries ?? config.tries, 'tries', 1, 1000),
+    delay: integer(options?.delay ?? config.delay, 'delay', 0, 86_400_000),
     queue: options?.queue ?? config.queue,
-    backoff: options?.backoff ?? config.backoff,
+    backoff: validateBackoff(options?.backoff ?? config.backoff),
   }
 }
 
 function resolveBackoff(backoff: number | readonly number[], attempt: number): number {
-  if (typeof backoff === 'number') return Math.max(backoff, 0)
-  return Math.max(backoff[Math.min(attempt - 1, backoff.length - 1)] ?? 0, 0)
+  if (typeof backoff === 'number') return integer(backoff, 'backoff', 0, 86_400_000)
+  return integer(backoff[Math.min(attempt - 1, backoff.length - 1)] ?? 0, 'backoff', 0, 86_400_000)
+}
+function integer(value: number, name: string, minimum: number, maximum: number): number {
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new TypeError(`${name} must be an integer between ${minimum} and ${maximum}`)
+  return value
+}
+function validateBackoff(backoff: number | readonly number[]): number | readonly number[] {
+  const values = typeof backoff === 'number' ? [backoff] : backoff
+  for (const value of values) integer(value, 'backoff', 0, 86_400_000)
+  return backoff
 }

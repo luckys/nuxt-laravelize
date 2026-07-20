@@ -26,6 +26,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/rate-limiter` | Cache-backed fixed-window rate limiting and Nitro middleware |
 | `@nuxt-laravelize/reliability` | Framework-neutral at-least-once outbox and idempotent inbox primitives |
 | `@nuxt-laravelize/reliability-drizzle` | Optional durable PostgreSQL, SQLite, and Turso reliability stores |
+| `@nuxt-laravelize/reliability-queue` | Nuxt bridge from durable outbox/inbox messages to registered queue jobs |
 | `@nuxt-laravelize/routes` | Generated typed URL helpers from explicit route declarations |
 | `@nuxt-laravelize/events-queue` | Queued-listener integration between events and queues |
 | `@nuxt-laravelize/mail` | Mailables, mail manager, and transports |
@@ -63,7 +64,7 @@ export default defineNuxtConfig({
 })
 ```
 
-The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, and `nuxt-i18n-micro`. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. Reliability and webhooks are framework-neutral opt-ins, not Nuxt modules; the preset also does not install BullMQ, cloud filesystem adapters, Scout database adapters, or the scheduler.
+The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, the reliability queue bridge, and `nuxt-i18n-micro`. It binds no volatile Inbox or Outbox store in production: the application must provide durable stores. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. Webhooks remain an opt-in; the preset also does not install BullMQ, `reliability-drizzle`, cloud filesystem adapters, Scout database adapters, or the scheduler.
 
 Generated typed routes from explicit declarations are also included in the preset.
 
@@ -126,6 +127,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/rate-limiter` | `/runtime` | - |
 | `@nuxt-laravelize/reliability` | Package root | `/testing` |
 | `@nuxt-laravelize/reliability-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso` | - |
+| `@nuxt-laravelize/reliability-queue` | Package root, `/runtime` | - |
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |
 | `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
 | `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |

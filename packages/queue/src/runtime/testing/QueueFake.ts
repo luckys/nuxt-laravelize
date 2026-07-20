@@ -7,7 +7,7 @@ export class QueueFake implements Queue {
   readonly pushed: PushedJob[] = []
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {
     this.pushed.push({ job, options })
-    return { id: `fake-${this.pushed.length}`, queue: options.queue ?? (job.constructor as typeof Job).queue }
+    return { id: options.id ?? `fake-${this.pushed.length}`, queue: options.queue ?? (job.constructor as typeof Job).queue }
   }
 
   later(delay: number, job: Job, options: PushOptions = {}): Promise<JobHandle> { return this.push(job, { ...options, delay }) }

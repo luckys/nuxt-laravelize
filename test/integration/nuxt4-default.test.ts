@@ -25,6 +25,8 @@ describe('Nuxt 4 default profile', async () => {
       broadcasting: true,
       broadcastChannels: true,
       eventBridge: true,
+      reliableHandlers: true,
+      reliableJobRegistered: true,
       route: { method: 'GET', url: '/api/users/42?preview=1&tags=b&tags=a' },
     })
   })

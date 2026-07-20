@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm'
-import { createEnvelope, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxStore, type StoredMessage } from '@nuxt-laravelize/reliability'
+import { createEnvelope, sanitizeErrorSummary, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxStore, type StoredMessage } from '@nuxt-laravelize/reliability'
 
 export interface DrizzleReliabilityDatabase {
   execute(query: SQL): Promise<unknown>
@@ -73,12 +73,16 @@ export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore
     await this.transition(namespace, id, token, now, sql`state = 'delivered', lease_owner = null, lease_token = null, lease_until = null`)
   }
 
+  async renew(namespace: MessageNamespace, id: string, token: string, now: string, leaseUntil: string) {
+    await this.transition(namespace, id, token, now, sql`lease_until = case when lease_until < ${leaseUntil} then ${leaseUntil} else lease_until end`)
+  }
+
   async retry(namespace: MessageNamespace, id: string, token: string, now: string, availableAt: string, error: string) {
-    await this.transition(namespace, id, token, now, sql`state = 'pending', available_at = ${availableAt}, last_error = ${error.slice(0, 512)}, lease_owner = null, lease_token = null, lease_until = null`)
+    await this.transition(namespace, id, token, now, sql`state = 'pending', available_at = ${availableAt}, last_error = ${sanitizeErrorSummary(error)}, lease_owner = null, lease_token = null, lease_until = null`)
   }
 
   async dead(namespace: MessageNamespace, id: string, token: string, now: string, error: string) {
-    await this.transition(namespace, id, token, now, sql`state = 'dead', last_error = ${error.slice(0, 512)}, lease_owner = null, lease_token = null, lease_until = null`)
+    await this.transition(namespace, id, token, now, sql`state = 'dead', last_error = ${sanitizeErrorSummary(error)}, lease_owner = null, lease_token = null, lease_until = null`)
   }
 
   private async transition(namespace: MessageNamespace, id: string, token: string, now: string, values: SQL) {

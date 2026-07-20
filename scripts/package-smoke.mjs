@@ -32,6 +32,7 @@ const packageNames = [
   'rate-limiter',
   'reliability',
   'reliability-drizzle',
+  'reliability-queue',
   'routes',
   'scheduler',
   'testing',
@@ -53,6 +54,10 @@ const dependencies = Object.fromEntries(packageNames.map((name) => {
 }))
 
 const featureDependencies = Object.fromEntries(Object.entries(dependencies).filter(([name]) => name !== '@nuxt-laravelize/scheduler'))
+
+verifyTarballBin('reliability', 'dist/bin/outbox-work.mjs')
+verifyTarballBin('webhooks', 'dist/bin/webhook-work.mjs')
+verifyTarballBin('queue-bullmq', 'dist/bin/queue-work.mjs')
 
 runFixture('features', {
   ...featureDependencies,
@@ -93,6 +98,8 @@ runFixture('features', {
   '@nuxt-laravelize/reliability-drizzle/postgres',
   '@nuxt-laravelize/reliability-drizzle/sqlite',
   '@nuxt-laravelize/reliability-drizzle/turso',
+  '@nuxt-laravelize/reliability-queue',
+  '@nuxt-laravelize/reliability-queue/runtime',
   '@nuxt-laravelize/routes',
   '@nuxt-laravelize/routes/runtime',
   '@nuxt-laravelize/routes/kit',
@@ -151,6 +158,7 @@ runFixture('features', {
     '@nuxt-laravelize/reliability-drizzle/postgres': ['DrizzlePostgresReliabilityStore'],
     '@nuxt-laravelize/reliability-drizzle/sqlite': ['DrizzleSQLiteReliabilityStore'],
     '@nuxt-laravelize/reliability-drizzle/turso': ['TursoReliabilityStore'],
+    '@nuxt-laravelize/reliability-queue/runtime': ['ReliableHandlerRegistry', 'ReliableMessageJob', 'createQueueOutboxDelivery'],
     '@nuxt-laravelize/routes': ['default'],
     '@nuxt-laravelize/routes/runtime': ['defineRoutes', 'route'],
     '@nuxt-laravelize/routes/kit': ['addRoutesDeclaration'],
@@ -168,24 +176,33 @@ runFixture('features', {
     '@nuxt-laravelize/webhooks': ['OutgoingWebhookProcessor', 'WebhookInboxReceiver', 'assertSafeWebhookUrl', 'signWebhook', 'verifyWebhook'],
     '@nuxt-laravelize/webhooks/testing': ['WebhookTransportFake'],
   },
+  workerBins: [
+    ['@nuxt-laravelize/reliability', 'dist/bin/outbox-work.mjs'],
+    ['@nuxt-laravelize/webhooks', 'dist/bin/webhook-work.mjs'],
+    ['@nuxt-laravelize/queue-bullmq', 'dist/bin/queue-work.mjs'],
+  ],
 })
 
 runFixture('preset-default', {
   '@nuxt-laravelize/nuxt': dependencies['@nuxt-laravelize/nuxt'],
+  '@nuxt-laravelize/queue': dependencies['@nuxt-laravelize/queue'],
+  '@nuxt-laravelize/reliability-queue': dependencies['@nuxt-laravelize/reliability-queue'],
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'drizzle-orm', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'bullmq', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
 })
 
 runFixture('preset-compat5', {
   '@nuxt-laravelize/nuxt': dependencies['@nuxt-laravelize/nuxt'],
+  '@nuxt-laravelize/queue': dependencies['@nuxt-laravelize/queue'],
+  '@nuxt-laravelize/reliability-queue': dependencies['@nuxt-laravelize/reliability-queue'],
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'drizzle-orm', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'bullmq', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
   compatibilityVersion: 5,
@@ -288,6 +305,9 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       }, null, 2))
       mkdirSync(join(fixture, 'server', 'api'), { recursive: true })
       writeFileSync(join(fixture, 'server', 'api', 'health.get.ts'), [
+        'import { jobRegistryToken } from \'@nuxt-laravelize/queue/runtime\'',
+        'import { ReliableMessageJob, reliableHandlerRegistryToken } from \'@nuxt-laravelize/reliability-queue/runtime\'',
+        '',
         'export default defineEventHandler(async (event) => ({',
         '  audit: Boolean(useAudit(event)),',
         '  container: Boolean(event.context.laravelizeContainer),',
@@ -307,6 +327,8 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  urlSigner: Boolean(useUrlSigner(event)),',
         '  validator: Boolean(useValidator(event)),',
         '  rateLimiter: Boolean(useRateLimiter(event)),',
+        '  reliableHandlers: typeof event.context.laravelizeContainer!.make(reliableHandlerRegistryToken).register === \'function\',',
+        '  reliableJobRegistered: event.context.laravelizeContainer!.make(jobRegistryToken).rehydrate({ version: 1, name: ReliableMessageJob.jobName, payload: { envelope: { version: 1, id: \'smoke\', type: \'health.checked\', occurredAt: new Date().toISOString(), payload: null } } }).constructor.jobName === ReliableMessageJob.jobName,',
         '  route: (await import(\'#laravelize/routes\')).default.users.show({ user: 42 }, { query: { preview: true } }),',
         '  signedUrl: await useUrlSigner(event).sign(new URL(\'/api/signed-target?scope=smoke\', useRuntimeConfig(event).laravelizeHttp.signingOrigin)),',
         '}))',
@@ -350,7 +372,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  }',
         '  if (!response?.ok) throw new Error(`Nuxt server did not become ready. ${diagnostics}`)',
         '  const health = await response.json()',
-        '  for (const service of [\'audit\', \'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'broadcasting\', \'broadcastChannels\', \'encrypter\', \'executionContext\', \'filesystem\', \'hasher\', \'queue\', \'mailer\', \'notifications\', \'scout\', \'urlSigner\', \'rateLimiter\', \'validator\']) {',
+        '  for (const service of [\'audit\', \'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'broadcasting\', \'broadcastChannels\', \'encrypter\', \'executionContext\', \'filesystem\', \'hasher\', \'queue\', \'mailer\', \'notifications\', \'scout\', \'urlSigner\', \'rateLimiter\', \'validator\', \'reliableHandlers\', \'reliableJobRegistered\']) {',
         '    if (health[service] !== true) throw new Error(`Missing runtime service: ${service}`)',
         '  }',
         '  if (!response.headers.get(\'x-correlation-id\')) throw new Error(\'Missing correlation response header\')',
@@ -382,6 +404,9 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       }
     }
     execFileSync(process.execPath, ['smoke.mjs'], { cwd: fixture, stdio: 'inherit' })
+    for (const [packageName, bin] of options.workerBins ?? []) {
+      execFileSync(process.execPath, [join(fixture, 'node_modules', ...packageName.split('/'), bin), '--help'], { cwd: fixture, stdio: 'inherit' })
+    }
     if (options.buildNuxt) {
       execFileSync('pnpm', ['exec', 'nuxt', 'typecheck'], { cwd: fixture, stdio: 'inherit' })
       execFileSync('pnpm', ['exec', 'nuxt', 'build'], { cwd: fixture, stdio: 'inherit' })
@@ -395,4 +420,14 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
 
 function installedVersion(packageName, directory = 'node_modules') {
   return JSON.parse(readFileSync(resolve(directory, packageName, 'package.json'), 'utf8')).version
+}
+
+function verifyTarballBin(packageName, binPath) {
+  const { version } = JSON.parse(readFileSync(resolve('packages', packageName, 'package.json'), 'utf8'))
+  const tarball = resolve(tarballDirectory, `nuxt-laravelize-${packageName}-${version}.tgz`)
+  const entry = `package/${binPath}`
+  const listing = execFileSync('tar', ['-tf', tarball], { encoding: 'utf8' }).split('\n')
+  if (!listing.includes(entry)) throw new Error(`${packageName} tarball is missing ${entry}`)
+  const contents = execFileSync('tar', ['-xOf', tarball, entry], { encoding: 'utf8' })
+  if (!contents.startsWith('#!/usr/bin/env node\n')) throw new Error(`${entry} is missing its Node shebang`)
 }

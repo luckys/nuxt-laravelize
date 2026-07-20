@@ -13,11 +13,15 @@ export class BullMQQueue implements Queue {
   ) {}
 
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {
+    if (options.id?.includes(':')) throw new TypeError('BullMQ job id must not contain a colon')
     const config = job.constructor as typeof Job
     const queueName = options.queue ?? config.queue
-    const queued = await this.#queue(queueName).add(job.constructor.name, this.serializer.serialize(job), {
-      attempts: Math.max(options.tries ?? config.tries, 1),
-      delay: Math.max(options.delay ?? config.delay, 0),
+    const attempts = integer(options.tries ?? config.tries, 'tries', 1, 1000)
+    const delay = integer(options.delay ?? config.delay, 'delay', 0, 86_400_000)
+    const queued = await this.#queue(queueName).add(config.jobName ?? config.name, this.serializer.serialize(job), {
+      ...(options.id ? { jobId: options.id } : {}),
+      attempts,
+      delay,
       backoff: { type: 'fixed', delay: readBackoff(options.backoff ?? config.backoff) },
     })
     return { id: String(queued.id ?? ''), queue: queueName }
@@ -52,5 +56,9 @@ export class BullMQQueue implements Queue {
 }
 
 function readBackoff(backoff: number | readonly number[]): number {
-  return typeof backoff === 'number' ? Math.max(backoff, 0) : Math.max(backoff[0] ?? 0, 0)
+  return integer(typeof backoff === 'number' ? backoff : backoff[0] ?? 0, 'backoff', 0, 86_400_000)
+}
+function integer(value: number, name: string, minimum: number, maximum: number): number {
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new TypeError(`${name} must be an integer between ${minimum} and ${maximum}`)
+  return value
 }

@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 import { lookup } from 'node:dns/promises'
-import { InboxConsumer, OutboxProcessor, createEnvelope, type InboxStore, type JsonValue, type MessageEnvelope, type OutboxStore } from '@nuxt-laravelize/reliability'
+import { InboxConsumer, OutboxProcessor, createEnvelope, type ContextSnapshot, type InboxStore, type JsonValue, type MessageEnvelope, type MessageExecutionContext, type OutboxStore } from '@nuxt-laravelize/reliability'
 
 export interface WebhookTransport {
   send(url: string, init: RequestInit): Promise<Pick<Response, 'status' | 'headers'>>
@@ -103,6 +103,7 @@ export class WebhookSecretRevokedError extends Error {
 export function createWebhookEnvelope(job: WebhookJob, input: {
   id?: string
   occurredAt?: string
+  context?: ContextSnapshot
 } = {}): MessageEnvelope {
   if (!job.secretId || typeof job.url !== 'string')
     throw new TypeError('Webhook URL and secretId are required')
@@ -146,13 +147,19 @@ export class OutgoingWebhookProcessor {
     production?: boolean
     maxAttempts?: number
     timeoutMs?: number
+    leaseMs?: number
+    heartbeatMs?: number
+    limit?: number
+    concurrency?: number
+    signal?: AbortSignal
+    context?: (message: MessageEnvelope, context: MessageExecutionContext) => MessageExecutionContext
   }) {
     const production = options.production ?? process.env.NODE_ENV === 'production'
     if (!store || (production && store.durability !== 'durable'))
       throw new Error(production ? 'Durable webhook store is required in production' : 'Webhook store is required')
     const transport = options.transport ?? new FetchWebhookTransport()
     const clock = options.clock ?? (() => new Date())
-    this.processor = new OutboxProcessor(store, async (message) => {
+    this.processor = new OutboxProcessor(store, async (message, context) => {
       const job = message.payload as unknown as WebhookJob
       let url: URL
       try {
@@ -175,7 +182,9 @@ export class OutgoingWebhookProcessor {
       }
       const signature = signWebhook(secret, timestamp, message.id, body)
       try {
-        const response = await transport.send(url.toString(), { method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(options.timeoutMs ?? 10000), headers: { ...job.headers, 'content-type': 'application/json', 'user-agent': 'nuxt-laravelize-webhooks/1', 'x-webhook-id': message.id, 'x-webhook-timestamp': timestamp, 'x-webhook-signature': `v1=${signature}` }, body })
+        const timeout = AbortSignal.timeout(options.timeoutMs ?? 10000)
+        const signal = context ? AbortSignal.any([context.signal, timeout]) : timeout
+        const response = await transport.send(url.toString(), { method: 'POST', redirect: 'manual', signal, headers: { ...job.headers, 'content-type': 'application/json', 'user-agent': 'nuxt-laravelize-webhooks/1', 'x-webhook-id': message.id, 'x-webhook-timestamp': timestamp, 'x-webhook-signature': `v1=${signature}` }, body })
         if (response.status >= 200 && response.status < 300) {
           options.diagnostics?.({ deliveryId: message.id, outcome: 'delivered', status: response.status })
           return { ok: true }
@@ -189,7 +198,7 @@ export class OutgoingWebhookProcessor {
         options.diagnostics?.({ deliveryId: message.id, outcome: 'retry', detail })
         return { ok: false, retryable: true, error: detail }
       }
-    }, { owner: options.owner, clock, types: ['webhook.delivery.v1'], maxAttempts: options.maxAttempts })
+    }, { owner: options.owner, clock, types: ['webhook.delivery.v1'], maxAttempts: options.maxAttempts, leaseMs: options.leaseMs, heartbeatMs: options.heartbeatMs, limit: options.limit, concurrency: options.concurrency, signal: options.signal, context: options.context })
   }
 
   runOnce() {

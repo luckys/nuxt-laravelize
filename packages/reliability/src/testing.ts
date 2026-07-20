@@ -1,4 +1,4 @@
-import type { InboxClaim, InboxStore, MessageEnvelope, OutboxStore, StoredMessage } from './index.js'
+import { sanitizeErrorSummary, type InboxClaim, type InboxStore, type MessageEnvelope, type OutboxStore, type StoredMessage } from './index.js'
 
 type Mutable = {
   envelope: MessageEnvelope
@@ -39,6 +39,7 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
     now: string
     leaseUntil: string
     types?: readonly string[]
+    excludeIds?: readonly string[]
   }): Promise<StoredMessage[]>
   async claim(message: MessageEnvelope, options: {
     owner: string
@@ -53,6 +54,7 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
     now: string
     leaseUntil: string
     types?: readonly string[]
+    excludeIds?: readonly string[]
   }, second?: {
     owner: string
     token: string
@@ -84,9 +86,10 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
       .filter(([key, row]) => {
         const matchesNamespace = key.startsWith('outbox:')
         const matchesType = !first.types?.length || first.types.includes(row.envelope.type)
+        const isExcluded = first.excludeIds?.includes(row.envelope.id) ?? false
         const isAvailable = row.state === 'pending' && iso(row.availableAt) <= iso(first.now)
         const leaseExpired = row.state === 'processing' && iso(row.leaseUntil!) <= iso(first.now)
-        return matchesNamespace && matchesType && (isAvailable || leaseExpired)
+        return matchesNamespace && matchesType && !isExcluded && (isAvailable || leaseExpired)
       })
       .slice(0, first.limit)
       .map(([, row]) => row)
@@ -109,11 +112,17 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
     })
   }
 
+  async renew(namespace: 'outbox' | 'inbox', id: string, token: string, now: string, leaseUntil: string) {
+    this.update(namespace, id, token, now, (row) => {
+      if (iso(leaseUntil) > iso(row.leaseUntil!)) row.leaseUntil = leaseUntil
+    })
+  }
+
   async retry(namespace: 'outbox' | 'inbox', id: string, token: string, now: string, availableAt: string, error: string) {
     this.update(namespace, id, token, now, (r) => {
       r.state = 'pending'
       r.availableAt = availableAt
-      r.lastError = error.slice(0, 512)
+      r.lastError = sanitizeErrorSummary(error)
       this.clearLease(r)
     })
   }
@@ -121,7 +130,7 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
   async dead(namespace: 'outbox' | 'inbox', id: string, token: string, now: string, error: string) {
     this.update(namespace, id, token, now, (r) => {
       r.state = 'dead'
-      r.lastError = error.slice(0, 512)
+      r.lastError = sanitizeErrorSummary(error)
       this.clearLease(r)
     })
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobRunner } from '../../src/runtime/index'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobRunner } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {
   static runs: number[] = []
@@ -19,8 +19,19 @@ class FailedJob extends Job {
   handle() {}
   override failed() { FailedJob.didFail = true }
 }
+class StableJob extends TestJob {
+  static override readonly jobName = 'stable.test.v1'
+}
 
 describe('InMemoryQueue', () => {
+  it('registers explicit, constructor and stable names while rejecting collisions', () => {
+    const registry = new InMemoryJobRegistry()
+    registry.register('supplied-name', StableJob)
+    expect(registry.rehydrate({ version: 1, name: 'supplied-name', payload: { value: 1 } })).toBeInstanceOf(StableJob)
+    expect(registry.rehydrate({ version: 1, name: StableJob.name, payload: { value: 1 } })).toBeInstanceOf(StableJob)
+    expect(registry.rehydrate({ version: 1, name: StableJob.jobName, payload: { value: 1 } })).toBeInstanceOf(StableJob)
+    expect(() => registry.register('supplied-name', TestJob)).toThrow(JobRegistrationCollisionError)
+  })
   it('executes registered jobs in a disposable job scope', async () => {
     const container = createContainer()
     const scope = container.createScope()

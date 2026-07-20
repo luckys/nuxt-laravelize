@@ -1,6 +1,7 @@
 import type { Job } from './Job'
 
 export interface PushOptions {
+  readonly id?: string
   readonly tries?: number
   readonly delay?: number
   readonly queue?: string
