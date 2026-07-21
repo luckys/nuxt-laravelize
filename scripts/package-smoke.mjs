@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const packageNames = [
+  'ai-sdk',
   'audit',
   'audit-drizzle',
   'broadcasting',
@@ -45,6 +46,8 @@ const tarballs = readdirSync(tarballDirectory)
 const nuxtVersion = installedVersion('nuxt')
 const typescriptVersion = installedVersion('typescript')
 const vueTscVersion = installedVersion('vue-tsc', 'playground/node_modules')
+const aiVersion = installedVersion('ai', 'packages/ai-sdk/node_modules')
+const zodVersion = installedVersion('zod', 'packages/ai-sdk/node_modules')
 const dependencies = Object.fromEntries(packageNames.map((name) => {
   const { version } = JSON.parse(readFileSync(resolve('packages', name, 'package.json'), 'utf8'))
   const suffix = `nuxt-laravelize-${name}-${version}.tgz`
@@ -61,7 +64,9 @@ verifyTarballBin('queue-bullmq', 'dist/bin/queue-work.mjs')
 
 runFixture('features', {
   ...featureDependencies,
+  ai: aiVersion,
   nuxt: nuxtVersion,
+  zod: zodVersion,
 }, featureDependencies, [
   '@nuxt-laravelize/audit',
   '@nuxt-laravelize/audit/runtime',
@@ -71,6 +76,10 @@ runFixture('features', {
   '@nuxt-laravelize/audit-drizzle/postgres',
   '@nuxt-laravelize/audit-drizzle/sqlite',
   '@nuxt-laravelize/audit-drizzle/turso',
+  '@nuxt-laravelize/ai-sdk',
+  '@nuxt-laravelize/ai-sdk/runtime',
+  '@nuxt-laravelize/ai-sdk/runtime/server',
+  '@nuxt-laravelize/ai-sdk/testing',
   '@nuxt-laravelize/broadcasting',
   '@nuxt-laravelize/broadcasting/runtime',
   '@nuxt-laravelize/broadcasting/testing',
@@ -134,6 +143,9 @@ runFixture('features', {
     '@nuxt-laravelize/audit/runtime/server': ['useAudit'],
     '@nuxt-laravelize/audit/testing': ['AuditFake'],
     '@nuxt-laravelize/audit-drizzle': ['DrizzlePostgresAuditStore', 'DrizzleSQLiteAuditStore', 'TursoAuditStore'],
+    '@nuxt-laravelize/ai-sdk/runtime': ['AiConnectionRegistry', 'AiSdkClient', 'aiClientToken', 'aiConnectionsToken', 'defineAgent'],
+    '@nuxt-laravelize/ai-sdk/runtime/server': ['useAi'],
+    '@nuxt-laravelize/ai-sdk/testing': ['AiFake'],
     '@nuxt-laravelize/broadcasting/runtime': ['BroadcastingManager', 'ChannelRegistry', 'PublicChannel', 'PrivateChannel', 'PresenceChannel', 'broadcasterToken'],
     '@nuxt-laravelize/broadcasting/testing': ['BroadcastFake'],
     '@nuxt-laravelize/broadcasting-pusher': ['PusherBroadcaster'],
@@ -190,7 +202,7 @@ runFixture('preset-default', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'bullmq', 'drizzle-orm', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
 })
@@ -202,7 +214,7 @@ runFixture('preset-compat5', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'bullmq', 'drizzle-orm', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
   compatibilityVersion: 5,

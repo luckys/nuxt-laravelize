@@ -10,6 +10,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 |---|---|
 | `@nuxt-laravelize/audit` | Secure append-only audit recording enriched by execution context |
 | `@nuxt-laravelize/audit-drizzle` | Optional PostgreSQL, SQLite, and Turso/libSQL audit stores |
+| `@nuxt-laravelize/ai-sdk` | Opt-in named AI model connections, typed agents, streaming, and testing |
 | `@nuxt-laravelize/broadcasting` | Server-side public, private, and presence channel broadcasting |
 | `@nuxt-laravelize/broadcasting-pusher` | Optional server-side Pusher Channels adapter |
 | `@nuxt-laravelize/cache` | Portable cache contract, TTL operations, atomic locks, counters, memoization, and in-memory driver |
@@ -98,6 +99,7 @@ pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq
 pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
 pnpm add @nuxt-laravelize/scout @nuxt-laravelize/scout-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/audit @nuxt-laravelize/audit-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/ai-sdk ai zod @ai-sdk/anthropic
 pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
 pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/reliability-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
@@ -113,6 +115,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 |---|---|---|
 | `@nuxt-laravelize/audit` | `/runtime`, `/runtime/server` | `/testing` |
 | `@nuxt-laravelize/audit-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `@nuxt-laravelize/ai-sdk` | `/runtime`, `/runtime/server` | `/testing` |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |

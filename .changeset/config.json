@@ -7,6 +7,7 @@
       "@nuxt-laravelize/core",
       "@nuxt-laravelize/audit",
       "@nuxt-laravelize/audit-drizzle",
+      "@nuxt-laravelize/ai-sdk",
       "@nuxt-laravelize/broadcasting",
       "@nuxt-laravelize/broadcasting-pusher",
       "@nuxt-laravelize/execution-context",

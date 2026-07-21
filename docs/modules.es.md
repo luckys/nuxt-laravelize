@@ -428,6 +428,38 @@ useBroadcastChannels(event).channel('orders.{orderId}', (user, { orderId }) => u
 
 `@nuxt-laravelize/broadcasting-pusher` es un **adapter de servidor** opt-in. Inyecta `PusherBroadcaster` mediante `broadcasterToken` y guarda las credenciales en runtime config privado. No incluye ni instala cliente WebSocket para navegador ni Laravel Echo; las suscripciones cliente se eligen y configuran por separado.
 
+## AI SDK
+
+`@nuxt-laravelize/ai-sdk` es un modulo de servidor opt-in construido sobre AI SDK 7. Proporciona conexiones de modelos nombradas, `useAi(event)`, agentes reutilizables tipados, streaming de texto, tools, structured output, comprobaciones explicitas de capacidades y `AiFake`. No forma parte del preset y requiere Node.js 22 o superior.
+
+```bash
+pnpm add @nuxt-laravelize/ai-sdk ai zod @ai-sdk/anthropic
+```
+
+Registra los providers explicitamente en `server/providers`; el modulo nunca importa paquetes de providers ni lee sus credenciales:
+
+```ts
+import { createAnthropic } from '@ai-sdk/anthropic'
+import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import { AiConnectionRegistry, aiConnectionsToken } from '@nuxt-laravelize/ai-sdk/runtime'
+
+export default class AiConnectionsServiceProvider implements ServiceProvider {
+  register(container: Container) {
+    container.singleton(aiConnectionsToken, () => {
+      const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+      return new AiConnectionRegistry().register('anthropic', {
+        defaultModel: 'claude-sonnet-4-6',
+        model: model => anthropic(model),
+      })
+    })
+  }
+}
+```
+
+Genera con `await useAi(event).generate({ prompt })`, o devuelve `useAi(event).stream({ prompt }).toTextStreamResponse()` desde Nitro. `defineAgent<Input, Result>()` agrupa instrucciones, tools, schema de salida, seleccion de modelo y construccion del prompt sin asumir persistencia. Cloudflare Workers AI se conecta mediante su provider compatible con AI SDK. Flue y Cloudflare Agents son runtimes de agentes, no providers de modelos, y quedan fuera de esta API.
+
+Las opciones especificas del provider pasan sin cambios. Las capacidades se consideran habilitadas salvo que la conexion las desactive. El paquete no registra, audita, cachea ni persiste prompts o respuestas automaticamente porque pueden contener credenciales, datos personales o informacion regulada.
+
 ## Auditoria
 
 `@nuxt-laravelize/audit` esta incluido en el preset y expone `useAudit(event)`. El registro es explicito. El recorder genera ID y fecha y enriquece actor, tenant, ejecucion, correlacion, causacion, source y trace desde el contexto confiable; el caller no puede reemplazarlos.
