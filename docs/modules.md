@@ -1110,7 +1110,7 @@ await workflows.run(started.id)
 
 The included in-memory store is volatile and intended for tests or local development. Production stores must implement atomic revision and lease fencing. Step and compensation handlers are at-least-once: pass their stable idempotency keys to external systems that support deduplication.
 
-`@nuxt-laravelize/workflows-drizzle` supplies durable PostgreSQL, SQLite, and Turso stores. Workflow identity and canonical input are immutable; relational revision, cancellation and lease columns override serialized snapshots during hydration. Claims and commits are conditional row-returning statements, and stale or expired owners are fenced before state can be persisted.
+`@nuxt-laravelize/workflows-drizzle` supplies durable PostgreSQL, SQLite, and Turso stores. Workflow identity and canonical input are immutable; relational revision, cancellation and lease columns override serialized snapshots during hydration. Claims and commits are conditional row-returning statements, and stale or expired owners are fenced before state can be persisted. These stores also implement the optional `RecoverableWorkflowStore` capability, returning non-terminal IDs in bounded `(updatedAt, id)` cursor pages.
 
 ```ts
 import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'
@@ -1129,9 +1129,12 @@ export default defineNuxtConfig({
 })
 
 await useWorkflows(event).start(fulfill, { orderId }, orderId)
+
+// Run periodically from your scheduler or operational worker.
+await useWorkflows(event).reconcileStore({ pageSize: 100 })
 ```
 
-Bind `workflowStoreToken` to a durable store and register definitions through `workflowRegistryToken`. Deterministic revision-based job IDs optimize transport deduplication, but correctness relies on store fencing, so duplicate jobs remain harmless. Persistence and publication are separate operations: run a recovery scanner over non-terminal store IDs and call `reconcile(ids)`. This bridge does not claim transactional-outbox guarantees.
+Bind `workflowStoreToken` to a durable store and register definitions through `workflowRegistryToken`. Deterministic revision-based job IDs optimize transport deduplication, but correctness relies on store fencing, so duplicate jobs remain harmless. Persistence and publication are separate operations: run `reconcileStore()` periodically when the store supports recovery discovery, or call `reconcile(ids)` with IDs from a custom index. Every store scan captures an `updatedBefore` boundary so concurrent updates cannot make one pass unbounded; later passes pick up newer changes. This bridge does not claim transactional-outbox guarantees.
 
 ## Testing
 

@@ -48,9 +48,9 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/validation` | Standard Schema validation, typed results, and error bags |
 | `@nuxt-laravelize/scheduler` | Framework-neutral schedules and an explicit Nitro 3 adapter |
 | `@nuxt-laravelize/webhooks` | Node-only signed outgoing and idempotent incoming webhooks |
-| `@nuxt-laravelize/workflows` | Persisted linear workflows, retries, resumability, and saga compensation |
+| `@nuxt-laravelize/workflows` | Persisted linear workflows, retries, resumability, recovery discovery, and saga compensation |
 | `@nuxt-laravelize/workflows-drizzle` | Durable PostgreSQL, SQLite, and Turso workflow stores |
-| `@nuxt-laravelize/workflows-queue` | Queue scheduling, delayed business retries, and workflow reconciliation |
+| `@nuxt-laravelize/workflows-queue` | Queue scheduling, delayed business retries, and store-driven workflow reconciliation |
 | `@nuxt-laravelize/nuxt` | Convenience preset with `nuxt-i18n-micro` integration |
 
 ## Installation

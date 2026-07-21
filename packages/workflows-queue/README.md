@@ -11,7 +11,7 @@ export default defineNuxtConfig({
 
 Use `useWorkflows(event).start(definition, input, startKey)` to persist and publish a workflow. Persistence and queue publication are two separate operations: a process crash after persistence but before publication can leave a non-terminal workflow without a job. This module does not claim transactional-outbox guarantees.
 
-Applications should run a recovery scanner against their durable store's non-terminal workflow index and pass known IDs to `coordinator.reconcile(ids)`. The result reports `scheduled`, terminal `skipped`, and `failed` IDs. `enqueue(id)` is the lower-level recovery operation and continues to throw publication errors.
+Official workflow stores expose paginated recovery discovery, so applications can run `coordinator.reconcileStore({ pageSize: 100 })`. Each pass captures an `updatedBefore` boundary and terminates even while workflows change concurrently; run it periodically to include later changes. Custom stores can implement `RecoverableWorkflowStore`, or pass known IDs directly to `coordinator.reconcile(ids)`. Results report `scheduled`, terminal-race `skipped`, and `failed` IDs. `enqueue(id)` is the lower-level recovery operation and continues to throw publication errors.
 
 ## Delivery semantics
 

@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm'
-import { canonicalize, LeaseConflictError, RevisionConflictError, StartKeyConflictError, type JsonValue, type StepSnapshot, type WorkflowSnapshot, type WorkflowState, type WorkflowStore } from '@nuxt-laravelize/workflows'
+import { canonicalize, LeaseConflictError, RevisionConflictError, StartKeyConflictError, type JsonValue, type RecoverableWorkflowStore, type StepSnapshot, type WorkflowRecoveryPage, type WorkflowRecoveryQuery, type WorkflowSnapshot, type WorkflowState } from '@nuxt-laravelize/workflows'
 
 type Row = Record<string, unknown>
 export type WorkflowQueryExecutor = (query: SQL) => Row[] | PromiseLike<Row[]>
@@ -104,7 +104,7 @@ const hydrate = (row: Row): WorkflowSnapshot => {
   return result
 }
 
-export abstract class DrizzleWorkflowStore implements WorkflowStore {
+export abstract class DrizzleWorkflowStore implements RecoverableWorkflowStore {
   readonly durability = 'durable' as const
   protected constructor(private readonly executeRows: WorkflowQueryExecutor) {}
 
@@ -121,6 +121,23 @@ export abstract class DrizzleWorkflowStore implements WorkflowStore {
   async get(id: string): Promise<WorkflowSnapshot | null> {
     const row = (await this.executeRows(sql`select * from workflows where id = ${id} limit ${1}`))[0]
     return row ? hydrate(row) : null
+  }
+
+  async discoverRecoverable(query: WorkflowRecoveryQuery): Promise<WorkflowRecoveryPage> {
+    const limit = query.limit ?? 100
+    if (!Number.isSafeInteger(query.updatedBefore)) throw new TypeError('updatedBefore must be a safe integer')
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) throw new TypeError('limit must be an integer between 1 and 1000')
+    if (query.cursor && (!Number.isSafeInteger(query.cursor.updatedAt) || !query.cursor.id)) throw new TypeError('Invalid workflow recovery cursor')
+    const active = sql`state <> ${'completed'} and state <> ${'failed'} and state <> ${'compensated'} and state <> ${'compensation_failed'} and state <> ${'cancelled'}`
+    const rows = query.cursor
+      ? await this.executeRows(sql`select id, updated_at from workflows where ${active} and updated_at <= ${query.updatedBefore} and (updated_at > ${query.cursor.updatedAt} or (updated_at = ${query.cursor.updatedAt} and id > ${query.cursor.id})) order by updated_at asc, id asc limit ${limit}`)
+      : await this.executeRows(sql`select id, updated_at from workflows where ${active} and updated_at <= ${query.updatedBefore} order by updated_at asc, id asc limit ${limit}`)
+    const workflowIds = rows.map(row => text(row.id, 'id'))
+    const last = rows.at(-1)
+    return {
+      workflowIds,
+      ...(rows.length === limit && last ? { nextCursor: { updatedAt: epoch(last.updated_at, 'updatedAt'), id: text(last.id, 'id') } } : {}),
+    }
   }
 
   async claim(id: string, expectedRevision: number, token: string, now: number, expiresAt: number): Promise<WorkflowSnapshot> {

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { Queue, JobHandle, PushOptions } from '@nuxt-laravelize/queue/runtime'
-import { isWorkflowTerminal, isWorkflowWaiting, type JsonValue, type WorkflowDefinition, type WorkflowManager, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
+import { isRecoverableWorkflowStore, isWorkflowTerminal, isWorkflowWaiting, type JsonValue, type WorkflowDefinition, type WorkflowManager, type WorkflowRecoveryCursor, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
 import { WorkflowJob } from './WorkflowJob'
 import type { ResolvedWorkflowsQueueOptions } from './options'
 
@@ -9,6 +9,8 @@ export interface WorkflowReconcileResult {
   skipped: string[]
   failed: Array<{ workflowId: string, error: unknown }>
 }
+
+export interface WorkflowStoreReconcileOptions { pageSize?: number, updatedBefore?: number }
 
 export class WorkflowCoordinator {
   constructor(
@@ -45,6 +47,23 @@ export class WorkflowCoordinator {
       }
       catch (error) { result.failed.push({ workflowId, error }) }
     }
+    return result
+  }
+
+  /** Runs one bounded recovery pass when the configured store supports discovery. */
+  async reconcileStore(options: WorkflowStoreReconcileOptions = {}): Promise<WorkflowReconcileResult> {
+    if (!isRecoverableWorkflowStore(this.store)) throw new TypeError('Workflow store does not support recovery discovery')
+    const updatedBefore = options.updatedBefore ?? this.now()
+    const result: WorkflowReconcileResult = { scheduled: [], skipped: [], failed: [] }
+    let cursor: WorkflowRecoveryCursor | undefined
+    do {
+      const page = await this.store.discoverRecoverable({ updatedBefore, cursor, limit: options.pageSize })
+      const reconciled = await this.reconcile(page.workflowIds)
+      result.scheduled.push(...reconciled.scheduled)
+      result.skipped.push(...reconciled.skipped)
+      result.failed.push(...reconciled.failed)
+      cursor = page.nextCursor
+    } while (cursor)
     return result
   }
 

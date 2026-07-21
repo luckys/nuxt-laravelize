@@ -14,6 +14,30 @@ export interface WorkflowStore {
   requestCancellation(id: string, expectedRevision: number, now: number): Promise<WorkflowSnapshot>
 }
 
+export interface WorkflowRecoveryCursor { updatedAt: number, id: string }
+export interface WorkflowRecoveryQuery { updatedBefore: number, cursor?: WorkflowRecoveryCursor, limit?: number }
+export interface WorkflowRecoveryPage { workflowIds: string[], nextCursor?: WorkflowRecoveryCursor }
+
+/** Optional store capability used by bounded recovery scans. */
+export interface RecoverableWorkflowStore extends WorkflowStore {
+  discoverRecoverable(query: WorkflowRecoveryQuery): Promise<WorkflowRecoveryPage>
+}
+
+export function isRecoverableWorkflowStore(store: WorkflowStore): store is RecoverableWorkflowStore {
+  return 'discoverRecoverable' in store && typeof store.discoverRecoverable === 'function'
+}
+
+const recoveryLimit = (limit = 100): number => {
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) throw new TypeError('limit must be an integer between 1 and 1000')
+  return limit
+}
+
+const validateRecoveryQuery = (query: WorkflowRecoveryQuery): number => {
+  if (!Number.isSafeInteger(query.updatedBefore)) throw new TypeError('updatedBefore must be a safe integer')
+  if (query.cursor && (!Number.isSafeInteger(query.cursor.updatedAt) || !query.cursor.id)) throw new TypeError('Invalid workflow recovery cursor')
+  return recoveryLimit(query.limit)
+}
+
 const clone = <T>(value: T): T => structuredClone(value)
 
 /** Volatile, process-local test/development store. All data is lost on restart. */
@@ -36,6 +60,21 @@ export class InMemoryWorkflowStore implements WorkflowStore {
   }
 
   async get(id: string) { const value = this.snapshots.get(id); return value ? clone(value) : null }
+
+  async discoverRecoverable(query: WorkflowRecoveryQuery): Promise<WorkflowRecoveryPage> {
+    const limit = validateRecoveryQuery(query)
+    const snapshots = [...this.snapshots.values()]
+      .filter(snapshot => !['completed', 'failed', 'compensated', 'compensation_failed', 'cancelled'].includes(snapshot.state))
+      .filter(snapshot => snapshot.updatedAt <= query.updatedBefore)
+      .filter(snapshot => !query.cursor || snapshot.updatedAt > query.cursor.updatedAt || (snapshot.updatedAt === query.cursor.updatedAt && snapshot.id > query.cursor.id))
+      .sort((left, right) => left.updatedAt - right.updatedAt || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
+      .slice(0, limit)
+    const last = snapshots.at(-1)
+    return {
+      workflowIds: snapshots.map(snapshot => snapshot.id),
+      ...(snapshots.length === limit && last ? { nextCursor: { updatedAt: last.updatedAt, id: last.id } } : {}),
+    }
+  }
 
   async claim(id: string, expectedRevision: number, token: string, now: number, expiresAt: number) {
     const current = this.required(id)

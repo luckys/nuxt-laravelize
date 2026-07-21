@@ -24,6 +24,30 @@ function setup(steps: ReturnType<typeof defineStep>[], options: { clock?: FakeCl
 }
 
 describe('WorkflowManager', () => {
+  it('discovers recoverable workflows with bounded cursor pagination', async () => {
+    const store = new InMemoryWorkflowStore()
+    await Promise.all([
+      store.create(snapshotFixture({ id: 'b', startKey: 'b', updatedAt: 10 })),
+      store.create(snapshotFixture({ id: 'a', startKey: 'a', updatedAt: 10 })),
+      store.create(snapshotFixture({ id: 'later', startKey: 'later', updatedAt: 21 })),
+      store.create(snapshotFixture({ id: 'done', startKey: 'done', state: 'completed', updatedAt: 5 })),
+    ])
+    const first = await store.discoverRecoverable({ updatedBefore: 20, limit: 1 })
+    expect(first).toEqual({ workflowIds: ['a'], nextCursor: { updatedAt: 10, id: 'a' } })
+    await expect(store.discoverRecoverable({ updatedBefore: 20, limit: 1, cursor: first.nextCursor })).resolves.toEqual({ workflowIds: ['b'], nextCursor: { updatedAt: 10, id: 'b' } })
+    await expect(store.discoverRecoverable({ updatedBefore: 20, limit: 0 })).rejects.toThrow(TypeError)
+  })
+
+  it('rechecks terminal state between recovery pages', async () => {
+    const store = new InMemoryWorkflowStore()
+    await store.create(snapshotFixture({ id: 'a', startKey: 'a', updatedAt: 10 }))
+    await store.create(snapshotFixture({ id: 'b', startKey: 'b', updatedAt: 10 }))
+    const first = await store.discoverRecoverable({ updatedBefore: 20, limit: 1 })
+    const claimed = await store.claim('b', 0, 'lease', 10, 30)
+    await store.commit({ ...claimed, state: 'completed', updatedAt: 15 }, claimed.revision, 'lease', 10)
+    await expect(store.discoverRecoverable({ updatedBefore: 20, limit: 1, cursor: first.nextCursor })).resolves.toEqual({ workflowIds: [] })
+  })
+
   it('persists linear progression and stable step keys', async () => {
     const calls: string[] = []
     const { manager, workflow } = setup([
@@ -266,10 +290,11 @@ describe('WorkflowManager', () => {
   })
 })
 
-function snapshotFixture(): WorkflowSnapshot {
+function snapshotFixture(overrides: Partial<WorkflowSnapshot> = {}): WorkflowSnapshot {
   return {
     id: 'id', workflowName: 'name', workflowVersion: '1', startKey: 'key', canonicalInput: '{}', input: {}, state: 'pending', revision: 0,
     cancellationRequested: false, createdAt: 0, updatedAt: 0,
     steps: [{ name: 'one', state: 'pending', attempts: 0, compensationAttempts: 0, idempotencyKey: 'id:step:0' }],
+    ...overrides,
   }
 }

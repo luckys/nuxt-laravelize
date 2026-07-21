@@ -10,6 +10,8 @@ Store writes are authoritative. An attempt-start transition is persisted before 
 
 `InMemoryWorkflowStore` is explicitly volatile and intended only for tests and local development.
 
+Recovery discovery is an optional store capability, so existing custom `WorkflowStore` implementations remain compatible. `RecoverableWorkflowStore.discoverRecoverable()` returns cursor-paginated non-terminal IDs ordered by `(updatedAt, id)`. Every query requires an `updatedBefore` boundary so one scan remains finite while workflows change concurrently; a later scan discovers changes beyond that boundary. The in-memory store and official Drizzle stores implement this capability.
+
 ## Example
 
 ```ts

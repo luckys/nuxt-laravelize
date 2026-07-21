@@ -112,6 +112,33 @@ describe('workflow queue bridge', () => {
     expect(result.failed.map(item => item.workflowId)).toEqual([active.id, 'missing'])
   })
 
+  it('discovers and reconciles a bounded durable-store pass', async () => {
+    const { coordinator, definition, manager, published } = setup()
+    const first = await manager.start(definition, {}, 'first')
+    const second = await manager.start(definition, {}, 'second')
+    const terminal = await manager.start(definition, {}, 'terminal-discovery')
+    await manager.run(terminal.id)
+    const result = await coordinator.reconcileStore({ pageSize: 1 })
+    expect(result).toEqual({ scheduled: [first.id, second.id], skipped: [], failed: [] })
+    expect(published.map(item => item.job.payload.workflowId)).toEqual([first.id, second.id])
+  })
+
+  it('continues store reconciliation after a publication failure', async () => {
+    const { coordinator, definition, manager, queue } = setup()
+    const first = await manager.start(definition, {}, 'recovery-failure-1')
+    const second = await manager.start(definition, {}, 'recovery-failure-2')
+    vi.mocked(queue.push).mockRejectedValueOnce(new Error('offline'))
+    const result = await coordinator.reconcileStore({ pageSize: 1 })
+    expect(result.failed.map(item => item.workflowId)).toEqual([first.id])
+    expect(result.scheduled).toEqual([second.id])
+  })
+
+  it('requires the optional recovery discovery capability', async () => {
+    const { coordinator, store } = setup()
+    Object.defineProperty(store, 'discoverRecoverable', { value: undefined })
+    await expect(coordinator.reconcileStore()).rejects.toThrow('does not support recovery discovery')
+  })
+
   it('wires and rehydrates jobs through the real scoped Laravelize container', async () => {
     const container = createContainer()
     const queueProvider = new QueueServiceProvider()

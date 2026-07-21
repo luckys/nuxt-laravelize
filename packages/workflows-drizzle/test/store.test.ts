@@ -63,6 +63,24 @@ describe.each(adapters)('workflow adapter %#', (adapter) => {
     await expect(adapter([persisted]).store.get('wf-1')).resolves.toEqual(snapshot({ revision: 1, state: 'running', cancellationRequested: true, lease: { token: 'db', expiresAt: 500 }, updatedAt: 120 }))
   })
 
+  it('discovers a bounded page of non-terminal workflow IDs', async () => {
+    const context = adapter([{ id: 'wf-1', updated_at: 100 }, { id: 'wf-2', updated_at: 100 }])
+    await expect(context.store.discoverRecoverable({ updatedBefore: 200, limit: 2, cursor: { updatedAt: 50, id: 'old' } })).resolves.toEqual({
+      workflowIds: ['wf-1', 'wf-2'],
+      nextCursor: { updatedAt: 100, id: 'wf-2' },
+    })
+    const rendered = context.render(context.call.mock.calls[0]![0])
+    expect(rendered.sql).toContain('order by updated_at asc, id asc')
+    expect(rendered.params).toContain(200)
+    expect(rendered.params).toContain('completed')
+  })
+
+  it('validates recovery bounds before querying', async () => {
+    const context = adapter()
+    await expect(context.store.discoverRecoverable({ updatedBefore: 1, limit: 1001 })).rejects.toThrow(TypeError)
+    expect(context.call).not.toHaveBeenCalled()
+  })
+
   it('claims with one conditional update and classifies revision and lease conflicts', async () => {
     const claimed = snapshot({ revision: 2, lease: { token: 'new', expiresAt: 900 }, updatedAt: 200 })
     const success = adapter([row(claimed)])
