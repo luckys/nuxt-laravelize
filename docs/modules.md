@@ -509,11 +509,15 @@ const envelope = createEnvelope({
 
 await db.transaction(async (tx) => {
   await markInvoicePaid(tx, 'inv_1')
-  await store.appendWith(tx, envelope)
+  await store.appendWith(tx, envelope, {
+    availableAt: new Date(Date.now() + 60_000).toISOString(),
+  })
 })
 ```
 
-The business write and `appendWith(tx, envelope)` **must use the same database transaction and connection**. Appending before or after that transaction reintroduces the dual-write gap and can lose an event or publish one for rolled-back state. Apply the supplied PostgreSQL or SQLite migration. The in-memory `/testing` store is bounded, volatile, and only for tests/development; production requires a durable shared store, stable worker owner IDs, bounded leases/retries, heartbeat/lease renewal for work that may outlive its lease, dead-message monitoring, and retention/reconciliation operations. Drizzle remains optional and is installed only when this adapter is selected.
+`availableAt` is the earliest claim time and defaults to the envelope's `occurredAt`; scheduling never changes when the event occurred. Both values require canonical ISO timestamps. Repeating an append with the same ID, normalized envelope, and availability is idempotent. Reusing an ID with different content or availability throws `OutboxMessageConflictError` instead of silently discarding a message.
+
+The business write and `appendWith(tx, envelope, options)` **must use the same database transaction and connection**. Appending before or after that transaction reintroduces the dual-write gap and can lose an event or publish one for rolled-back state. Apply the supplied base migration followed by the dialect-specific append-availability migration. The immutable schedule remains stable while mutable delivery availability advances during retries. The in-memory `/testing` store is bounded, volatile, and only for tests/development; production requires a durable shared store, stable worker owner IDs, bounded leases/retries, heartbeat/lease renewal for work that may outlive its lease, dead-message monitoring, and retention/reconciliation operations. Drizzle remains optional and is installed only when this adapter is selected.
 
 Run outbox delivery as a supervised process. Its config module exports an `OutboxWorker`; SIGINT/SIGTERM stop intake, drain in-flight work, then close resources. Use `--once` for one operational pass (including scheduler invocation), never `run()` from a scheduler because overlapping long-lived workers break ownership assumptions.
 

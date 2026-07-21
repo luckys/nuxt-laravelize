@@ -33,6 +33,13 @@ export interface StoredMessage {
   readonly leaseUntil?: string
   readonly lastError?: string
 }
+export interface OutboxAppendOptions { availableAt?: string }
+export class OutboxMessageConflictError extends Error {
+  constructor(id: string) {
+    super(`Outbox message ID already exists with different content or availability: ${id}`)
+    this.name = 'OutboxMessageConflictError'
+  }
+}
 export type ContextSnapshot = Readonly<Record<string, unknown>>
 const ID = /^\w[\w.:-]{0,127}$/
 const JSON_LIMITS = { bytes: 262_144, string: 65_536, depth: 32, nodes: 10_000, keys: 1_000, array: 10_000 } as const
@@ -116,6 +123,15 @@ export function createEnvelope<T extends JsonValue>(input: {
   const cleanContext = context && Object.fromEntries(Object.entries(context).filter(([, v]) => v !== undefined)) as MessageContext
   return Object.freeze({ version: 1, id, type: input.type, occurredAt, payload: deepFreeze(structuredClone(input.payload)), ...(cleanContext && Object.keys(cleanContext).length ? { context: deepFreeze(cleanContext) } : {}) })
 }
+export function canonicalizeEnvelope(envelope: MessageEnvelope): string {
+  const normalized = createEnvelope({ id: envelope.id, type: envelope.type, occurredAt: envelope.occurredAt, payload: envelope.payload, context: envelope.context })
+  const canonicalize = (value: JsonValue | MessageEnvelope | MessageContext): unknown => Array.isArray(value)
+    ? value.map(item => canonicalize(item))
+    : value && typeof value === 'object'
+      ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalize((value as Record<string, JsonValue>)[key]!)]))
+      : value
+  return JSON.stringify(canonicalize(normalized))
+}
 export type ClaimOptions = {
   owner: string
   token: string
@@ -127,7 +143,7 @@ export type ClaimOptions = {
 }
 export interface OutboxStore {
   readonly durability?: 'durable' | 'volatile'
-  append(envelope: MessageEnvelope): Promise<void>
+  append(envelope: MessageEnvelope, options?: OutboxAppendOptions): Promise<void>
   claim(options: ClaimOptions): Promise<StoredMessage[]>
   renew(namespace: MessageNamespace, id: string, token: string, now: string, leaseUntil: string): Promise<void>
   delivered(namespace: MessageNamespace, id: string, token: string, now: string): Promise<void>

@@ -1,16 +1,22 @@
-import { sanitizeErrorSummary, type InboxClaim, type InboxStore, type MessageEnvelope, type OutboxStore, type StoredMessage } from './index.js'
+import { canonicalizeEnvelope, createEnvelope, OutboxMessageConflictError, sanitizeErrorSummary, type InboxClaim, type InboxStore, type MessageEnvelope, type OutboxAppendOptions, type OutboxStore, type StoredMessage } from './index.js'
 
 type Mutable = {
   envelope: MessageEnvelope
   state: StoredMessage['state']
   attempts: number
   availableAt: string
+  appendAvailableAt?: string
   leaseOwner?: string
   leaseToken?: string
   leaseUntil?: string
   lastError?: string
 }
 const iso = (value: string) => Date.parse(value)
+const canonicalIso = (value: string, name: string): string => {
+  const parsed = typeof value === 'string' ? Date.parse(value) : Number.NaN
+  if (!Number.isFinite(parsed) || new Date(parsed).toISOString() !== value) throw new TypeError(`${name} must be a canonical ISO timestamp`)
+  return value
+}
 export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
   readonly durability = 'volatile' as const
   readonly records = new Map<string, Mutable>()
@@ -23,13 +29,18 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
     return `${namespace}:${id}`
   }
 
-  async append(envelope: MessageEnvelope): Promise<void> {
+  async append(envelope: MessageEnvelope, options: OutboxAppendOptions = {}): Promise<void> {
+    const normalized = createEnvelope({ id: envelope.id, type: envelope.type, occurredAt: envelope.occurredAt, payload: envelope.payload, context: envelope.context })
     const key = this.key('outbox', envelope.id)
-    if (this.records.has(key))
+    const availableAt = canonicalIso(options.availableAt ?? normalized.occurredAt, 'availableAt')
+    const existing = this.records.get(key)
+    if (existing) {
+      if (canonicalizeEnvelope(existing.envelope) !== canonicalizeEnvelope(normalized) || existing.appendAvailableAt !== availableAt) throw new OutboxMessageConflictError(envelope.id)
       return
+    }
     if (this.records.size >= this.capacity)
       throw new Error('In-memory reliability store capacity exceeded')
-    this.records.set(key, { envelope: structuredClone(envelope), state: 'pending', attempts: 0, availableAt: envelope.occurredAt })
+    this.records.set(key, { envelope: structuredClone(normalized), state: 'pending', attempts: 0, availableAt, appendAvailableAt: availableAt })
   }
 
   async claim(options: {

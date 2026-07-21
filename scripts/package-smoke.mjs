@@ -206,7 +206,7 @@ runFixture('features', {
     '@nuxt-laravelize/filesystem-cloudflare': ['CloudflareR2Filesystem'],
     '@nuxt-laravelize/queue/runtime': ['queueToken'],
     '@nuxt-laravelize/rate-limiter/runtime': ['RateLimiter', 'rateLimiterToken'],
-    '@nuxt-laravelize/reliability': ['createEnvelope', 'OutboxProcessor', 'InboxConsumer'],
+    '@nuxt-laravelize/reliability': ['createEnvelope', 'OutboxProcessor', 'InboxConsumer', 'OutboxMessageConflictError'],
     '@nuxt-laravelize/reliability/testing': ['InMemoryReliabilityStore', 'OutboxStoreFake', 'InboxStoreFake'],
     '@nuxt-laravelize/reliability-drizzle': ['DrizzlePostgresReliabilityStore', 'DrizzleSQLiteReliabilityStore'],
     '@nuxt-laravelize/reliability-drizzle/postgres': ['DrizzlePostgresReliabilityStore'],

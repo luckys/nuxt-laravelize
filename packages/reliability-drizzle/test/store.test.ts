@@ -1,30 +1,46 @@
 import { describe, expect, it, vi } from 'vitest'
+import { OutboxMessageConflictError } from '@nuxt-laravelize/reliability'
 import { DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore } from '../src/index.js'
 
 describe('drizzle reliability stores', () => {
   it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('uses parameterized transaction-bound append', async (Store) => {
-    const database = { execute: vi.fn().mockResolvedValue({ rows: [] }) }
+    const envelope = { version: 1 as const, id: 'm-1', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null }
+    const database = { execute: vi.fn().mockResolvedValue({ rows: [{ id: envelope.id }] }) }
     const store = new Store(database)
-    await store.appendWith(database, { version: 1, id: 'm-1', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null })
+    await store.appendWith(database, envelope, { availableAt: new Date(1000).toISOString() })
     expect(database.execute).toHaveBeenCalledOnce()
     expect((database.execute.mock.calls[0]![0] as {
       queryChunks: unknown[]
     }).queryChunks.length).toBeGreaterThan(1)
   })
   it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('appends with the exact unit-of-work session', async (Store) => {
-    const session = { execute: vi.fn().mockResolvedValue({ rows: [] }) }
+    const envelope = { version: 1 as const, id: 'm-1', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null }
+    const session = { execute: vi.fn().mockResolvedValue({ rows: [{ id: envelope.id }] }) }
     const store = new Store({ execute: vi.fn() })
 
-    await store.appendIn({ session, afterCommit: vi.fn() }, { version: 1, id: 'm-1', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null })
+    await store.appendIn({ session, afterCommit: vi.fn() }, envelope, { availableAt: new Date(1000).toISOString() })
 
     expect(session.execute).toHaveBeenCalledOnce()
   })
   it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('normalizes synchronous execute results', async (Store) => {
-    const execute = vi.fn(() => ({ rows: [] }))
+    const envelope = { version: 1 as const, id: 'm-sync', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null }
+    const execute = vi.fn(() => ({ rows: [{ id: envelope.id }] }))
     const store = new Store({ execute })
 
-    await expect(store.append({ version: 1, id: 'm-sync', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null })).resolves.toBeUndefined()
+    await expect(store.append(envelope)).resolves.toBeUndefined()
     expect(execute).toHaveBeenCalledOnce()
+  })
+  it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('accepts identical conflicts and rejects changed schedules', async (Store) => {
+    const envelope = { version: 1 as const, id: 'same', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null }
+    const identical = { execute: vi.fn().mockResolvedValue({ rows: [{ id: envelope.id }] }) }
+    await expect(new Store(identical).append(envelope)).resolves.toBeUndefined()
+    const changed = { execute: vi.fn().mockResolvedValue({ rows: [] }) }
+    await expect(new Store(changed).append(envelope)).rejects.toBeInstanceOf(OutboxMessageConflictError)
+  })
+  it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('rejects invalid availability before SQL execution', async (Store) => {
+    const database = { execute: vi.fn() }
+    await expect(new Store(database).append({ version: 1, id: 'bad', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null }, { availableAt: 'tomorrow' })).rejects.toThrow(TypeError)
+    expect(database.execute).not.toHaveBeenCalled()
   })
   it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('maps JSON text or JSONB objects, freezes them and marks itself durable', async (Store) => {
     const envelope = { version: 1 as const, id: 'm-1', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: { nested: true } }

@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm'
-import { createEnvelope, sanitizeErrorSummary, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxStore, type StoredMessage } from '@nuxt-laravelize/reliability'
+import { canonicalizeEnvelope, createEnvelope, OutboxMessageConflictError, sanitizeErrorSummary, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxAppendOptions, type OutboxStore, type StoredMessage } from '@nuxt-laravelize/reliability'
 import type { UnitOfWork } from '@nuxt-laravelize/database/runtime'
 
 export interface DrizzleReliabilityDatabase {
@@ -21,20 +21,29 @@ const readEnvelope = (value: unknown): MessageEnvelope => {
     throw new TypeError('Invalid persisted message envelope')
   return createEnvelope({ id: parsed.id, type: parsed.type, occurredAt: parsed.occurredAt, payload: parsed.payload, context: parsed.context })
 }
-const stored = (row: Row): StoredMessage => ({ envelope: readEnvelope(row.envelope), state: String(row.state) as StoredMessage['state'], attempts: Number(row.attempts), availableAt: String(row.available_at), ...(row.lease_owner ? { leaseOwner: String(row.lease_owner) } : {}), ...(row.lease_token ? { leaseToken: String(row.lease_token) } : {}), ...(row.lease_until ? { leaseUntil: String(row.lease_until) } : {}), ...(row.last_error ? { lastError: String(row.last_error) } : {}) })
+const canonicalIso = (value: string, name: string): string => {
+  const parsed = typeof value === 'string' ? Date.parse(value) : Number.NaN
+  if (!Number.isFinite(parsed) || new Date(parsed).toISOString() !== value) throw new TypeError(`${name} must be a canonical ISO timestamp`)
+  return value
+}
+const persistedIso = (value: unknown, name: string): string => canonicalIso(value instanceof Date ? value.toISOString() : String(value), name)
+const stored = (row: Row): StoredMessage => ({ envelope: readEnvelope(row.envelope), state: String(row.state) as StoredMessage['state'], attempts: Number(row.attempts), availableAt: persistedIso(row.available_at, 'availableAt'), ...(row.lease_owner ? { leaseOwner: String(row.lease_owner) } : {}), ...(row.lease_token ? { leaseToken: String(row.lease_token) } : {}), ...(row.lease_until ? { leaseUntil: persistedIso(row.lease_until, 'leaseUntil') } : {}), ...(row.last_error ? { lastError: String(row.last_error) } : {}) })
 export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore {
   readonly durability = 'durable' as const
   constructor(protected readonly database: DrizzleReliabilityDatabase) { }
-  async append(envelope: MessageEnvelope): Promise<void> {
-    await this.appendWith(this.database, envelope)
+  async append(envelope: MessageEnvelope, options?: OutboxAppendOptions): Promise<void> {
+    await this.appendWith(this.database, envelope, options)
   }
 
-  async appendWith(database: DrizzleReliabilityDatabase, envelope: MessageEnvelope): Promise<void> {
-    await database.execute(sql`insert into reliability_messages (kind, id, message_type, envelope, state, attempts, available_at) values ('outbox', ${envelope.id}, ${envelope.type}, ${JSON.stringify(envelope)}, 'pending', 0, ${envelope.occurredAt}) on conflict (kind, id) do nothing`)
+  async appendWith(database: DrizzleReliabilityDatabase, envelope: MessageEnvelope, options: OutboxAppendOptions = {}): Promise<void> {
+    const normalized = readEnvelope(envelope)
+    const availableAt = canonicalIso(options.availableAt ?? normalized.occurredAt, 'availableAt')
+    const persisted = rows(await database.execute(sql`insert into reliability_messages (kind, id, message_type, envelope, state, attempts, available_at, append_available_at) values ('outbox', ${normalized.id}, ${normalized.type}, ${canonicalizeEnvelope(normalized)}, 'pending', 0, ${availableAt}, ${availableAt}) on conflict (kind, id) do update set id = excluded.id where reliability_messages.envelope = excluded.envelope and reliability_messages.append_available_at = excluded.append_available_at returning id`))[0]
+    if (!persisted) throw new OutboxMessageConflictError(normalized.id)
   }
 
-  async appendIn(unitOfWork: UnitOfWork<DrizzleReliabilityDatabase>, envelope: MessageEnvelope): Promise<void> {
-    await this.appendWith(unitOfWork.session, envelope)
+  async appendIn(unitOfWork: UnitOfWork<DrizzleReliabilityDatabase>, envelope: MessageEnvelope, options?: OutboxAppendOptions): Promise<void> {
+    await this.appendWith(unitOfWork.session, envelope, options)
   }
 
   async claim(options: ClaimOptions): Promise<StoredMessage[]>

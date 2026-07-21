@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { EventEmitter } from 'node:events'
-import { createEnvelope, InboxConsumer, OutboxProcessor, OutboxWorker, sanitizeErrorSummary } from '../src/index.js'
+import { createEnvelope, InboxConsumer, OutboxMessageConflictError, OutboxProcessor, OutboxWorker, sanitizeErrorSummary } from '../src/index.js'
 import { InMemoryReliabilityStore } from '../src/testing.js'
 import { parseOutboxWorkerArgs, runOutboxWorkerCli } from '../src/cli.js'
 
@@ -24,6 +24,32 @@ describe('reliability', () => {
     expect((await processor.runOnce()).retried).toBe(1)
     expect((await processor.runOnce()).delivered).toBe(1)
     expect(store.records.get('outbox:m-1')?.attempts).toBe(2)
+  })
+  it('schedules availability independently from occurrence time', async () => {
+    const store = new InMemoryReliabilityStore()
+    const message = createEnvelope({ id: 'scheduled', type: 'x.v1', occurredAt: clock().toISOString(), payload: {} })
+    await store.append(message, { availableAt: '2026-01-01T00:01:00.000Z' })
+    expect(store.records.get('outbox:scheduled')?.availableAt).toBe('2026-01-01T00:01:00.000Z')
+    await expect(store.claim({ owner: 'early', token: 'early', limit: 1, now: '2026-01-01T00:00:59.999Z', leaseUntil: '2026-01-01T00:02:00.000Z' })).resolves.toHaveLength(0)
+    await expect(store.claim({ owner: 'ready', token: 'ready', limit: 1, now: '2026-01-01T00:01:00.000Z', leaseUntil: '2026-01-01T00:02:00.000Z' })).resolves.toHaveLength(1)
+  })
+  it('makes identical outbox appends idempotent and rejects changed identities', async () => {
+    const store = new InMemoryReliabilityStore()
+    const message = createEnvelope({ id: 'stable', type: 'x.v1', occurredAt: clock().toISOString(), payload: { first: 1, second: 2 } })
+    await store.append(message, { availableAt: '2026-01-01T00:01:00.000Z' })
+    await expect(store.append(message, { availableAt: '2026-01-01T00:01:00.000Z' })).resolves.toBeUndefined()
+    await expect(store.append(createEnvelope({ id: 'stable', type: 'x.v1', occurredAt: clock().toISOString(), payload: { second: 2, first: 1 } }), { availableAt: '2026-01-01T00:01:00.000Z' })).resolves.toBeUndefined()
+    await expect(store.append(message, { availableAt: '2026-01-01T00:02:00.000Z' })).rejects.toBeInstanceOf(OutboxMessageConflictError)
+    await expect(store.append({ ...message, payload: { first: 9, second: 2 } })).rejects.toBeInstanceOf(OutboxMessageConflictError)
+    await expect(store.append(message, { availableAt: 'later' })).rejects.toThrow(TypeError)
+  })
+  it('keeps append identity stable after retry changes delivery availability', async () => {
+    const store = new InMemoryReliabilityStore()
+    const message = createEnvelope({ id: 'retried-identity', type: 'x.v1', occurredAt: clock().toISOString(), payload: null })
+    await store.append(message)
+    const [claimed] = await store.claim({ owner: 'worker', token: 'claim', limit: 1, now: clock().toISOString(), leaseUntil: '2026-01-01T00:00:10.000Z' })
+    await store.retry('outbox', message.id, claimed!.leaseToken!, '2026-01-01T00:00:01.000Z', '2026-01-01T00:05:00.000Z', 'later')
+    await expect(store.append(message)).resolves.toBeUndefined()
   })
   it('deduplicates inbox delivery', async () => {
     const store = new InMemoryReliabilityStore()

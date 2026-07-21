@@ -500,11 +500,15 @@ const envelope = createEnvelope({
 
 await db.transaction(async (tx) => {
   await markInvoicePaid(tx, 'inv_1')
-  await store.appendWith(tx, envelope)
+  await store.appendWith(tx, envelope, {
+    availableAt: new Date(Date.now() + 60_000).toISOString(),
+  })
 })
 ```
 
-La escritura de negocio y `appendWith(tx, envelope)` **deben usar la misma transaccion y conexion de base de datos**. Agregar antes o despues reintroduce el dual-write gap y puede perder un evento o publicar estado revertido. Aplica la migracion PostgreSQL o SQLite incluida. El store en memoria de `/testing` es acotado, volatil y solo sirve para tests/desarrollo; produccion requiere store durable compartido, IDs de owner estables, leases/reintentos acotados, heartbeat/renovacion del lease para trabajo que pueda superarlo, monitorizacion de mensajes dead y operaciones de retencion/reconciliacion. Drizzle sigue siendo opcional.
+`availableAt` es el primer instante elegible para claim y usa `occurredAt` por defecto; agendar nunca cambia cuando ocurrio el evento. Ambos valores requieren timestamps ISO canonicos. Repetir un append con el mismo ID, envelope normalizado y disponibilidad es idempotente. Reutilizar un ID con contenido o disponibilidad diferente lanza `OutboxMessageConflictError` en vez de descartar silenciosamente un mensaje.
+
+La escritura de negocio y `appendWith(tx, envelope, options)` **deben usar la misma transaccion y conexion de base de datos**. Agregar antes o despues reintroduce el dual-write gap y puede perder un evento o publicar estado revertido. Aplica la migracion base seguida por la migracion de append availability del dialecto. El schedule inmutable permanece estable mientras la disponibilidad mutable avanza durante reintentos. El store en memoria de `/testing` es acotado, volatil y solo sirve para tests/desarrollo; produccion requiere store durable compartido, IDs de owner estables, leases/reintentos acotados, heartbeat/renovacion del lease para trabajo que pueda superarlo, monitorizacion de mensajes dead y operaciones de retencion/reconciliacion. Drizzle sigue siendo opcional.
 
 Ejecuta la entrega outbox como proceso supervisado. Su modulo de configuracion exporta un `OutboxWorker`; SIGINT/SIGTERM detienen la entrada, drenan trabajo en curso y cierran recursos. Usa `--once` para una pasada operativa, tambien desde un scheduler; nunca ejecutes `run()` desde el scheduler.
 
