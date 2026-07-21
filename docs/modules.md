@@ -1135,10 +1135,10 @@ const workflowStore = new TransactionalWorkflowStore({
 })
 
 const workflows = new WorkflowManager(workflowStore, registry)
-reliableHandlers.register(workflowWakeMessageType, 1, createWorkflowWakeHandler(workflows))
+registerWorkflowWakeHandler(reliableHandlers, workflows)
 ```
 
-Creation emits an immediate wake-up. Every claim records a fallback at lease expiry, released non-terminal commits emit at once or at their retry deadline, and cancellation emits immediately. Commits that retain the lease and terminal states emit nothing. Payloads contain only `workflowId`; repeated delivery reloads authoritative workflow state and remains harmless under revision and lease fencing.
+The registration helper owns the wake-up message type and version while accepting any structurally compatible reliability registry; it does not couple workflow persistence to a queue transport. Creation emits an immediate wake-up. Every claim records a fallback at lease expiry, released non-terminal commits emit at once or at their retry deadline, and cancellation emits immediately. Commits that retain the lease and terminal states emit nothing. Payloads contain only `workflowId`; repeated delivery reloads authoritative workflow state and remains harmless under revision and lease fencing.
 
 To join an existing domain transaction, call `workflows.using(workflowStore.in(unitOfWork)).start(...)`. This writes domain state, workflow state, and outbox wake-up together without opening a nested transaction. Never wrap all of `processResult()` in one transaction: handlers may perform slow external effects between the engine's persisted boundaries. External effects remain at least once and still require their stable idempotency keys. Recovery discovery remains the repair path for dead outbox messages and operational reconciliation.
 

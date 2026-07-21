@@ -1438,12 +1438,21 @@ importers:
         specifier: workspace:^
         version: link:../workflows
     devDependencies:
+      '@nuxt-laravelize/core':
+        specifier: workspace:^
+        version: link:../core
       '@nuxt-laravelize/database-drizzle':
         specifier: workspace:^
         version: link:../database-drizzle
+      '@nuxt-laravelize/queue':
+        specifier: workspace:^
+        version: link:../queue
       '@nuxt-laravelize/reliability-drizzle':
         specifier: workspace:^
         version: link:../reliability-drizzle
+      '@nuxt-laravelize/reliability-queue':
+        specifier: workspace:^
+        version: link:../reliability-queue
       '@nuxt-laravelize/workflows-drizzle':
         specifier: workspace:^
         version: link:../workflows-drizzle

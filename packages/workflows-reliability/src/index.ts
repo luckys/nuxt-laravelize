@@ -1,10 +1,14 @@
 import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
-import { createEnvelope, type MessageEnvelope, type OutboxAppendOptions } from '@nuxt-laravelize/reliability'
+import { createEnvelope, type MessageEnvelope, type MessageExecutionContext, type OutboxAppendOptions } from '@nuxt-laravelize/reliability'
 import { isWorkflowTerminal, isWorkflowWaiting, type WorkflowManager, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
 
 export const workflowWakeMessageType = 'laravelize.workflow.wake.v1'
 export type WorkflowWakePayload = { workflowId: string }
 export type WorkflowWakeReason = 'start' | 'lease-expired' | 'transition' | 'cancellation'
+
+export interface WorkflowWakeHandlerRegistrar {
+  register(type: string, version: number, handler: (message: MessageEnvelope, context: MessageExecutionContext) => void | Promise<void>): void
+}
 
 export interface TransactionalOutboxAppender<Session> {
   appendIn(unitOfWork: UnitOfWork<Session>, envelope: MessageEnvelope, options?: OutboxAppendOptions): Promise<void>
@@ -97,4 +101,8 @@ export function createWorkflowWakeHandler(manager: WorkflowManager): (message: M
       throw new TypeError('Invalid workflow wake message')
     await manager.processResult(payload.workflowId)
   }
+}
+
+export function registerWorkflowWakeHandler(registrar: WorkflowWakeHandlerRegistrar, manager: WorkflowManager): void {
+  registrar.register(workflowWakeMessageType, 1, createWorkflowWakeHandler(manager))
 }

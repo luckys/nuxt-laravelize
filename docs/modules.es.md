@@ -1124,10 +1124,10 @@ const workflowStore = new TransactionalWorkflowStore({
 })
 
 const workflows = new WorkflowManager(workflowStore, registry)
-reliableHandlers.register(workflowWakeMessageType, 1, createWorkflowWakeHandler(workflows))
+registerWorkflowWakeHandler(reliableHandlers, workflows)
 ```
 
-La creacion emite un wake-up inmediato. Cada claim registra un fallback al expirar el lease, los commits no terminales que liberan lease emiten de inmediato o en su deadline de retry, y la cancelacion emite inmediatamente. Los commits que retienen lease y los estados terminales no emiten. El payload solo contiene `workflowId`; entregas repetidas recargan el estado autoritativo y son inocuas gracias al fencing de revision y lease.
+El helper de registro mantiene el tipo y la version del mensaje wake-up y acepta cualquier registry de reliability estructuralmente compatible, sin acoplar la persistencia del workflow a un transporte de colas. La creacion emite un wake-up inmediato. Cada claim registra un fallback al expirar el lease, los commits no terminales que liberan lease emiten de inmediato o en su deadline de retry, y la cancelacion emite inmediatamente. Los commits que retienen lease y los estados terminales no emiten. El payload solo contiene `workflowId`; entregas repetidas recargan el estado autoritativo y son inocuas gracias al fencing de revision y lease.
 
 Para unirte a una transaccion de dominio existente, llama `workflows.using(workflowStore.in(unitOfWork)).start(...)`. Asi estado de dominio, workflow y wake-up outbox se escriben juntos sin abrir una transaccion anidada. Nunca envuelvas todo `processResult()` en una transaccion: los handlers pueden ejecutar efectos externos lentos entre limites persistidos. Esos efectos siguen siendo at-least-once y requieren sus claves de idempotencia estables. Recovery discovery permanece como reparacion para mensajes outbox dead y reconciliacion operacional.
 

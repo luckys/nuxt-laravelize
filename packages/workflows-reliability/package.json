@@ -15,5 +15,5 @@
     "@nuxt-laravelize/reliability": "workspace:^",
     "@nuxt-laravelize/workflows": "workspace:^"
   },
-  "devDependencies": { "@nuxt-laravelize/database-drizzle": "workspace:^", "@nuxt-laravelize/reliability-drizzle": "workspace:^", "@nuxt-laravelize/workflows-drizzle": "workspace:^", "drizzle-orm": "^0.44.7", "postgres": "^3.4.8", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5" }
+  "devDependencies": { "@nuxt-laravelize/core": "workspace:^", "@nuxt-laravelize/database-drizzle": "workspace:^", "@nuxt-laravelize/queue": "workspace:^", "@nuxt-laravelize/reliability-drizzle": "workspace:^", "@nuxt-laravelize/reliability-queue": "workspace:^", "@nuxt-laravelize/workflows-drizzle": "workspace:^", "drizzle-orm": "^0.44.7", "postgres": "^3.4.8", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5" }
 }
