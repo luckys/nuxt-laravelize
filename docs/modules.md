@@ -1142,6 +1142,8 @@ Creation emits an immediate wake-up. Every claim records a fallback at lease exp
 
 To join an existing domain transaction, call `workflows.using(workflowStore.in(unitOfWork)).start(...)`. This writes domain state, workflow state, and outbox wake-up together without opening a nested transaction. Never wrap all of `processResult()` in one transaction: handlers may perform slow external effects between the engine's persisted boundaries. External effects remain at least once and still require their stable idempotency keys. Recovery discovery remains the repair path for dead outbox messages and operational reconciliation.
 
+Run `DATABASE_URL=postgresql://... pnpm test:integration:postgres` to execute the required real-PostgreSQL proof in an isolated temporary schema. It verifies joint commit, rollback on outbox failure, and caller-owned rollback across domain, workflow, and outbox rows. The target fails when `DATABASE_URL` is absent rather than silently skipping.
+
 ### Queue scheduling
 
 `@nuxt-laravelize/workflows-queue` schedules one authoritative workflow transition per queue job. Payloads contain only the workflow ID; workers reload the store and claim by revision and lease. Business retry deadlines create delayed successor jobs, while queue retries are reserved for transport, store, and publication failures.

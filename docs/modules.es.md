@@ -1131,6 +1131,8 @@ La creacion emite un wake-up inmediato. Cada claim registra un fallback al expir
 
 Para unirte a una transaccion de dominio existente, llama `workflows.using(workflowStore.in(unitOfWork)).start(...)`. Asi estado de dominio, workflow y wake-up outbox se escriben juntos sin abrir una transaccion anidada. Nunca envuelvas todo `processResult()` en una transaccion: los handlers pueden ejecutar efectos externos lentos entre limites persistidos. Esos efectos siguen siendo at-least-once y requieren sus claves de idempotencia estables. Recovery discovery permanece como reparacion para mensajes outbox dead y reconciliacion operacional.
 
+Ejecuta `DATABASE_URL=postgresql://... pnpm test:integration:postgres` para correr la prueba requerida contra PostgreSQL real en un schema temporal aislado. Verifica commit conjunto, rollback ante fallo outbox y rollback del caller sobre filas de dominio, workflow y outbox. El target falla si falta `DATABASE_URL` en vez de omitir silenciosamente la prueba.
+
 ### Scheduling por colas
 
 `@nuxt-laravelize/workflows-queue` agenda una transicion autoritativa por job. El payload solo contiene el ID; cada worker recarga el store y hace claim por revision y lease. Los deadlines de reintentos de negocio crean jobs sucesores diferidos, mientras los reintentos de cola quedan para fallos de transporte, store o publicacion.

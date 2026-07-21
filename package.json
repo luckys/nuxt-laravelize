@@ -18,6 +18,7 @@
     "test": "pnpm run test:packages && pnpm run test:integration",
     "test:watch": "vitest watch test/integration/nuxt4-default.test.ts test/integration/nuxt4-compat5.test.ts",
     "test:integration": "vitest run test/integration/nuxt4-default.test.ts test/integration/nuxt4-compat5.test.ts",
+    "test:integration:postgres": "pnpm --filter @nuxt-laravelize/workflows-reliability test:postgres",
     "typecheck": "tsc --noEmit && pnpm -r --if-present run typecheck",
     "build:packages": "pnpm -r --filter './packages/**' --if-present run build",
     "test:packages": "pnpm -r --filter './packages/**' --if-present run test",

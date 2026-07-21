@@ -1438,6 +1438,21 @@ importers:
         specifier: workspace:^
         version: link:../workflows
     devDependencies:
+      '@nuxt-laravelize/database-drizzle':
+        specifier: workspace:^
+        version: link:../database-drizzle
+      '@nuxt-laravelize/reliability-drizzle':
+        specifier: workspace:^
+        version: link:../reliability-drizzle
+      '@nuxt-laravelize/workflows-drizzle':
+        specifier: workspace:^
+        version: link:../workflows-drizzle
+      drizzle-orm:
+        specifier: ^0.44.7
+        version: 0.44.7(@cloudflare/workers-types@4.20260702.1)(@libsql/client@0.17.4)(@opentelemetry/api@1.9.0)(better-sqlite3@12.11.1)(postgres@3.4.9)(sql.js@1.14.1)
+      postgres:
+        specifier: ^3.4.8
+        version: 3.4.9
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

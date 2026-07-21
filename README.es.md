@@ -193,6 +193,7 @@ Nuxt 4 gestiona actualmente su dependencia de Nitro 2. No instales Nitro 3 en un
 pnpm install
 pnpm build:packages   # construye todos los paquetes del workspace
 pnpm test:packages    # ejecuta los tests de los paquetes
+pnpm test:integration:postgres # prueba atomicidad workflow/outbox contra PostgreSQL
 pnpm typecheck        # comprueba tipos en la raiz y los paquetes
 pnpm lint             # ejecuta el lint del monorepo
 pnpm pack:test        # construye tarballs y ejecuta smoke tests

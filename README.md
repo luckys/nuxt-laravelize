@@ -193,6 +193,7 @@ Nuxt 4 currently owns its Nitro 2 dependency. Do not install Nitro 3 into a Nuxt
 pnpm install
 pnpm build:packages   # build every workspace package
 pnpm test:packages    # run package test suites
+pnpm test:integration:postgres # prove workflow/outbox atomicity against PostgreSQL
 pnpm typecheck        # type-check root and packages
 pnpm lint             # lint the monorepo
 pnpm pack:test        # build tarballs and run package smoke tests

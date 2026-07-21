@@ -18,3 +18,13 @@ Each newly created workflow receives an immediate wake-up. Claims receive a leas
 Register `createWorkflowWakeHandler(workflows)` for `workflowWakeMessageType` version `1` in the reliability queue handler registry. Recovery discovery remains necessary for dead-letter repair and operational reconciliation.
 
 Use `workflows.using(store.in(unitOfWork))` to atomically start a workflow inside an existing domain transaction without opening a nested transaction. Never wrap `processResult()` as one large transaction because workflow handlers may perform slow external effects between persisted boundaries.
+
+## PostgreSQL transaction proof
+
+Run the real-adapter integration suite against an isolated schema in an existing PostgreSQL database:
+
+```bash
+DATABASE_URL=postgresql://... pnpm test:integration:postgres
+```
+
+The target requires `DATABASE_URL` and never silently skips. It applies the workflow and reliability migrations in a unique temporary schema, then proves successful joint commit, rollback when outbox append fails, and rollback of domain, workflow, and outbox rows in a caller-owned transaction.
