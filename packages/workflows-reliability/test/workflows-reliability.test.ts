@@ -3,7 +3,7 @@ import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/r
 import type { MessageEnvelope, OutboxAppendOptions } from '@nuxt-laravelize/reliability'
 import { InMemoryReliabilityStore } from '@nuxt-laravelize/reliability/testing'
 import { defineStep, defineWorkflow, InMemoryWorkflowStore, type WorkflowSnapshot, type WorkflowStore, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
-import { createWorkflowWakeHandler, TransactionalWorkflowStore, WorkflowWakeReconciler, workflowWakeMessageType } from '../src/index.js'
+import { createWorkflowWakeHandler, TransactionalWorkflowStore, WorkflowWakeReconciler, WorkflowWakeReconciliationWorker, workflowWakeMessageType, type WorkflowWakeReconcileResult } from '../src/index.js'
 
 type Session = { store: InMemoryWorkflowStore }
 
@@ -184,5 +184,142 @@ describe('workflow wake reconciliation', () => {
       requestCancellation: (...args) => store.requestCancellation(...args),
     }
     await expect(new WorkflowWakeReconciler(basicStore, outbox).reconcileStore()).rejects.toThrow('does not support recovery discovery')
+  })
+})
+
+describe('workflow wake reconciliation worker', () => {
+  const result = (): WorkflowWakeReconcileResult => ({ scheduled: [], skipped: [], failed: [] })
+  const workerFor = (reconcileStore: () => Promise<WorkflowWakeReconcileResult>, options: ConstructorParameters<typeof WorkflowWakeReconciliationWorker>[1] = {}) => new WorkflowWakeReconciliationWorker({ reconcileStore } as unknown as WorkflowWakeReconciler, options)
+
+  it('coalesces overlapping reconciliation cycles', async () => {
+    let release!: (value: WorkflowWakeReconcileResult) => void
+    const reconcileStore = vi.fn(async () => result()).mockImplementationOnce(() => new Promise<WorkflowWakeReconcileResult>((resolve) => {
+      release = resolve
+    }))
+    const worker = workerFor(reconcileStore)
+
+    const first = worker.runOnce()
+    const second = worker.runOnce()
+    expect(first).toBe(second)
+    expect(reconcileStore).toHaveBeenCalledTimes(1)
+    release(result())
+    await first
+    await worker.runOnce()
+    expect(reconcileStore).toHaveBeenCalledTimes(2)
+  })
+
+  it('runs immediately and reports results until aborted', async () => {
+    const controller = new AbortController()
+    const onResult = vi.fn(() => controller.abort())
+    const reconcileStore = vi.fn(async () => result())
+    const worker = workerFor(reconcileStore, { intervalMs: 100, onResult })
+
+    await worker.run(controller.signal)
+
+    expect(reconcileStore).toHaveBeenCalledTimes(1)
+    expect(onResult).toHaveBeenCalledWith(result())
+  })
+
+  it('coalesces overlapping run loops', async () => {
+    const firstController = new AbortController()
+    const secondController = new AbortController()
+    let release!: (value: WorkflowWakeReconcileResult) => void
+    const reconcileStore = vi.fn(() => new Promise<WorkflowWakeReconcileResult>((resolve) => {
+      release = resolve
+    }))
+    const worker = workerFor(reconcileStore)
+
+    const first = worker.run(firstController.signal)
+    const second = worker.run(secondController.signal)
+    expect(first).toBe(second)
+    secondController.abort()
+    release(result())
+    await first
+    expect(reconcileStore).toHaveBeenCalledTimes(1)
+  })
+
+  it('waits for active reconciliation during shutdown', async () => {
+    let release!: (value: WorkflowWakeReconcileResult) => void
+    const worker = workerFor(() => new Promise<WorkflowWakeReconcileResult>((resolve) => {
+      release = resolve
+    }))
+    const running = worker.runOnce()
+    let stopped = false
+    const stopping = worker.stop().then(() => {
+      stopped = true
+    })
+
+    await Promise.resolve()
+    expect(stopped).toBe(false)
+    release(result())
+    await Promise.all([running, stopping])
+    await expect(worker.runOnce()).rejects.toBeDefined()
+  })
+
+  it('drains active work without waiting for the periodic loop', async () => {
+    const controller = new AbortController()
+    let release!: (value: WorkflowWakeReconcileResult) => void
+    const worker = workerFor(() => new Promise<WorkflowWakeReconcileResult>((resolve) => {
+      release = resolve
+    }))
+    const loop = worker.run(controller.signal)
+    let drained = false
+    const draining = worker.drain().then(() => {
+      drained = true
+    })
+
+    await Promise.resolve()
+    expect(drained).toBe(false)
+    release(result())
+    await draining
+    expect(drained).toBe(true)
+    controller.abort()
+    await loop
+  })
+
+  it('does not hide an active cycle failure during shutdown', async () => {
+    const controller = new AbortController()
+    let reject!: (error: Error) => void
+    const worker = workerFor(() => new Promise<WorkflowWakeReconcileResult>((_resolve, rejectCycle) => {
+      reject = rejectCycle
+    }))
+    const loop = worker.run(controller.signal)
+    controller.abort()
+    reject(new Error('scan failed during shutdown'))
+
+    await expect(loop).rejects.toThrow('scan failed during shutdown')
+  })
+
+  it('drains an overlapping cycle started while the loop sleeps', async () => {
+    const controller = new AbortController()
+    let reject!: (error: Error) => void
+    let firstCompleted!: () => void
+    const completed = new Promise<void>((resolve) => {
+      firstCompleted = resolve
+    })
+    const reconcileStore = vi.fn(async () => result()).mockImplementationOnce(async () => {
+      firstCompleted()
+      return result()
+    }).mockImplementationOnce(() => new Promise<WorkflowWakeReconcileResult>((_resolve, rejectCycle) => {
+      reject = rejectCycle
+    }))
+    const worker = workerFor(reconcileStore, { intervalMs: 10_000 })
+    const loop = worker.run(controller.signal)
+    await completed
+    await worker.drain()
+    const overlapping = worker.runOnce()
+    controller.abort()
+    reject(new Error('overlapping scan failed'))
+
+    await expect(loop).rejects.toThrow('overlapping scan failed')
+    await expect(overlapping).rejects.toThrow('overlapping scan failed')
+  })
+
+  it('validates intervals and propagates cycle errors', async () => {
+    expect(() => workerFor(async () => result(), { intervalMs: 0 })).toThrow('intervalMs must be an integer between 1 and 86400000')
+    const worker = workerFor(async () => {
+      throw new Error('discovery unavailable')
+    })
+    await expect(worker.run()).rejects.toThrow('discovery unavailable')
   })
 })

@@ -26,9 +26,18 @@ Run bounded reconciliation periodically to repair dead or operationally lost wak
 ```ts
 const reconciler = new WorkflowWakeReconciler(durableWorkflowStore, durableReliabilityStore)
 const result = await reconciler.reconcileStore({ pageSize: 100 })
+
+const worker = new WorkflowWakeReconciliationWorker(reconciler, {
+  intervalMs: 60_000,
+  reconcile: { pageSize: 100 },
+  onResult: result => metrics.record(result),
+})
+await worker.run(shutdownSignal)
 ```
 
 Recovery reloads authoritative workflow state and appends a wake scheduled after any active lease or business retry deadline. Unchanged workflows share one deterministic wake per 60-second generation, so repeated or concurrent scans remain bounded; configure `generationMs` to match the required recovery latency. A later generation uses a fresh ID and therefore never mutates or revives an old dead row. Per-workflow failures are reported without aborting later pages. Use `reconcile(ids)` when discovery comes from an application-owned index. A custom reconciler `idFactory` must remain deterministic for the supplied snapshot and generation to preserve deduplication.
+
+The worker runs one scan immediately and waits `intervalMs` after each completed scan. Overlapping `run()` and `runOnce()` calls are coalesced within the process. Abort interrupts the wait but not an active database scan; shutdown drains that scan. Per-workflow failures remain in `onResult`, while discovery or callback errors stop the loop. Multiple processes remain safe through deterministic wake IDs but still duplicate scans, so normally run one leader unless redundant scanning is intentional.
 
 Dedicated outbox workers must claim only workflow wake messages when the outbox contains other protocols:
 

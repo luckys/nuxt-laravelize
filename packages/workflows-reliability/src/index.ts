@@ -1,5 +1,5 @@
 import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
-import { createEnvelope, type MessageEnvelope, type MessageExecutionContext, type OutboxAppendOptions, type OutboxStore } from '@nuxt-laravelize/reliability'
+import { abortableSleep, createEnvelope, type MessageEnvelope, type MessageExecutionContext, type OutboxAppendOptions, type OutboxStore } from '@nuxt-laravelize/reliability'
 import { isRecoverableWorkflowStore, isWorkflowTerminal, isWorkflowWaiting, type WorkflowManager, type WorkflowRecoveryCursor, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
 
 export const workflowWakeMessageType = 'laravelize.workflow.wake.v1'
@@ -20,6 +20,11 @@ export interface WorkflowWakeReconcilerOptions {
   clock?: () => number
   generationMs?: number
   idFactory?: (snapshot: WorkflowSnapshot, generation: number) => string | Promise<string>
+}
+export interface WorkflowWakeReconciliationWorkerOptions {
+  intervalMs?: number
+  reconcile?: WorkflowWakeReconcileOptions
+  onResult?: (result: WorkflowWakeReconcileResult) => void | Promise<void>
 }
 
 export interface TransactionalOutboxAppender<Session> {
@@ -169,6 +174,77 @@ async function recoveryWakeId(snapshot: WorkflowSnapshot, generation: number): P
   const input = `${snapshot.id}\u0000${snapshot.revision}\u0000${generation}`
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
   return `workflow-wake-recovery:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`
+}
+
+export class WorkflowWakeReconciliationWorker {
+  readonly #controller = new AbortController()
+  readonly #intervalMs: number
+  readonly #reconcileOptions: WorkflowWakeReconcileOptions
+  readonly #abortListeners = new Map<AbortSignal, () => void>()
+  #running?: Promise<WorkflowWakeReconcileResult>
+  #loop?: Promise<void>
+
+  constructor(private readonly reconciler: WorkflowWakeReconciler, private readonly options: WorkflowWakeReconciliationWorkerOptions = {}) {
+    this.#intervalMs = options.intervalMs ?? 60_000
+    if (!Number.isSafeInteger(this.#intervalMs) || this.#intervalMs < 1 || this.#intervalMs > 86_400_000)
+      throw new TypeError('intervalMs must be an integer between 1 and 86400000')
+    this.#reconcileOptions = { ...options.reconcile }
+  }
+
+  runOnce(): Promise<WorkflowWakeReconcileResult> {
+    if (this.#controller.signal.aborted) return Promise.reject(this.#controller.signal.reason)
+    return this.#running ??= this.reconcile().finally(() => {
+      this.#running = undefined
+    })
+  }
+
+  run(signal?: AbortSignal): Promise<void> {
+    if (signal && !this.#abortListeners.has(signal)) {
+      const abort = () => this.#controller.abort(signal.reason)
+      this.#abortListeners.set(signal, abort)
+      signal.addEventListener('abort', abort, { once: true })
+      if (signal.aborted) abort()
+    }
+    return this.#loop ??= this.runLoop().finally(() => {
+      this.#loop = undefined
+      for (const [registered, abort] of this.#abortListeners) registered.removeEventListener('abort', abort)
+      this.#abortListeners.clear()
+    })
+  }
+
+  async stop(): Promise<void> {
+    this.#controller.abort()
+    try {
+      await this.#loop
+    }
+    finally {
+      await this.drain()
+    }
+  }
+
+  async drain(): Promise<void> {
+    await this.#running
+  }
+
+  private async reconcile(): Promise<WorkflowWakeReconcileResult> {
+    const result = await this.reconciler.reconcileStore(this.#reconcileOptions)
+    await this.options.onResult?.(result)
+    return result
+  }
+
+  private async runLoop(): Promise<void> {
+    while (!this.#controller.signal.aborted) {
+      await this.runOnce()
+      if (this.#controller.signal.aborted) break
+      try {
+        await abortableSleep(this.#intervalMs, this.#controller.signal)
+      }
+      catch (error) {
+        if (!this.#controller.signal.aborted) throw error
+      }
+    }
+    await this.#running
+  }
 }
 
 export function createWorkflowWakeHandler(manager: WorkflowManager): (message: MessageEnvelope) => Promise<void> {
