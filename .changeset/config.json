@@ -17,6 +17,7 @@
       "@nuxt-laravelize/execution-context-queue",
       "@nuxt-laravelize/cache",
       "@nuxt-laravelize/database",
+      "@nuxt-laravelize/database-drizzle",
       "@nuxt-laravelize/events",
       "@nuxt-laravelize/events-queue",
       "@nuxt-laravelize/encryption",
@@ -24,6 +25,7 @@
       "@nuxt-laravelize/filesystem-aws",
       "@nuxt-laravelize/filesystem-cloudflare",
       "@nuxt-laravelize/http",
+      "@nuxt-laravelize/idempotency",
       "@nuxt-laravelize/hashing",
       "@nuxt-laravelize/mail",
       "@nuxt-laravelize/notifications",
@@ -41,7 +43,8 @@
       "@nuxt-laravelize/scheduler",
       "@nuxt-laravelize/testing",
       "@nuxt-laravelize/validation",
-      "@nuxt-laravelize/webhooks"
+      "@nuxt-laravelize/webhooks",
+      "@nuxt-laravelize/workflows"
     ]
   ],
   "linked": [],

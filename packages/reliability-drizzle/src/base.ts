@@ -1,8 +1,9 @@
 import { sql, type SQL } from 'drizzle-orm'
 import { createEnvelope, sanitizeErrorSummary, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxStore, type StoredMessage } from '@nuxt-laravelize/reliability'
+import type { UnitOfWork } from '@nuxt-laravelize/database/runtime'
 
 export interface DrizzleReliabilityDatabase {
-  execute(query: SQL): Promise<unknown>
+  execute(query: SQL): unknown | PromiseLike<unknown>
 }
 type Row = Record<string, unknown>
 const rows = (result: unknown): Row[] => Array.isArray(result)
@@ -30,6 +31,10 @@ export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore
 
   async appendWith(database: DrizzleReliabilityDatabase, envelope: MessageEnvelope): Promise<void> {
     await database.execute(sql`insert into reliability_messages (kind, id, message_type, envelope, state, attempts, available_at) values ('outbox', ${envelope.id}, ${envelope.type}, ${JSON.stringify(envelope)}, 'pending', 0, ${envelope.occurredAt}) on conflict (kind, id) do nothing`)
+  }
+
+  async appendIn(unitOfWork: UnitOfWork<DrizzleReliabilityDatabase>, envelope: MessageEnvelope): Promise<void> {
+    await this.appendWith(unitOfWork.session, envelope)
   }
 
   async claim(options: ClaimOptions): Promise<StoredMessage[]>

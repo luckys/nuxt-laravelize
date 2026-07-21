@@ -914,6 +914,20 @@ La firma absoluta es el modo por defecto e incluye el origen. Para links indepen
 
 Las URLs firmadas son credenciales bearer y pueden reutilizarse. Usa expiraciones cortas para verificacion, invitaciones y acciones con cambios de estado; liga esas firmas al metodo HTTP con `sign(..., { method: 'POST' })` y `new ValidateSignature(signer, { bindMethod: true, requireExpiration: true })`. Exige HTTPS en un proxy confiable y usa storage de la aplicacion cuando un link deba ser de un solo uso.
 
+### Idempotencia HTTP
+
+`@nuxt-laravelize/idempotency` proporciona un middleware H3 opt-in y un contrato de store atomico para requests con mutaciones. El fingerprint incluye metodo, ruta y query canonicos, principal, content type y bytes exactos del request. Reutilizar una clave con otro fingerprint devuelve `409`; los leases activos se renuevan y un owner obsoleto no puede completar trabajo reclamado. Las respuestas completadas se reproducen con una allowlist de headers seguros. Los fallos se conservan por defecto porque reintentar tras un error ambiguo puede duplicar efectos ya confirmados.
+
+```ts
+import { createIdempotencyMiddleware } from '@nuxt-laravelize/idempotency/runtime'
+
+const idempotency = createIdempotencyMiddleware({
+  principal: event => event.context.user.id,
+})
+```
+
+El driver memory es volatil y debe habilitarse explicitamente. Despliegues cluster o serverless deben ligar un `IdempotencyStore` durable y atomico. Streaming y escrituras directas se rechazan porque no pueden reproducirse fielmente.
+
 Los nombres de query `signature` y `expires` estan reservados. La firma reemplaza `signature`; pasa `expiresAt` explicitamente para crear o reemplazar `expires`.
 
 ### Resources y paginacion
@@ -962,7 +976,7 @@ await gate.authorize('update-invoice', currentUser, invoice)
 
 ## Database
 
-`@nuxt-laravelize/database` proporciona factories y seeders independientes del ORM. Tu aplicacion proporciona los callbacks de persistencia.
+`@nuxt-laravelize/database` proporciona factories, seeders y contratos explicitos de transaccion/unit of work independientes del ORM. Tu aplicacion proporciona los callbacks de persistencia.
 
 ```bash
 pnpm add @nuxt-laravelize/database
@@ -1040,6 +1054,42 @@ pnpm exec laravelize-db-seed --class=database
 ```
 
 Omite `--class` para ejecutar todos los seeders registrados en el orden del registry.
+
+### Transacciones y unit of work
+
+```ts
+import { DrizzleTransactionManager } from '@nuxt-laravelize/database-drizzle'
+
+const transactions = new DrizzleTransactionManager(db)
+await transactions.transaction(async (unitOfWork) => {
+  await orders.save(unitOfWork.session, order)
+  await outbox.appendIn(unitOfWork, envelope)
+  unitOfWork.afterCommit(() => metrics.increment('orders.created'))
+})
+```
+
+Los repositorios reciben `unitOfWork.session` explicitamente para compartir la transaccion fisica entre cambios de dominio y outbox. Los hooks `afterCommit` solo se ejecutan despues de confirmar el commit; su fallo no puede revertirlo. Usa `DrizzleSyncTransactionManager` con drivers SQLite sincronicos: rechaza deliberadamente trabajo que devuelve Promise para impedir que escape de la transaccion nativa.
+
+## Workflows y sagas
+
+`@nuxt-laravelize/workflows` implementa workflows lineales persistidos con definiciones versionadas, leases con fencing, reintentos, intentos reanudables, cancelacion entre intentos y compensacion en orden inverso.
+
+```ts
+const fulfill = defineWorkflow({
+  name: 'orders.fulfill',
+  version: 1,
+  steps: [
+    defineStep({ name: 'reserve', run: reserve, compensate: release }),
+    defineStep({ name: 'charge', run: charge, compensate: refund }),
+  ],
+})
+
+registry.register(fulfill)
+const started = await workflows.start(fulfill, { orderId }, orderId)
+await workflows.run(started.id)
+```
+
+El store en memoria incluido es volatil y solo sirve para tests o desarrollo local. Los stores de produccion deben implementar fencing atomico de revision y lease. Steps y compensaciones se invocan at-least-once: pasa sus claves de idempotencia estables a sistemas externos que soporten deduplicacion.
 
 ## Testing
 

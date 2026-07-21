@@ -11,6 +11,21 @@ describe('drizzle reliability stores', () => {
       queryChunks: unknown[]
     }).queryChunks.length).toBeGreaterThan(1)
   })
+  it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('appends with the exact unit-of-work session', async (Store) => {
+    const session = { execute: vi.fn().mockResolvedValue({ rows: [] }) }
+    const store = new Store({ execute: vi.fn() })
+
+    await store.appendIn({ session, afterCommit: vi.fn() }, { version: 1, id: 'm-1', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null })
+
+    expect(session.execute).toHaveBeenCalledOnce()
+  })
+  it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('normalizes synchronous execute results', async (Store) => {
+    const execute = vi.fn(() => ({ rows: [] }))
+    const store = new Store({ execute })
+
+    await expect(store.append({ version: 1, id: 'm-sync', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null })).resolves.toBeUndefined()
+    expect(execute).toHaveBeenCalledOnce()
+  })
   it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('maps JSON text or JSONB objects, freezes them and marks itself durable', async (Store) => {
     const envelope = { version: 1 as const, id: 'm-1', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: { nested: true } }
     const database = { execute: vi.fn().mockResolvedValue({ rows: [{ envelope, state: 'processing', attempts: 1, available_at: envelope.occurredAt, lease_owner: 'worker', lease_token: 'claim:m-1', lease_until: new Date(1000).toISOString() }] }) }

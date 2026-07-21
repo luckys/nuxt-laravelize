@@ -925,6 +925,20 @@ Absolute signing is the default and includes the origin. For proxy-independent l
 
 Signed URLs are bearer credentials and are replayable. Use short expirations for verification, invitation and state-changing links; bind those signatures to the HTTP method with `sign(..., { method: 'POST' })` and `new ValidateSignature(signer, { bindMethod: true, requireExpiration: true })`. Enforce HTTPS at a trusted proxy and use application storage when a link must be single-use.
 
+### HTTP idempotency
+
+`@nuxt-laravelize/idempotency` provides an opt-in H3 middleware and an atomic store contract for mutating requests. It fingerprints the method, canonical route and query, principal, content type, and exact request bytes. Reusing a key with another fingerprint returns `409`; active leases are renewed and stale owners cannot complete reclaimed work. Completed responses are replayed with an allowlist of safe headers. Failures are retained by default because retrying after an ambiguous application error can duplicate committed side effects.
+
+```ts
+import { createIdempotencyMiddleware } from '@nuxt-laravelize/idempotency/runtime'
+
+const idempotency = createIdempotencyMiddleware({
+  principal: event => event.context.user.id,
+})
+```
+
+The memory driver is volatile and must be explicitly enabled. Clustered and serverless deployments must bind an atomic durable `IdempotencyStore`. Streaming and direct response writes are rejected because they cannot be replayed faithfully.
+
 The `signature` and `expires` query names are reserved. Signing replaces `signature`; pass `expiresAt` explicitly to create or replace `expires`.
 
 ### Resources and pagination
@@ -973,7 +987,7 @@ await gate.authorize('update-invoice', currentUser, invoice)
 
 ## Database
 
-`@nuxt-laravelize/database` provides ORM-neutral factories and seeders. Your application supplies persistence callbacks.
+`@nuxt-laravelize/database` provides ORM-neutral factories, seeders, and explicit transaction/unit-of-work contracts. Your application supplies persistence callbacks.
 
 ```bash
 pnpm add @nuxt-laravelize/database
@@ -1051,6 +1065,42 @@ pnpm exec laravelize-db-seed --class=database
 ```
 
 Omit `--class` to run every registered seeder in registry order.
+
+### Transactions and unit of work
+
+```ts
+import { DrizzleTransactionManager } from '@nuxt-laravelize/database-drizzle'
+
+const transactions = new DrizzleTransactionManager(db)
+await transactions.transaction(async (unitOfWork) => {
+  await orders.save(unitOfWork.session, order)
+  await outbox.appendIn(unitOfWork, envelope)
+  unitOfWork.afterCommit(() => metrics.increment('orders.created'))
+})
+```
+
+Repositories receive `unitOfWork.session` explicitly, so domain writes and outbox records can share the physical transaction. `afterCommit` hooks run only after a confirmed commit; a hook failure cannot roll the commit back. Use `DrizzleSyncTransactionManager` for synchronous SQLite drivers: it deliberately rejects Promise-returning work instead of allowing async work to escape the native transaction.
+
+## Workflows and sagas
+
+`@nuxt-laravelize/workflows` implements persisted, linear workflows with versioned definitions, fenced leases, retries, restart-safe attempts, cancellation between attempts, and reverse-order compensation.
+
+```ts
+const fulfill = defineWorkflow({
+  name: 'orders.fulfill',
+  version: 1,
+  steps: [
+    defineStep({ name: 'reserve', run: reserve, compensate: release }),
+    defineStep({ name: 'charge', run: charge, compensate: refund }),
+  ],
+})
+
+registry.register(fulfill)
+const started = await workflows.start(fulfill, { orderId }, orderId)
+await workflows.run(started.id)
+```
+
+The included in-memory store is volatile and intended for tests or local development. Production stores must implement atomic revision and lease fencing. Step and compensation handlers are at-least-once: pass their stable idempotency keys to external systems that support deduplication.
 
 ## Testing
 
