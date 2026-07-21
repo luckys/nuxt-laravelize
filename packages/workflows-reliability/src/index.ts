@@ -18,7 +18,8 @@ export interface WorkflowWakeReconcileResult {
 }
 export interface WorkflowWakeReconcilerOptions {
   clock?: () => number
-  idFactory?: () => string
+  generationMs?: number
+  idFactory?: (snapshot: WorkflowSnapshot, generation: number) => string | Promise<string>
 }
 
 export interface TransactionalOutboxAppender<Session> {
@@ -109,7 +110,8 @@ export class TransactionalWorkflowStore<Session> implements WorkflowStore {
 
 export class WorkflowWakeReconciler {
   private readonly clock: () => number
-  private readonly idFactory: () => string
+  private readonly generationMs: number
+  private readonly idFactory: (snapshot: WorkflowSnapshot, generation: number) => string | Promise<string>
 
   constructor(
     private readonly store: WorkflowStore,
@@ -117,7 +119,10 @@ export class WorkflowWakeReconciler {
     options: WorkflowWakeReconcilerOptions = {},
   ) {
     this.clock = options.clock ?? Date.now
-    this.idFactory = options.idFactory ?? (() => crypto.randomUUID())
+    this.generationMs = options.generationMs ?? 60_000
+    if (!Number.isSafeInteger(this.generationMs) || this.generationMs < 1 || this.generationMs > 86_400_000)
+      throw new TypeError('generationMs must be an integer between 1 and 86400000')
+    this.idFactory = options.idFactory ?? recoveryWakeId
   }
 
   async reconcile(workflowIds: Iterable<string> | AsyncIterable<string>): Promise<WorkflowWakeReconcileResult> {
@@ -131,9 +136,11 @@ export class WorkflowWakeReconciler {
           continue
         }
         const now = this.clock()
+        const generation = Math.floor(now / this.generationMs) * this.generationMs
         const retryAt = isWorkflowWaiting(snapshot) ? workflowNextRetryAt(snapshot) : null
-        const dueAt = snapshot.lease?.expiresAt ?? retryAt ?? now
-        await this.outbox.append(workflowWakeEnvelope(this.idFactory(), workflowId, now), { availableAt: timestamp(Math.max(now, dueAt), 'reconciliation.availableAt') })
+        const dueAt = snapshot.lease?.expiresAt ?? retryAt ?? generation
+        const availableAt = Math.max(generation, dueAt)
+        await this.outbox.append(workflowWakeEnvelope(await this.idFactory(snapshot, generation), workflowId, generation), { availableAt: timestamp(availableAt, 'reconciliation.availableAt') })
         result.scheduled.push(workflowId)
       }
       catch (error) { result.failed.push({ workflowId, error }) }
@@ -156,6 +163,12 @@ export class WorkflowWakeReconciler {
     } while (cursor)
     return result
   }
+}
+
+async function recoveryWakeId(snapshot: WorkflowSnapshot, generation: number): Promise<string> {
+  const input = `${snapshot.id}\u0000${snapshot.revision}\u0000${generation}`
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
+  return `workflow-wake-recovery:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`
 }
 
 export function createWorkflowWakeHandler(manager: WorkflowManager): (message: MessageEnvelope) => Promise<void> {

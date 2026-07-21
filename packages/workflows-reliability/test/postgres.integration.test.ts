@@ -109,4 +109,17 @@ describe('PostgreSQL transactional workflow wake-ups', () => {
     })
     expect(claimed.map(message => message.envelope.id)).toContain(fresh[0]!.id)
   })
+
+  it('deduplicates concurrent reconciliation for the same generation', async () => {
+    await setup('concurrent-recovery').manager.start(definition, {}, 'concurrent-recovery')
+    const workflowStore = new DrizzlePostgresWorkflowStore(database)
+    const reliabilityStore = new DrizzlePostgresReliabilityStore(database)
+    const reconcile = () => new WorkflowWakeReconciler(workflowStore, reliabilityStore, { clock: () => 150, generationMs: 100 }).reconcile(['concurrent-recovery'])
+
+    const results = await Promise.all([reconcile(), reconcile()])
+
+    expect(results.every(result => result.failed.length === 0)).toBe(true)
+    const wakes = await client`select id from reliability_messages where kind = 'outbox' and id <> 'wake-concurrent-recovery' and envelope -> 'payload' ->> 'workflowId' = 'concurrent-recovery'`
+    expect(wakes).toHaveLength(1)
+  })
 })

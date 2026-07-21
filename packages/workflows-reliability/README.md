@@ -28,7 +28,7 @@ const reconciler = new WorkflowWakeReconciler(durableWorkflowStore, durableRelia
 const result = await reconciler.reconcileStore({ pageSize: 100 })
 ```
 
-Recovery reloads authoritative workflow state and appends a fresh wake ID scheduled after any active lease or business retry deadline. It never mutates or revives the old dead row. Per-workflow failures are reported without aborting later pages. Use `reconcile(ids)` when discovery comes from an application-owned index.
+Recovery reloads authoritative workflow state and appends a wake scheduled after any active lease or business retry deadline. Unchanged workflows share one deterministic wake per 60-second generation, so repeated or concurrent scans remain bounded; configure `generationMs` to match the required recovery latency. A later generation uses a fresh ID and therefore never mutates or revives an old dead row. Per-workflow failures are reported without aborting later pages. Use `reconcile(ids)` when discovery comes from an application-owned index. A custom reconciler `idFactory` must remain deterministic for the supplied snapshot and generation to preserve deduplication.
 
 Dedicated outbox workers must claim only workflow wake messages when the outbox contains other protocols:
 

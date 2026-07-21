@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
 import type { MessageEnvelope, OutboxAppendOptions } from '@nuxt-laravelize/reliability'
+import { InMemoryReliabilityStore } from '@nuxt-laravelize/reliability/testing'
 import { defineStep, defineWorkflow, InMemoryWorkflowStore, type WorkflowSnapshot, type WorkflowStore, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
 import { createWorkflowWakeHandler, TransactionalWorkflowStore, WorkflowWakeReconciler, workflowWakeMessageType } from '../src/index.js'
 
@@ -93,6 +94,41 @@ describe('transactional workflow outbox', () => {
 })
 
 describe('workflow wake reconciliation', () => {
+  it('bounds duplicate wakes while allowing recovery in a later generation', async () => {
+    const store = new InMemoryWorkflowStore()
+    await store.create(snapshot('bounded'))
+    const outbox = new InMemoryReliabilityStore()
+    let now = 150
+    const reconciler = new WorkflowWakeReconciler(store, outbox, { clock: () => now, generationMs: 100 })
+
+    await reconciler.reconcile(['bounded'])
+    await reconciler.reconcile(['bounded'])
+    expect(outbox.records.size).toBe(1)
+
+    now = 250
+    await reconciler.reconcile(['bounded'])
+    expect(outbox.records.size).toBe(2)
+  })
+
+  it('creates a distinct wake when authoritative state changes within a generation', async () => {
+    const store = new InMemoryWorkflowStore()
+    await store.create(snapshot('changed'))
+    const outbox = new InMemoryReliabilityStore()
+    const reconciler = new WorkflowWakeReconciler(store, outbox, { clock: () => 150, generationMs: 100 })
+
+    await reconciler.reconcile(['changed'])
+    await store.requestCancellation('changed', 0, 160)
+    await reconciler.reconcile(['changed'])
+
+    expect(outbox.records.size).toBe(2)
+  })
+
+  it('rejects invalid recovery generations', () => {
+    const store = new InMemoryWorkflowStore()
+    const outbox = new InMemoryReliabilityStore()
+    expect(() => new WorkflowWakeReconciler(store, outbox, { generationMs: 0 })).toThrow('generationMs must be an integer between 1 and 86400000')
+  })
+
   it('schedules fresh wakes from authoritative retry and lease state', async () => {
     const store = new InMemoryWorkflowStore()
     const snapshots = [
@@ -113,7 +149,7 @@ describe('workflow wake reconciliation', () => {
     const result = await reconciler.reconcile(snapshots.map(value => value.id))
 
     expect(result).toEqual({ scheduled: ['pending', 'leased', 'expired', 'waiting', 'elapsed'], skipped: ['terminal'], failed: [] })
-    expect(appended.map(item => item.options?.availableAt)).toEqual([100, 150, 100, 175, 100].map(value => new Date(value).toISOString()))
+    expect(appended.map(item => item.options?.availableAt)).toEqual([0, 150, 90, 175, 80].map(value => new Date(value).toISOString()))
     expect(appended.map(item => item.envelope)).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'recovery-1', type: workflowWakeMessageType, payload: { workflowId: 'pending' } }),
     ]))
