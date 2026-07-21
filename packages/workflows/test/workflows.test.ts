@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { describe, expect, it, vi } from 'vitest'
-import { defineStep, defineWorkflow, InMemoryWorkflowStore, LeaseConflictError, StartKeyConflictError, WorkflowManager, WorkflowRegistry } from '../src'
-import type { Clock, WorkflowSnapshot } from '../src'
+import { defineStep, defineWorkflow, InMemoryWorkflowStore, LeaseConflictError, RevisionConflictError, StartKeyConflictError, WorkflowManager, WorkflowRegistry } from '../src'
+import type { Clock, WorkflowSnapshot, WorkflowStore } from '../src'
 
 class FakeClock implements Clock {
   constructor(public time = 0) {}
@@ -63,6 +63,40 @@ describe('WorkflowManager', () => {
     const done = await manager.process(started.id)
     expect(done).toMatchObject({ state: 'running', steps: [{ attempts: 2, state: 'committed' }] })
     expect((await manager.process(started.id)).state).toBe('completed')
+  })
+
+  it('reports terminal, waiting, processed, and contended outcomes', async () => {
+    const clock = new FakeClock(100)
+    const { manager, workflow, store } = setup([defineStep({ name: 'retry', maxAttempts: 2, run: () => { throw new Error('later') } })], { clock })
+    const started = await manager.start(workflow, {}, 'outcomes')
+    expect((await manager.processResult(started.id)).outcome).toBe('processed')
+    expect(await manager.processResult(started.id)).toMatchObject({ outcome: 'waiting', retryAt: 110 })
+    clock.time = 110
+    await manager.processResult(started.id)
+    expect((await manager.processResult(started.id)).outcome).toBe('terminal')
+
+    const other = await manager.start(workflow, {}, 'contended')
+    await store.claim(other.id, other.revision, 'other-worker', clock.time, clock.time + 100)
+    expect((await manager.processResult(other.id)).outcome).toBe('contended')
+  })
+
+  it.each([
+    ['terminal', { state: 'completed' }, { outcome: 'terminal' }],
+    ['waiting', { state: 'waiting_retry', steps: [{ ...snapshotFixture().steps[0]!, state: 'waiting_retry', retryAt: 321 }] }, { outcome: 'waiting', retryAt: 321 }],
+    ['contended', { state: 'running' }, { outcome: 'contended' }],
+  ] as const)('classifies an authoritative %s snapshot after a claim race', async (_label, change, expected) => {
+    const observed = snapshotFixture()
+    const authoritative = { ...observed, ...change, revision: 1 } as WorkflowSnapshot
+    let reads = 0
+    const store: WorkflowStore = {
+      get: async () => reads++ === 0 ? observed : authoritative,
+      claim: async () => { throw new RevisionConflictError() },
+      create: async () => { throw new Error('unused') },
+      commit: async () => { throw new Error('unused') },
+      requestCancellation: async () => { throw new Error('unused') },
+    }
+    const manager = new WorkflowManager(store, new WorkflowRegistry())
+    expect(await manager.processResult(observed.id)).toMatchObject(expected)
   })
 
   it('deduplicates canonical input and conflicts on changed input', async () => {

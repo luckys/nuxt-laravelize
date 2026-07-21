@@ -1118,6 +1118,21 @@ import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle
 const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
 ```
 
+### Queue scheduling
+
+`@nuxt-laravelize/workflows-queue` schedules one authoritative workflow transition per queue job. Payloads contain only the workflow ID; workers reload the store and claim by revision and lease. Business retry deadlines create delayed successor jobs, while queue retries are reserved for transport, store, and publication failures.
+
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/workflows-queue'],
+  laravelizeWorkflowsQueue: { queue: 'workflows', tries: 5, backoff: 5000 },
+})
+
+await useWorkflows(event).start(fulfill, { orderId }, orderId)
+```
+
+Bind `workflowStoreToken` to a durable store and register definitions through `workflowRegistryToken`. Deterministic revision-based job IDs optimize transport deduplication, but correctness relies on store fencing, so duplicate jobs remain harmless. Persistence and publication are separate operations: run a recovery scanner over non-terminal store IDs and call `reconcile(ids)`. This bridge does not claim transactional-outbox guarantees.
+
 ## Testing
 
 `@nuxt-laravelize/testing` aggregates the official fakes and mounts them in a sealed container.

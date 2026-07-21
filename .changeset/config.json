@@ -46,7 +46,8 @@
       "@nuxt-laravelize/validation",
       "@nuxt-laravelize/webhooks",
       "@nuxt-laravelize/workflows",
-      "@nuxt-laravelize/workflows-drizzle"
+      "@nuxt-laravelize/workflows-drizzle",
+      "@nuxt-laravelize/workflows-queue"
     ]
   ],
   "linked": [],

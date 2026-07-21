@@ -1107,6 +1107,21 @@ import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle
 const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
 ```
 
+### Scheduling por colas
+
+`@nuxt-laravelize/workflows-queue` agenda una transicion autoritativa por job. El payload solo contiene el ID; cada worker recarga el store y hace claim por revision y lease. Los deadlines de reintentos de negocio crean jobs sucesores diferidos, mientras los reintentos de cola quedan para fallos de transporte, store o publicacion.
+
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/workflows-queue'],
+  laravelizeWorkflowsQueue: { queue: 'workflows', tries: 5, backoff: 5000 },
+})
+
+await useWorkflows(event).start(fulfill, { orderId }, orderId)
+```
+
+Liga `workflowStoreToken` a un store durable y registra definiciones mediante `workflowRegistryToken`. Los IDs deterministas por revision solo optimizan deduplicacion del transporte; el fencing del store garantiza que jobs duplicados sean inocuos. Persistencia y publicacion son operaciones separadas: ejecuta un scanner sobre IDs no terminales y llama `reconcile(ids)`. Este bridge no promete outbox transaccional.
+
 ## Testing
 
 `@nuxt-laravelize/testing` agrega los fakes oficiales y los monta en un contenedor sellado.

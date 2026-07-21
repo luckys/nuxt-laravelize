@@ -50,6 +50,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/webhooks` | Node-only signed outgoing and idempotent incoming webhooks |
 | `@nuxt-laravelize/workflows` | Persisted linear workflows, retries, resumability, and saga compensation |
 | `@nuxt-laravelize/workflows-drizzle` | Durable PostgreSQL, SQLite, and Turso workflow stores |
+| `@nuxt-laravelize/workflows-queue` | Queue scheduling, delayed business retries, and workflow reconciliation |
 | `@nuxt-laravelize/nuxt` | Convenience preset with `nuxt-i18n-micro` integration |
 
 ## Installation
@@ -115,6 +116,7 @@ pnpm add @nuxt-laravelize/idempotency
 pnpm add @nuxt-laravelize/workflows
 pnpm add @nuxt-laravelize/idempotency @nuxt-laravelize/idempotency-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/workflows @nuxt-laravelize/workflows-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/workflows @nuxt-laravelize/workflows-queue @nuxt-laravelize/queue
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
 pnpm add -D @nuxt-laravelize/testing
@@ -137,6 +139,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/idempotency-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `@nuxt-laravelize/workflows` | Package root | - |
 | `@nuxt-laravelize/workflows-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `@nuxt-laravelize/workflows-queue` | `/runtime` | - |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |

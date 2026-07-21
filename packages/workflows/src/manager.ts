@@ -1,5 +1,6 @@
 import type { WorkflowRegistry } from './definition'
 import { LeaseConflictError, RevisionConflictError, type WorkflowStore } from './store'
+import { isWorkflowTerminal, isWorkflowWaiting, workflowNextRetryAt } from './state'
 /* eslint-disable @stylistic/max-statements-per-line */
 import type { Clock, JsonValue, RetrySchedule, WorkflowDefinition, WorkflowError, WorkflowSnapshot } from './types'
 
@@ -7,7 +8,11 @@ export interface WorkflowManagerOptions { clock?: Clock, retrySchedule?: RetrySc
 
 const systemClock: Clock = { now: () => Date.now() }
 const defaultRetry: RetrySchedule = attempt => Math.min(60_000, 1000 * 2 ** (attempt - 1))
-const terminal = new Set(['completed', 'failed', 'compensated', 'compensation_failed', 'cancelled'])
+export type WorkflowProcessResult
+  = | { outcome: 'processed', snapshot: WorkflowSnapshot }
+    | { outcome: 'waiting', snapshot: WorkflowSnapshot, retryAt: number }
+    | { outcome: 'terminal', snapshot: WorkflowSnapshot }
+    | { outcome: 'contended', snapshot: WorkflowSnapshot }
 
 export class WorkflowManager {
   private readonly clock: Clock
@@ -43,30 +48,39 @@ export class WorkflowManager {
 
   async cancel(id: string): Promise<WorkflowSnapshot> {
     const snapshot = await this.required(id)
-    if (terminal.has(snapshot.state) || snapshot.cancellationRequested) return snapshot
+    if (isWorkflowTerminal(snapshot) || snapshot.cancellationRequested) return snapshot
     return this.store.requestCancellation(id, snapshot.revision, this.clock.now())
   }
 
   /** Processes at most one handler attempt (plus its persisted boundaries). */
   async process(id: string): Promise<WorkflowSnapshot> {
+    return (await this.processResult(id)).snapshot
+  }
+
+  /** Processes at most one authoritative transition and reports why processing stopped. */
+  async processResult(id: string): Promise<WorkflowProcessResult> {
     const observed = await this.required(id)
-    if (terminal.has(observed.state)) return observed
+    if (isWorkflowTerminal(observed)) return { outcome: 'terminal', snapshot: observed }
     const now = this.clock.now()
-    if (isWaiting(observed) && nextRetryAt(observed)! > now) return observed
+    const retryAt = workflowNextRetryAt(observed)
+    if (isWorkflowWaiting(observed) && retryAt !== null && retryAt > now) return { outcome: 'waiting', snapshot: observed, retryAt }
     const token = this.tokenFactory()
     let claimed: WorkflowSnapshot
     try { claimed = await this.store.claim(id, observed.revision, token, now, now + this.leaseDurationMs) }
-    catch (error) { if (error instanceof RevisionConflictError || error instanceof LeaseConflictError) return this.required(id); throw error }
+    catch (error) {
+      if (error instanceof RevisionConflictError || error instanceof LeaseConflictError) return this.classifyClaimConflict(await this.required(id))
+      throw error
+    }
     const definition = this.registry.get(claimed.workflowName, claimed.workflowVersion)
-    return this.advance(claimed, definition, token)
+    return { outcome: 'processed', snapshot: await this.advance(claimed, definition, token) }
   }
 
   async run(id: string, maxTransitions = 100): Promise<WorkflowSnapshot> {
     let snapshot = await this.required(id)
-    for (let count = 0; count < maxTransitions && !terminal.has(snapshot.state); count++) {
+    for (let count = 0; count < maxTransitions && !isWorkflowTerminal(snapshot); count++) {
       const before = snapshot.revision
       snapshot = await this.process(id)
-      if (snapshot.revision === before || isWaiting(snapshot)) break
+      if (snapshot.revision === before || isWorkflowWaiting(snapshot)) break
     }
     return snapshot
   }
@@ -157,11 +171,16 @@ export class WorkflowManager {
   }
 
   private async required(id: string) { const snapshot = await this.store.get(id); if (!snapshot) throw new Error(`Workflow not found: ${id}`); return snapshot }
+
+  private classifyClaimConflict(snapshot: WorkflowSnapshot): WorkflowProcessResult {
+    if (isWorkflowTerminal(snapshot)) return { outcome: 'terminal', snapshot }
+    const retryAt = workflowNextRetryAt(snapshot)
+    if (isWorkflowWaiting(snapshot) && retryAt !== null) return { outcome: 'waiting', snapshot, retryAt }
+    return { outcome: 'contended', snapshot }
+  }
 }
 
 function isCompensating(snapshot: WorkflowSnapshot) { return snapshot.state === 'compensating' || snapshot.state === 'compensation_waiting_retry' }
-function isWaiting(snapshot: WorkflowSnapshot) { return snapshot.state === 'waiting_retry' || snapshot.state === 'compensation_waiting_retry' }
-function nextRetryAt(snapshot: WorkflowSnapshot) { return snapshot.steps.find(step => step.state === 'waiting_retry' || step.state === 'compensation_waiting_retry')?.retryAt }
 function serializeError(error: unknown): WorkflowError { return error instanceof Error ? { name: error.name, message: error.message } : { name: 'Error', message: String(error) } }
 
 export function canonicalize(value: JsonValue): string {
