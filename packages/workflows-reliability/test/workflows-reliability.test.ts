@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
 import type { MessageEnvelope, OutboxAppendOptions } from '@nuxt-laravelize/reliability'
-import { defineStep, defineWorkflow, InMemoryWorkflowStore, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
-import { createWorkflowWakeHandler, TransactionalWorkflowStore, workflowWakeMessageType } from '../src/index.js'
+import { defineStep, defineWorkflow, InMemoryWorkflowStore, type WorkflowSnapshot, type WorkflowStore, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
+import { createWorkflowWakeHandler, TransactionalWorkflowStore, WorkflowWakeReconciler, workflowWakeMessageType } from '../src/index.js'
 
 type Session = { store: InMemoryWorkflowStore }
 
@@ -18,6 +18,22 @@ function setup() {
   const store = new TransactionalWorkflowStore({ transactions, readStore: session.store, storeForSession: current => current.store, outbox, idFactory: () => `wake-${++message}` })
   return { appended, outbox, session, store, transactions, unitOfWork }
 }
+
+const snapshot = (id: string, overrides: Partial<WorkflowSnapshot> = {}): WorkflowSnapshot => ({
+  id,
+  workflowName: 'recovery',
+  workflowVersion: '1',
+  startKey: id,
+  canonicalInput: '{}',
+  input: {},
+  state: 'pending',
+  revision: 0,
+  steps: [{ name: 'work', state: 'pending', attempts: 0, compensationAttempts: 0, idempotencyKey: `${id}:work` }],
+  cancellationRequested: false,
+  createdAt: 0,
+  updatedAt: 0,
+  ...overrides,
+})
 
 describe('transactional workflow outbox', () => {
   it('writes a new workflow and immediate wake-up through one unit of work', async () => {
@@ -73,5 +89,64 @@ describe('transactional workflow outbox', () => {
     await handler({ version: 1, id: 'wake', type: workflowWakeMessageType, occurredAt: new Date(0).toISOString(), payload: { workflowId: 'workflow-1' } })
     expect(manager.processResult).toHaveBeenCalledWith('workflow-1')
     await expect(handler({ version: 1, id: 'bad', type: workflowWakeMessageType, occurredAt: new Date(0).toISOString(), payload: { workflowId: '', extra: true } })).rejects.toThrow(TypeError)
+  })
+})
+
+describe('workflow wake reconciliation', () => {
+  it('schedules fresh wakes from authoritative retry and lease state', async () => {
+    const store = new InMemoryWorkflowStore()
+    const snapshots = [
+      snapshot('pending'),
+      snapshot('leased', { lease: { token: 'active', expiresAt: 150 } }),
+      snapshot('expired', { lease: { token: 'expired', expiresAt: 90 } }),
+      snapshot('waiting', { state: 'waiting_retry', steps: [{ name: 'work', state: 'waiting_retry', attempts: 1, compensationAttempts: 0, idempotencyKey: 'waiting:work', retryAt: 175 }] }),
+      snapshot('elapsed', { state: 'waiting_retry', steps: [{ name: 'work', state: 'waiting_retry', attempts: 1, compensationAttempts: 0, idempotencyKey: 'elapsed:work', retryAt: 80 }] }),
+      snapshot('terminal', { state: 'completed' }),
+    ]
+    for (const value of snapshots) await store.create(value)
+    const appended: Array<{ envelope: MessageEnvelope, options?: OutboxAppendOptions }> = []
+    let id = 0
+    const reconciler = new WorkflowWakeReconciler(store, { append: async (envelope, options) => {
+      appended.push({ envelope, options })
+    } }, { clock: () => 100, idFactory: () => `recovery-${++id}` })
+
+    const result = await reconciler.reconcile(snapshots.map(value => value.id))
+
+    expect(result).toEqual({ scheduled: ['pending', 'leased', 'expired', 'waiting', 'elapsed'], skipped: ['terminal'], failed: [] })
+    expect(appended.map(item => item.options?.availableAt)).toEqual([100, 150, 100, 175, 100].map(value => new Date(value).toISOString()))
+    expect(appended.map(item => item.envelope)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'recovery-1', type: workflowWakeMessageType, payload: { workflowId: 'pending' } }),
+    ]))
+    expect(appended.every(item => Object.keys(item.envelope.payload as object).join() === 'workflowId')).toBe(true)
+  })
+
+  it('continues bounded discovery after per-workflow append failures', async () => {
+    const store = new InMemoryWorkflowStore()
+    for (const [index, id] of ['one', 'two', 'three'].entries()) await store.create(snapshot(id, { updatedAt: index + 1 }))
+    const discover = vi.spyOn(store, 'discoverRecoverable')
+    const reconciler = new WorkflowWakeReconciler(store, { append: async (envelope) => {
+      if ((envelope.payload as { workflowId: string }).workflowId === 'two') throw new Error('outbox unavailable')
+    } }, { clock: () => 10, idFactory: () => crypto.randomUUID() })
+
+    const result = await reconciler.reconcileStore({ pageSize: 1 })
+
+    expect(result.scheduled).toEqual(['one', 'three'])
+    expect(result.failed).toMatchObject([{ workflowId: 'two', error: { message: 'outbox unavailable' } }])
+    expect(discover.mock.calls.every(([query]) => query.updatedBefore === 10 && query.limit === 1)).toBe(true)
+  })
+
+  it('reports missing IDs and requires recovery discovery for store scans', async () => {
+    const store = new InMemoryWorkflowStore()
+    const outbox = { append: vi.fn(async () => {}) }
+    const reconciler = new WorkflowWakeReconciler(store, outbox)
+    expect(await reconciler.reconcile(['missing'])).toMatchObject({ failed: [{ workflowId: 'missing', error: { message: 'Workflow not found: missing' } }] })
+    const basicStore: WorkflowStore = {
+      create: value => store.create(value),
+      get: id => store.get(id),
+      claim: (...args) => store.claim(...args),
+      commit: (...args) => store.commit(...args),
+      requestCancellation: (...args) => store.requestCancellation(...args),
+    }
+    await expect(new WorkflowWakeReconciler(basicStore, outbox).reconcileStore()).rejects.toThrow('does not support recovery discovery')
   })
 })

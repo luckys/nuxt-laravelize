@@ -51,4 +51,12 @@ describe('drizzle reliability stores', () => {
     expect(Object.isFrozen(claimed[0]?.envelope.payload)).toBe(true)
     expect(store.durability).toBe('durable')
   })
+  it('normalizes PostgreSQL timestamp text returned by the driver', async () => {
+    const envelope = { version: 1 as const, id: 'postgres-time', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null }
+    const database = { execute: vi.fn().mockResolvedValue({ rows: [{ envelope, state: 'processing', attempts: 1, available_at: '1970-01-01 00:00:00.200+00', lease_owner: 'worker', lease_token: 'claim:postgres-time', lease_until: '1970-01-01 00:00:30.200+00' }] }) }
+
+    const claimed = await new DrizzlePostgresReliabilityStore(database).claim({ owner: 'worker', token: 'claim', limit: 1, now: envelope.occurredAt, leaseUntil: new Date(1000).toISOString() })
+
+    expect(claimed[0]).toMatchObject({ availableAt: new Date(200).toISOString(), leaseUntil: new Date(30_200).toISOString() })
+  })
 })

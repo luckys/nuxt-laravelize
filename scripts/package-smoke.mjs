@@ -235,7 +235,7 @@ runFixture('features', {
     '@nuxt-laravelize/webhooks/testing': ['WebhookTransportFake'],
     '@nuxt-laravelize/workflows': ['WorkflowManager', 'WorkflowRegistry', 'InMemoryWorkflowStore', 'defineWorkflow', 'defineStep', 'isRecoverableWorkflowStore'],
     '@nuxt-laravelize/workflows-drizzle': ['DrizzlePostgresWorkflowStore', 'DrizzleSQLiteWorkflowStore', 'TursoWorkflowStore'],
-    '@nuxt-laravelize/workflows-reliability': ['TransactionalWorkflowStore', 'createWorkflowWakeHandler', 'registerWorkflowWakeHandler', 'workflowWakeMessageType'],
+    '@nuxt-laravelize/workflows-reliability': ['TransactionalWorkflowStore', 'WorkflowWakeReconciler', 'createWorkflowWakeHandler', 'registerWorkflowWakeHandler', 'workflowWakeMessageType'],
     '@nuxt-laravelize/workflows-queue/runtime': ['WorkflowCoordinator', 'WorkflowJob', 'workflowCoordinatorToken', 'workflowRegistryToken', 'workflowStoreToken'],
   },
   workerBins: [

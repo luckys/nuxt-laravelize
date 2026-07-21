@@ -1,6 +1,6 @@
 import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
-import { createEnvelope, type MessageEnvelope, type MessageExecutionContext, type OutboxAppendOptions } from '@nuxt-laravelize/reliability'
-import { isWorkflowTerminal, isWorkflowWaiting, type WorkflowManager, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
+import { createEnvelope, type MessageEnvelope, type MessageExecutionContext, type OutboxAppendOptions, type OutboxStore } from '@nuxt-laravelize/reliability'
+import { isRecoverableWorkflowStore, isWorkflowTerminal, isWorkflowWaiting, type WorkflowManager, type WorkflowRecoveryCursor, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
 
 export const workflowWakeMessageType = 'laravelize.workflow.wake.v1'
 export type WorkflowWakePayload = { workflowId: string }
@@ -8,6 +8,17 @@ export type WorkflowWakeReason = 'start' | 'lease-expired' | 'transition' | 'can
 
 export interface WorkflowWakeHandlerRegistrar {
   register(type: string, version: number, handler: (message: MessageEnvelope, context: MessageExecutionContext) => void | Promise<void>): void
+}
+
+export interface WorkflowWakeReconcileOptions { pageSize?: number, updatedBefore?: number }
+export interface WorkflowWakeReconcileResult {
+  scheduled: string[]
+  skipped: string[]
+  failed: Array<{ workflowId: string, error: unknown }>
+}
+export interface WorkflowWakeReconcilerOptions {
+  clock?: () => number
+  idFactory?: () => string
 }
 
 export interface TransactionalOutboxAppender<Session> {
@@ -26,6 +37,13 @@ const timestamp = (epoch: number, name: string): string => {
   if (!Number.isSafeInteger(epoch) || Math.abs(epoch) > 8_640_000_000_000_000) throw new TypeError(`${name} is outside the supported Date range`)
   return new Date(epoch).toISOString()
 }
+
+const workflowWakeEnvelope = (id: string, workflowId: string, occurredAt: number): MessageEnvelope<WorkflowWakePayload> => createEnvelope({
+  id,
+  type: workflowWakeMessageType,
+  occurredAt: timestamp(occurredAt, 'occurredAt'),
+  payload: { workflowId },
+})
 
 export class TransactionalWorkflowStore<Session> implements WorkflowStore {
   private readonly idFactory: () => string
@@ -84,13 +102,59 @@ export class TransactionalWorkflowStore<Session> implements WorkflowStore {
   }
 
   private async append(unitOfWork: UnitOfWork<Session>, snapshot: WorkflowSnapshot, reason: WorkflowWakeReason, occurredAt: number, availableAt = occurredAt): Promise<void> {
-    const envelope = createEnvelope<WorkflowWakePayload>({
-      id: this.idFactory(),
-      type: workflowWakeMessageType,
-      occurredAt: timestamp(occurredAt, 'occurredAt'),
-      payload: { workflowId: snapshot.id },
-    })
+    const envelope = workflowWakeEnvelope(this.idFactory(), snapshot.id, occurredAt)
     await this.options.outbox.appendIn(unitOfWork, envelope, { availableAt: timestamp(availableAt, `${reason}.availableAt`) })
+  }
+}
+
+export class WorkflowWakeReconciler {
+  private readonly clock: () => number
+  private readonly idFactory: () => string
+
+  constructor(
+    private readonly store: WorkflowStore,
+    private readonly outbox: Pick<OutboxStore, 'append'>,
+    options: WorkflowWakeReconcilerOptions = {},
+  ) {
+    this.clock = options.clock ?? Date.now
+    this.idFactory = options.idFactory ?? (() => crypto.randomUUID())
+  }
+
+  async reconcile(workflowIds: Iterable<string> | AsyncIterable<string>): Promise<WorkflowWakeReconcileResult> {
+    const result: WorkflowWakeReconcileResult = { scheduled: [], skipped: [], failed: [] }
+    for await (const workflowId of workflowIds) {
+      try {
+        const snapshot = await this.store.get(workflowId)
+        if (!snapshot) throw new Error(`Workflow not found: ${workflowId}`)
+        if (isWorkflowTerminal(snapshot)) {
+          result.skipped.push(workflowId)
+          continue
+        }
+        const now = this.clock()
+        const retryAt = isWorkflowWaiting(snapshot) ? workflowNextRetryAt(snapshot) : null
+        const dueAt = snapshot.lease?.expiresAt ?? retryAt ?? now
+        await this.outbox.append(workflowWakeEnvelope(this.idFactory(), workflowId, now), { availableAt: timestamp(Math.max(now, dueAt), 'reconciliation.availableAt') })
+        result.scheduled.push(workflowId)
+      }
+      catch (error) { result.failed.push({ workflowId, error }) }
+    }
+    return result
+  }
+
+  async reconcileStore(options: WorkflowWakeReconcileOptions = {}): Promise<WorkflowWakeReconcileResult> {
+    if (!isRecoverableWorkflowStore(this.store)) throw new TypeError('Workflow store does not support recovery discovery')
+    const updatedBefore = options.updatedBefore ?? this.clock()
+    const result: WorkflowWakeReconcileResult = { scheduled: [], skipped: [], failed: [] }
+    let cursor: WorkflowRecoveryCursor | undefined
+    do {
+      const page = await this.store.discoverRecoverable({ updatedBefore, cursor, limit: options.pageSize })
+      const reconciled = await this.reconcile(page.workflowIds)
+      result.scheduled.push(...reconciled.scheduled)
+      result.skipped.push(...reconciled.skipped)
+      result.failed.push(...reconciled.failed)
+      cursor = page.nextCursor
+    } while (cursor)
+    return result
   }
 }
 

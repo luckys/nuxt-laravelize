@@ -7,7 +7,7 @@ import { DrizzleTransactionManager, type DrizzleAsyncTransactionSource } from '@
 import { DrizzlePostgresReliabilityStore, type DrizzleReliabilityDatabase } from '@nuxt-laravelize/reliability-drizzle'
 import { defineStep, defineWorkflow, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
 import { DrizzlePostgresWorkflowStore, type DrizzlePostgresWorkflowDatabase } from '@nuxt-laravelize/workflows-drizzle'
-import { TransactionalWorkflowStore, type TransactionalOutboxAppender, workflowWakeMessageType } from '../src/index.js'
+import { TransactionalWorkflowStore, type TransactionalOutboxAppender, WorkflowWakeReconciler, workflowWakeMessageType } from '../src/index.js'
 
 const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) throw new Error('DATABASE_URL is required for the PostgreSQL integration test')
@@ -82,5 +82,31 @@ describe('PostgreSQL transactional workflow wake-ups', () => {
     expect(await client`select id from domain_markers where id = 'domain-rollback'`).toHaveLength(0)
     expect(await client`select id from workflows where id = 'domain-rollback'`).toHaveLength(0)
     expect(await client`select id from reliability_messages where id = 'wake-domain-rollback'`).toHaveLength(0)
+  })
+
+  it('preserves a dead wake and appends a fresh recoverable wake', async () => {
+    await setup('reconciled').manager.start(definition, {}, 'reconciled')
+    await client`update reliability_messages set state = 'dead', last_error = 'forced dead wake' where kind = 'outbox' and id = 'wake-reconciled'`
+    const workflowStore = new DrizzlePostgresWorkflowStore(database)
+    const reliabilityStore = new DrizzlePostgresReliabilityStore(database)
+    let recoveryId = 0
+    const reconciler = new WorkflowWakeReconciler(workflowStore, reliabilityStore, { clock: () => 200, idFactory: () => `wake-recovery-${++recoveryId}` })
+
+    const result = await reconciler.reconcileStore({ pageSize: 1 })
+    expect(result.scheduled).toContain('reconciled')
+    expect(result.failed).toEqual([])
+    const original = await client`select id, state from reliability_messages where id = 'wake-reconciled'`
+    const fresh = await client`select id, state, envelope from reliability_messages where kind = 'outbox' and id <> 'wake-reconciled' and envelope -> 'payload' ->> 'workflowId' = 'reconciled'`
+    expect(original).toMatchObject([{ id: 'wake-reconciled', state: 'dead' }])
+    expect(fresh).toMatchObject([{ state: 'pending', envelope: { type: workflowWakeMessageType, payload: { workflowId: 'reconciled' } } }])
+    const claimed = await reliabilityStore.claim({
+      owner: 'recovery-proof',
+      token: 'recovery-token',
+      limit: 10,
+      now: new Date(200).toISOString(),
+      leaseUntil: new Date(30_200).toISOString(),
+      types: [workflowWakeMessageType],
+    })
+    expect(claimed.map(message => message.envelope.id)).toContain(fresh[0]!.id)
   })
 })

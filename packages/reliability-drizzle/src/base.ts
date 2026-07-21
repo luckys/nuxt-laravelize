@@ -26,7 +26,11 @@ const canonicalIso = (value: string, name: string): string => {
   if (!Number.isFinite(parsed) || new Date(parsed).toISOString() !== value) throw new TypeError(`${name} must be a canonical ISO timestamp`)
   return value
 }
-const persistedIso = (value: unknown, name: string): string => canonicalIso(value instanceof Date ? value.toISOString() : String(value), name)
+const persistedIso = (value: unknown, name: string): string => {
+  const parsed = value instanceof Date ? value.getTime() : Date.parse(String(value))
+  if (!Number.isFinite(parsed)) throw new TypeError(`${name} must be a valid timestamp`)
+  return new Date(parsed).toISOString()
+}
 const stored = (row: Row): StoredMessage => ({ envelope: readEnvelope(row.envelope), state: String(row.state) as StoredMessage['state'], attempts: Number(row.attempts), availableAt: persistedIso(row.available_at, 'availableAt'), ...(row.lease_owner ? { leaseOwner: String(row.lease_owner) } : {}), ...(row.lease_token ? { leaseToken: String(row.lease_token) } : {}), ...(row.lease_until ? { leaseUntil: persistedIso(row.lease_until, 'leaseUntil') } : {}), ...(row.last_error ? { lastError: String(row.last_error) } : {}) })
 export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore {
   readonly durability = 'durable' as const

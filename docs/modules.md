@@ -1140,9 +1140,13 @@ registerWorkflowWakeHandler(reliableHandlers, workflows)
 
 The registration helper owns the wake-up message type and version while accepting any structurally compatible reliability registry; it does not couple workflow persistence to a queue transport. Creation emits an immediate wake-up. Every claim records a fallback at lease expiry, released non-terminal commits emit at once or at their retry deadline, and cancellation emits immediately. Commits that retain the lease and terminal states emit nothing. Payloads contain only `workflowId`; repeated delivery reloads authoritative workflow state and remains harmless under revision and lease fencing.
 
-To join an existing domain transaction, call `workflows.using(workflowStore.in(unitOfWork)).start(...)`. This writes domain state, workflow state, and outbox wake-up together without opening a nested transaction. Never wrap all of `processResult()` in one transaction: handlers may perform slow external effects between the engine's persisted boundaries. External effects remain at least once and still require their stable idempotency keys. Recovery discovery remains the repair path for dead outbox messages and operational reconciliation.
+To join an existing domain transaction, call `workflows.using(workflowStore.in(unitOfWork)).start(...)`. This writes domain state, workflow state, and outbox wake-up together without opening a nested transaction. Never wrap all of `processResult()` in one transaction: handlers may perform slow external effects between the engine's persisted boundaries. External effects remain at least once and still require their stable idempotency keys.
 
-Run `DATABASE_URL=postgresql://... pnpm test:integration:postgres` to execute the required real-PostgreSQL proof in an isolated temporary schema. It verifies joint commit, rollback on outbox failure, and caller-owned rollback across domain, workflow, and outbox rows. The target fails when `DATABASE_URL` is absent rather than silently skipping.
+Run `new WorkflowWakeReconciler(durableWorkflowStore, durableReliabilityStore).reconcileStore({ pageSize: 100 })` periodically to repair dead or operationally lost wake-ups. The bounded scan reloads authoritative state and appends a fresh wake ID after any active lease or business retry deadline; it never revives or mutates the old dead row. Use `reconcile(ids)` with an application-owned index. Per-workflow failures are returned without aborting later pages.
+
+When the same outbox contains other protocols, configure the dedicated `OutboxProcessor` with `types: [workflowWakeMessageType]`. Type-filtered claiming prevents a workflow queue delivery adapter from racing webhook or unrelated message workers.
+
+Run `DATABASE_URL=postgresql://... pnpm test:integration:postgres` to execute the required real-PostgreSQL proof in an isolated temporary schema. It verifies joint commit, rollback on outbox failure, caller-owned rollback across domain, workflow, and outbox rows, and fresh recovery while retaining the dead row. The target fails when `DATABASE_URL` is absent rather than silently skipping.
 
 ### Queue scheduling
 
