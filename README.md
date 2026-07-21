@@ -11,6 +11,9 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/audit` | Secure append-only audit recording enriched by execution context |
 | `@nuxt-laravelize/audit-drizzle` | Optional PostgreSQL, SQLite, and Turso/libSQL audit stores |
 | `@nuxt-laravelize/ai-sdk` | Opt-in named AI model connections, typed agents, streaming, and testing |
+| `@nuxt-laravelize/agent-sdk` | Opt-in runtime-neutral agent invocation, dispatch, observation, and testing |
+| `@nuxt-laravelize/agents-cloudflare` | Cloudflare Agents 0.17.x adapter with native identity and API escape hatches |
+| `@nuxt-laravelize/agents-flue` | Flue beta.9 adapter for conversations, workflow runs, and opaque offsets |
 | `@nuxt-laravelize/broadcasting` | Server-side public, private, and presence channel broadcasting |
 | `@nuxt-laravelize/broadcasting-pusher` | Optional server-side Pusher Channels adapter |
 | `@nuxt-laravelize/cache` | Portable cache contract, TTL operations, atomic locks, counters, memoization, and in-memory driver |
@@ -116,6 +119,9 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/audit` | `/runtime`, `/runtime/server` | `/testing` |
 | `@nuxt-laravelize/audit-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `@nuxt-laravelize/ai-sdk` | `/runtime`, `/runtime/server` | `/testing` |
+| `@nuxt-laravelize/agent-sdk` | `/runtime`, `/runtime/server` | `/testing` |
+| `@nuxt-laravelize/agents-cloudflare` | Package root | - |
+| `@nuxt-laravelize/agents-flue` | Package root | - |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |

@@ -460,6 +460,12 @@ Genera con `await useAi(event).generate({ prompt })`, o devuelve `useAi(event).s
 
 Las opciones especificas del provider pasan sin cambios. Las capacidades se consideran habilitadas salvo que la conexion las desactive. El paquete no registra, audita, cachea ni persiste prompts o respuestas automaticamente porque pueden contener credenciales, datos personales o informacion regulada.
 
+## Agent SDK
+
+`@nuxt-laravelize/agent-sdk` es una API comun opt-in separada para runtimes de agentes con estado. Registra runtimes nombrados en el contenedor existente y expone `useAgentRuntime(event)`, definiciones tipadas con `defineAgent()`, `invoke` sincrono, receipts de `dispatch` asincrono y streams `observe` iterables. Resultados, receipts, eventos, offsets y clientes conservan escapes `native`. Las capacidades distinguen streams de eventos, conversaciones y estado JSON, sin fingir que son el mismo modelo.
+
+`@nuxt-laravelize/agents-cloudflare` usa RPC callable de Cloudflare Agents 0.17.x y conserva clase e identidad Durable Object. `@nuxt-laravelize/agents-flue` separa conversaciones de agentes y runs de workflows con paquetes `1.0.0-beta.9` fijados; sus offsets siguen opacos. Ninguno de los tres paquetes forma parte del preset. Guarda credenciales en runtime config privado y autoriza identidades antes de invocar.
+
 ## Auditoria
 
 `@nuxt-laravelize/audit` esta incluido en el preset y expone `useAudit(event)`. El registro es explicito. El recorder genera ID y fecha y enriquece actor, tenant, ejecucion, correlacion, causacion, source y trace desde el contexto confiable; el caller no puede reemplazarlos.
