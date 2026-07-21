@@ -74,6 +74,15 @@ describe('WorkflowManager', () => {
     expect(calls).toEqual(['one', 'two'])
   })
 
+  it('rebinds a store without losing manager factories or registry', async () => {
+    const clock = new FakeClock(42)
+    const { manager, workflow } = setup([defineStep({ name: 'one', run: () => null })], { clock, ids: ['configured-id'] })
+    const reboundStore = new InMemoryWorkflowStore()
+    const started = await manager.using(reboundStore).start(workflow, {}, 'rebound')
+    expect(started).toMatchObject({ id: 'configured-id', createdAt: 42 })
+    expect(await reboundStore.get(started.id)).toEqual(started)
+  })
+
   it('waits for deterministic retry deadlines and persists attempts', async () => {
     const clock = new FakeClock(100)
     const run = vi.fn().mockRejectedValueOnce(new Error('temporary')).mockResolvedValue('ok')

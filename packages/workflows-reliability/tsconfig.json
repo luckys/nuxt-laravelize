@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.base.json","compilerOptions":{"declaration":true,"noEmit":true,"baseUrl":".","paths":{"@nuxt-laravelize/database/runtime":["../database/src/public-runtime.ts"],"@nuxt-laravelize/reliability":["../reliability/src/index.ts"],"@nuxt-laravelize/workflows":["../workflows/src/index.ts"]}},"include":["src","test","build.config.ts"]}

@@ -50,6 +50,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/webhooks` | Webhooks salientes firmados y entrantes idempotentes, solo para Node |
 | `@nuxt-laravelize/workflows` | Workflows lineales persistidos, reintentos, reanudacion, discovery de recuperacion y compensacion saga |
 | `@nuxt-laravelize/workflows-drizzle` | Stores durables de workflows para PostgreSQL, SQLite y Turso |
+| `@nuxt-laravelize/workflows-reliability` | Wake-ups transaccionales de workflows mediante el outbox durable |
 | `@nuxt-laravelize/workflows-queue` | Scheduling por colas, reintentos diferidos y reconciliacion desde el store |
 | `@nuxt-laravelize/nuxt` | Preset conveniente con integracion de `nuxt-i18n-micro` |
 
@@ -116,6 +117,7 @@ pnpm add @nuxt-laravelize/idempotency
 pnpm add @nuxt-laravelize/workflows
 pnpm add @nuxt-laravelize/idempotency @nuxt-laravelize/idempotency-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/workflows @nuxt-laravelize/workflows-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/workflows-reliability @nuxt-laravelize/reliability @nuxt-laravelize/database
 pnpm add @nuxt-laravelize/workflows @nuxt-laravelize/workflows-queue @nuxt-laravelize/queue
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
@@ -139,6 +141,7 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/idempotency-drizzle` | Raiz, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `@nuxt-laravelize/workflows` | Raiz del paquete | - |
 | `@nuxt-laravelize/workflows-drizzle` | Raiz, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `@nuxt-laravelize/workflows-reliability` | Raiz del paquete | - |
 | `@nuxt-laravelize/workflows-queue` | `/runtime` | - |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |

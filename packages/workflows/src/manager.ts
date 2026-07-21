@@ -29,6 +29,17 @@ export class WorkflowManager {
     this.tokenFactory = options.tokenFactory ?? (() => crypto.randomUUID())
   }
 
+  /** Rebinds persistence while retaining this manager's registry and execution policy. */
+  using(store: WorkflowStore): WorkflowManager {
+    return new WorkflowManager(store, this.registry, {
+      clock: this.clock,
+      retrySchedule: this.retrySchedule,
+      leaseDurationMs: this.leaseDurationMs,
+      idFactory: this.idFactory,
+      tokenFactory: this.tokenFactory,
+    })
+  }
+
   async start<I extends JsonValue>(reference: WorkflowDefinition<I>, input: I, startKey: string): Promise<WorkflowSnapshot> {
     if (!startKey) throw new TypeError('A non-empty start key is required')
     assertJsonSafe(input)

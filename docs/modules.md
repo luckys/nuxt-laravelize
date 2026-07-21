@@ -1122,6 +1122,26 @@ import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle
 const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
 ```
 
+### Transactional outbox wake-ups
+
+`@nuxt-laravelize/workflows-reliability` atomically records each workflow mutation and its future wake-up in the reliability outbox. Atomicity requires the workflow adapter, outbox adapter, and `TransactionManager` to use the same physical database transaction and connection.
+
+```ts
+const workflowStore = new TransactionalWorkflowStore({
+  transactions,
+  readStore: new DrizzlePostgresWorkflowStore(db),
+  storeForSession: tx => new DrizzlePostgresWorkflowStore(tx),
+  outbox: new DrizzlePostgresReliabilityStore(db),
+})
+
+const workflows = new WorkflowManager(workflowStore, registry)
+reliableHandlers.register(workflowWakeMessageType, 1, createWorkflowWakeHandler(workflows))
+```
+
+Creation emits an immediate wake-up. Every claim records a fallback at lease expiry, released non-terminal commits emit at once or at their retry deadline, and cancellation emits immediately. Commits that retain the lease and terminal states emit nothing. Payloads contain only `workflowId`; repeated delivery reloads authoritative workflow state and remains harmless under revision and lease fencing.
+
+To join an existing domain transaction, call `workflows.using(workflowStore.in(unitOfWork)).start(...)`. This writes domain state, workflow state, and outbox wake-up together without opening a nested transaction. Never wrap all of `processResult()` in one transaction: handlers may perform slow external effects between the engine's persisted boundaries. External effects remain at least once and still require their stable idempotency keys. Recovery discovery remains the repair path for dead outbox messages and operational reconciliation.
+
 ### Queue scheduling
 
 `@nuxt-laravelize/workflows-queue` schedules one authoritative workflow transition per queue job. Payloads contain only the workflow ID; workers reload the store and claim by revision and lease. Business retry deadlines create delayed successor jobs, while queue retries are reserved for transport, store, and publication failures.
@@ -1226,6 +1246,10 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 | `testing` | package root | package root |
 | `scheduler` | package root, `/nitro3` | - |
 | `webhooks` | package root | `/testing` |
+| `workflows` | package root | - |
+| `workflows-drizzle` | package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `workflows-reliability` | package root | - |
+| `workflows-queue` | package root, `/runtime` | - |
 | `nuxt` | package root | - |
 ## Execution Context
 

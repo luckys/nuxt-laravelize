@@ -47,6 +47,7 @@
       "@nuxt-laravelize/webhooks",
       "@nuxt-laravelize/workflows",
       "@nuxt-laravelize/workflows-drizzle",
+      "@nuxt-laravelize/workflows-reliability",
       "@nuxt-laravelize/workflows-queue"
     ]
   ],

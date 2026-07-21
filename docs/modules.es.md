@@ -1111,6 +1111,26 @@ import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle
 const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
 ```
 
+### Wake-ups transaccionales por outbox
+
+`@nuxt-laravelize/workflows-reliability` registra atomicamente cada mutacion del workflow y su wake-up futuro en el outbox de reliability. La atomicidad requiere que el adapter de workflow, el adapter outbox y `TransactionManager` usen la misma transaccion fisica y conexion de base de datos.
+
+```ts
+const workflowStore = new TransactionalWorkflowStore({
+  transactions,
+  readStore: new DrizzlePostgresWorkflowStore(db),
+  storeForSession: tx => new DrizzlePostgresWorkflowStore(tx),
+  outbox: new DrizzlePostgresReliabilityStore(db),
+})
+
+const workflows = new WorkflowManager(workflowStore, registry)
+reliableHandlers.register(workflowWakeMessageType, 1, createWorkflowWakeHandler(workflows))
+```
+
+La creacion emite un wake-up inmediato. Cada claim registra un fallback al expirar el lease, los commits no terminales que liberan lease emiten de inmediato o en su deadline de retry, y la cancelacion emite inmediatamente. Los commits que retienen lease y los estados terminales no emiten. El payload solo contiene `workflowId`; entregas repetidas recargan el estado autoritativo y son inocuas gracias al fencing de revision y lease.
+
+Para unirte a una transaccion de dominio existente, llama `workflows.using(workflowStore.in(unitOfWork)).start(...)`. Asi estado de dominio, workflow y wake-up outbox se escriben juntos sin abrir una transaccion anidada. Nunca envuelvas todo `processResult()` en una transaccion: los handlers pueden ejecutar efectos externos lentos entre limites persistidos. Esos efectos siguen siendo at-least-once y requieren sus claves de idempotencia estables. Recovery discovery permanece como reparacion para mensajes outbox dead y reconciliacion operacional.
+
 ### Scheduling por colas
 
 `@nuxt-laravelize/workflows-queue` agenda una transicion autoritativa por job. El payload solo contiene el ID; cada worker recarga el store y hace claim por revision y lease. Los deadlines de reintentos de negocio crean jobs sucesores diferidos, mientras los reintentos de cola quedan para fallos de transporte, store o publicacion.
@@ -1215,6 +1235,10 @@ Combina `compiled` con una configuracion Nitro 3 standalone. El soporte real de 
 | `testing` | raiz del paquete | raiz del paquete |
 | `scheduler` | raiz del paquete, `/nitro3` | - |
 | `webhooks` | raiz del paquete | `/testing` |
+| `workflows` | raiz del paquete | - |
+| `workflows-drizzle` | raiz del paquete, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `workflows-reliability` | raiz del paquete | - |
+| `workflows-queue` | raiz del paquete, `/runtime` | - |
 | `nuxt` | raiz del paquete | - |
 ## Contexto de ejecucion
 
