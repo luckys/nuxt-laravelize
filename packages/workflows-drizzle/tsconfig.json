@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.base.json","compilerOptions":{"declaration":true,"noEmit":true,"baseUrl":".","paths":{"@nuxt-laravelize/workflows":["../workflows/src/index.ts"]}},"include":["src","test","build.config.ts","vitest.config.ts"]}

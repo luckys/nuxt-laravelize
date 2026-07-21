@@ -939,6 +939,14 @@ const idempotency = createIdempotencyMiddleware({
 
 The memory driver is volatile and must be explicitly enabled. Clustered and serverless deployments must bind an atomic durable `IdempotencyStore`. Streaming and direct response writes are rejected because they cannot be replayed faithfully.
 
+For durable storage, `@nuxt-laravelize/idempotency-drizzle` provides PostgreSQL, SQLite, and Turso adapters plus schemas and explicit migrations. PostgreSQL accepts Drizzle's `execute(SQL)` boundary; SQLite/Turso accept `all(SQL)` so conditional `UPSERT/UPDATE ... RETURNING` statements return the fenced row. Apply exactly one matching migration before binding the store token.
+
+```ts
+import { DrizzlePostgresIdempotencyStore } from '@nuxt-laravelize/idempotency-drizzle/postgres'
+
+container.singleton(idempotencyStoreToken, () => new DrizzlePostgresIdempotencyStore(db))
+```
+
 The `signature` and `expires` query names are reserved. Signing replaces `signature`; pass `expiresAt` explicitly to create or replace `expires`.
 
 ### Resources and pagination
@@ -1101,6 +1109,14 @@ await workflows.run(started.id)
 ```
 
 The included in-memory store is volatile and intended for tests or local development. Production stores must implement atomic revision and lease fencing. Step and compensation handlers are at-least-once: pass their stable idempotency keys to external systems that support deduplication.
+
+`@nuxt-laravelize/workflows-drizzle` supplies durable PostgreSQL, SQLite, and Turso stores. Workflow identity and canonical input are immutable; relational revision, cancellation and lease columns override serialized snapshots during hydration. Claims and commits are conditional row-returning statements, and stale or expired owners are fenced before state can be persisted.
+
+```ts
+import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'
+
+const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
+```
 
 ## Testing
 

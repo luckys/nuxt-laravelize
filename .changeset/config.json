@@ -26,6 +26,7 @@
       "@nuxt-laravelize/filesystem-cloudflare",
       "@nuxt-laravelize/http",
       "@nuxt-laravelize/idempotency",
+      "@nuxt-laravelize/idempotency-drizzle",
       "@nuxt-laravelize/hashing",
       "@nuxt-laravelize/mail",
       "@nuxt-laravelize/notifications",
@@ -44,7 +45,8 @@
       "@nuxt-laravelize/testing",
       "@nuxt-laravelize/validation",
       "@nuxt-laravelize/webhooks",
-      "@nuxt-laravelize/workflows"
+      "@nuxt-laravelize/workflows",
+      "@nuxt-laravelize/workflows-drizzle"
     ]
   ],
   "linked": [],

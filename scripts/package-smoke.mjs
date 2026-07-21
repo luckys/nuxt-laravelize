@@ -26,6 +26,7 @@ const packageNames = [
   'filesystem-cloudflare',
   'http',
   'idempotency',
+  'idempotency-drizzle',
   'hashing',
   'mail',
   'notifications',
@@ -45,6 +46,7 @@ const packageNames = [
   'validation',
   'webhooks',
   'workflows',
+  'workflows-drizzle',
 ]
 
 const tarballDirectory = resolve('.pack')
@@ -151,6 +153,10 @@ runFixture('features', {
   '@nuxt-laravelize/http/runtime',
   '@nuxt-laravelize/idempotency',
   '@nuxt-laravelize/idempotency/runtime',
+  '@nuxt-laravelize/idempotency-drizzle',
+  '@nuxt-laravelize/idempotency-drizzle/postgres',
+  '@nuxt-laravelize/idempotency-drizzle/sqlite',
+  '@nuxt-laravelize/idempotency-drizzle/turso',
   '@nuxt-laravelize/hashing/runtime',
   '@nuxt-laravelize/database/runtime',
   '@nuxt-laravelize/testing',
@@ -159,6 +165,10 @@ runFixture('features', {
   '@nuxt-laravelize/webhooks',
   '@nuxt-laravelize/webhooks/testing',
   '@nuxt-laravelize/workflows',
+  '@nuxt-laravelize/workflows-drizzle',
+  '@nuxt-laravelize/workflows-drizzle/postgres',
+  '@nuxt-laravelize/workflows-drizzle/sqlite',
+  '@nuxt-laravelize/workflows-drizzle/turso',
 ], ['@nuxt-laravelize/scheduler', 'nitro'], {
   requiredExports: {
     '@nuxt-laravelize/agent-sdk/runtime': ['AgentRuntimeRegistry', 'AgentSdkClient', 'agentClientToken', 'agentRuntimesToken', 'defineAgent'],
@@ -213,11 +223,13 @@ runFixture('features', {
     '@nuxt-laravelize/scout-drizzle/turso': ['TursoLibSQLSearchEngine', 'registerTursoDriver'],
     '@nuxt-laravelize/http/runtime': ['Policy', 'DefaultPolicyRegistry', 'policyRegistryToken', 'discoverPoliciesByConvention', 'HmacUrlSigner', 'ValidateSignature', 'urlSignerToken'],
     '@nuxt-laravelize/idempotency/runtime': ['IdempotencyMiddleware', 'InMemoryIdempotencyStore', 'createIdempotencyMiddleware', 'idempotencyStoreToken'],
+    '@nuxt-laravelize/idempotency-drizzle': ['DrizzlePostgresIdempotencyStore', 'DrizzleSQLiteIdempotencyStore', 'TursoIdempotencyStore'],
     '@nuxt-laravelize/hashing/runtime': ['Pbkdf2Hasher', 'hasherToken'],
     '@nuxt-laravelize/validation/runtime': ['ErrorBag', 'ValidationError', 'Validator', 'validatorToken'],
     '@nuxt-laravelize/webhooks': ['OutgoingWebhookProcessor', 'WebhookInboxReceiver', 'assertSafeWebhookUrl', 'signWebhook', 'verifyWebhook'],
     '@nuxt-laravelize/webhooks/testing': ['WebhookTransportFake'],
     '@nuxt-laravelize/workflows': ['WorkflowManager', 'WorkflowRegistry', 'InMemoryWorkflowStore', 'defineWorkflow', 'defineStep'],
+    '@nuxt-laravelize/workflows-drizzle': ['DrizzlePostgresWorkflowStore', 'DrizzleSQLiteWorkflowStore', 'TursoWorkflowStore'],
   },
   workerBins: [
     ['@nuxt-laravelize/reliability', 'dist/bin/outbox-work.mjs'],
@@ -233,7 +245,7 @@ runFixture('preset-default', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/agent-sdk', '@nuxt-laravelize/agents-cloudflare', '@nuxt-laravelize/agents-flue', '@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/database-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/idempotency', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', '@nuxt-laravelize/workflows', 'agents', '@flue/runtime', '@flue/sdk', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/agent-sdk', '@nuxt-laravelize/agents-cloudflare', '@nuxt-laravelize/agents-flue', '@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/database-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/idempotency', '@nuxt-laravelize/idempotency-drizzle', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', '@nuxt-laravelize/workflows', '@nuxt-laravelize/workflows-drizzle', 'agents', '@flue/runtime', '@flue/sdk', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
 })
@@ -245,7 +257,7 @@ runFixture('preset-compat5', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/agent-sdk', '@nuxt-laravelize/agents-cloudflare', '@nuxt-laravelize/agents-flue', '@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/database-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/idempotency', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', '@nuxt-laravelize/workflows', 'agents', '@flue/runtime', '@flue/sdk', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/agent-sdk', '@nuxt-laravelize/agents-cloudflare', '@nuxt-laravelize/agents-flue', '@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/database-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/idempotency', '@nuxt-laravelize/idempotency-drizzle', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', '@nuxt-laravelize/workflows', '@nuxt-laravelize/workflows-drizzle', 'agents', '@flue/runtime', '@flue/sdk', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
   compatibilityVersion: 5,

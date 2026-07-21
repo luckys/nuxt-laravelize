@@ -43,11 +43,13 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/database` | Factories y seeders independientes del ORM |
 | `@nuxt-laravelize/database-drizzle` | Adapters explicitos de transacciones Drizzle sync y async |
 | `@nuxt-laravelize/idempotency` | Idempotencia HTTP con leases, conflictos de fingerprint y replay |
+| `@nuxt-laravelize/idempotency-drizzle` | Stores durables de idempotencia para PostgreSQL, SQLite y Turso |
 | `@nuxt-laravelize/testing` | Test harness agregado y fakes |
 | `@nuxt-laravelize/validation` | Validacion Standard Schema, resultados tipados y error bags |
 | `@nuxt-laravelize/scheduler` | Schedules independientes del framework y adapter Nitro 3 explicito |
 | `@nuxt-laravelize/webhooks` | Webhooks salientes firmados y entrantes idempotentes, solo para Node |
 | `@nuxt-laravelize/workflows` | Workflows lineales persistidos, reintentos, reanudacion y compensacion saga |
+| `@nuxt-laravelize/workflows-drizzle` | Stores durables de workflows para PostgreSQL, SQLite y Turso |
 | `@nuxt-laravelize/nuxt` | Preset conveniente con integracion de `nuxt-i18n-micro` |
 
 ## Instalacion
@@ -111,6 +113,8 @@ pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/reliability-drizzle drizz
 pnpm add @nuxt-laravelize/database @nuxt-laravelize/database-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/idempotency
 pnpm add @nuxt-laravelize/workflows
+pnpm add @nuxt-laravelize/idempotency @nuxt-laravelize/idempotency-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/workflows @nuxt-laravelize/workflows-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
 pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
 pnpm add -D @nuxt-laravelize/testing
@@ -130,7 +134,9 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/agents-flue` | Raiz del paquete | - |
 | `@nuxt-laravelize/database-drizzle` | Raiz del paquete | - |
 | `@nuxt-laravelize/idempotency` | `/runtime` | - |
+| `@nuxt-laravelize/idempotency-drizzle` | Raiz, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `@nuxt-laravelize/workflows` | Raiz del paquete | - |
+| `@nuxt-laravelize/workflows-drizzle` | Raiz, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |

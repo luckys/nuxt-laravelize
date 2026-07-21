@@ -928,6 +928,14 @@ const idempotency = createIdempotencyMiddleware({
 
 El driver memory es volatil y debe habilitarse explicitamente. Despliegues cluster o serverless deben ligar un `IdempotencyStore` durable y atomico. Streaming y escrituras directas se rechazan porque no pueden reproducirse fielmente.
 
+Para almacenamiento durable, `@nuxt-laravelize/idempotency-drizzle` proporciona adapters PostgreSQL, SQLite y Turso, schemas y migraciones explicitas. PostgreSQL acepta el boundary `execute(SQL)` de Drizzle; SQLite/Turso aceptan `all(SQL)` para que las sentencias condicionales `UPSERT/UPDATE ... RETURNING` devuelvan la fila protegida. Aplica exactamente una migracion compatible antes de ligar el token del store.
+
+```ts
+import { DrizzlePostgresIdempotencyStore } from '@nuxt-laravelize/idempotency-drizzle/postgres'
+
+container.singleton(idempotencyStoreToken, () => new DrizzlePostgresIdempotencyStore(db))
+```
+
 Los nombres de query `signature` y `expires` estan reservados. La firma reemplaza `signature`; pasa `expiresAt` explicitamente para crear o reemplazar `expires`.
 
 ### Resources y paginacion
@@ -1090,6 +1098,14 @@ await workflows.run(started.id)
 ```
 
 El store en memoria incluido es volatil y solo sirve para tests o desarrollo local. Los stores de produccion deben implementar fencing atomico de revision y lease. Steps y compensaciones se invocan at-least-once: pasa sus claves de idempotencia estables a sistemas externos que soporten deduplicacion.
+
+`@nuxt-laravelize/workflows-drizzle` proporciona stores durables para PostgreSQL, SQLite y Turso. La identidad e input canonico del workflow son inmutables; las columnas relacionales de revision, cancelacion y lease prevalecen sobre el snapshot serializado al hidratar. Claims y commits usan sentencias condicionales que devuelven la fila, impidiendo que owners obsoletos o expirados persistan estado.
+
+```ts
+import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'
+
+const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
+```
 
 ## Testing
 
