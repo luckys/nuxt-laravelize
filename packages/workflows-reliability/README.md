@@ -39,6 +39,8 @@ Recovery reloads authoritative workflow state and appends a wake scheduled after
 
 The worker runs one scan immediately and waits `intervalMs` after each completed scan. Overlapping `run()` and `runOnce()` calls are coalesced within the process. Abort interrupts the wait but not an active database scan; shutdown drains that scan. Per-workflow failures remain in `onResult`, while discovery or callback errors stop the loop. Multiple processes remain safe through deterministic wake IDs but still duplicate scans, so normally run one leader unless redundant scanning is intentional.
 
+Run it as a supervised process with `workflow-wake-reconcile --config ./workflow-wake-reconciliation.config.js`, or add `--once` for cron. The ESM config must default-export `{ worker, close? }`, where `worker` is configured above and `close` releases resources after active work drains. Without `--config`, the command loads `workflow-wake-reconciliation.config.js` from the current directory. `SIGINT` and `SIGTERM` trigger graceful shutdown once. Per-workflow failures remain observable through `onResult`; configuration, discovery, callback, drain, and cleanup errors produce a non-zero exit.
+
 Dedicated outbox workers must claim only workflow wake messages when the outbox contains other protocols:
 
 ```ts

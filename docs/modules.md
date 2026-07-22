@@ -1146,6 +1146,8 @@ Run `new WorkflowWakeReconciler(durableWorkflowStore, durableReliabilityStore).r
 
 For a long-lived process, `new WorkflowWakeReconciliationWorker(reconciler, { intervalMs: 60_000, reconcile: { pageSize: 100 }, onResult })` runs immediately and then waits after each completed scan. It coalesces overlapping local calls and drains an active scan on abort. Per-workflow failures are reported through `onResult`; discovery and callback errors stop the loop. Deterministic IDs keep multiple processes safe, although a single leader avoids redundant scans.
 
+Deploy it with `workflow-wake-reconcile --config ./workflow-wake-reconciliation.config.js`, or add `--once` for cron. The ESM config must default-export `{ worker, close? }`; `close` runs only after active reconciliation drains. The default config path is `workflow-wake-reconciliation.config.js` in the current directory. Signals trigger one graceful shutdown, while configuration, discovery, callback, drain, and cleanup errors exit non-zero.
+
 When the same outbox contains other protocols, configure the dedicated `OutboxProcessor` with `types: [workflowWakeMessageType]`. Type-filtered claiming prevents a workflow queue delivery adapter from racing webhook or unrelated message workers.
 
 Run `DATABASE_URL=postgresql://... pnpm test:integration:postgres` to execute the required real-PostgreSQL proof in an isolated temporary schema. It verifies joint commit, rollback on outbox failure, caller-owned rollback across domain, workflow, and outbox rows, and fresh recovery while retaining the dead row. The target fails when `DATABASE_URL` is absent rather than silently skipping.

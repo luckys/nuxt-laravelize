@@ -74,6 +74,7 @@ const featureDependencies = Object.fromEntries(Object.entries(dependencies).filt
 verifyTarballBin('reliability', 'dist/bin/outbox-work.mjs')
 verifyTarballBin('webhooks', 'dist/bin/webhook-work.mjs')
 verifyTarballBin('queue-bullmq', 'dist/bin/queue-work.mjs')
+verifyTarballBin('workflows-reliability', 'dist/bin/workflow-wake-reconcile.mjs')
 
 runFixture('features', {
   ...featureDependencies,
@@ -236,13 +237,16 @@ runFixture('features', {
     '@nuxt-laravelize/workflows': ['WorkflowManager', 'WorkflowRegistry', 'InMemoryWorkflowStore', 'defineWorkflow', 'defineStep', 'isRecoverableWorkflowStore'],
     '@nuxt-laravelize/workflows-drizzle': ['DrizzlePostgresWorkflowStore', 'DrizzleSQLiteWorkflowStore', 'TursoWorkflowStore'],
     '@nuxt-laravelize/workflows-reliability': ['TransactionalWorkflowStore', 'WorkflowWakeReconciler', 'WorkflowWakeReconciliationWorker', 'createWorkflowWakeHandler', 'registerWorkflowWakeHandler', 'workflowWakeMessageType'],
+    '@nuxt-laravelize/workflows-reliability/cli': ['parseWorkflowWakeReconciliationArgs', 'runWorkflowWakeReconciliationCli', 'WORKFLOW_WAKE_RECONCILIATION_HELP'],
     '@nuxt-laravelize/workflows-queue/runtime': ['WorkflowCoordinator', 'WorkflowJob', 'workflowCoordinatorToken', 'workflowRegistryToken', 'workflowStoreToken'],
   },
   workerBins: [
     ['@nuxt-laravelize/reliability', 'dist/bin/outbox-work.mjs'],
     ['@nuxt-laravelize/webhooks', 'dist/bin/webhook-work.mjs'],
     ['@nuxt-laravelize/queue-bullmq', 'dist/bin/queue-work.mjs'],
+    ['@nuxt-laravelize/workflows-reliability', 'dist/bin/workflow-wake-reconcile.mjs'],
   ],
+  workflowWakeCli: true,
 })
 
 runFixture('preset-default', {
@@ -468,6 +472,24 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
     execFileSync(process.execPath, ['smoke.mjs'], { cwd: fixture, stdio: 'inherit' })
     for (const [packageName, bin] of options.workerBins ?? []) {
       execFileSync(process.execPath, [join(fixture, 'node_modules', ...packageName.split('/'), bin), '--help'], { cwd: fixture, stdio: 'inherit' })
+    }
+    if (options.workflowWakeCli) {
+      const marker = join(fixture, 'workflow-wake-cli.marker')
+      const config = join(fixture, 'workflow-wake-reconciliation.config.mjs')
+      writeFileSync(config, [
+        'import { appendFileSync } from \'node:fs\'',
+        `const marker = ${JSON.stringify(marker)}`,
+        'export default {',
+        '  worker: {',
+        '    async runOnce() { appendFileSync(marker, \'run\\n\') },',
+        '    async run() {}, async stop() {}, async drain() {},',
+        '  },',
+        '  close() { appendFileSync(marker, \'close\\n\') },',
+        '}',
+        '',
+      ].join('\n'))
+      execFileSync(process.execPath, [join(fixture, 'node_modules', '@nuxt-laravelize', 'workflows-reliability', 'dist/bin/workflow-wake-reconcile.mjs'), '--once', '--config', config], { cwd: fixture, stdio: 'inherit' })
+      if (readFileSync(marker, 'utf8') !== 'run\nclose\n') throw new Error('workflow wake CLI did not run and close from the packed install')
     }
     if (options.buildNuxt) {
       execFileSync('pnpm', ['exec', 'nuxt', 'typecheck'], { cwd: fixture, stdio: 'inherit' })
