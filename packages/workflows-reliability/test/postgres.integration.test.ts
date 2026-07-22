@@ -5,6 +5,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { DrizzleTransactionManager, type DrizzleAsyncTransactionSource } from '@nuxt-laravelize/database-drizzle'
 import { DrizzlePostgresReliabilityStore, type DrizzleReliabilityDatabase } from '@nuxt-laravelize/reliability-drizzle'
+import { createEnvelope } from '@nuxt-laravelize/reliability'
 import { defineStep, defineWorkflow, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
 import { DrizzlePostgresWorkflowStore, type DrizzlePostgresWorkflowDatabase } from '@nuxt-laravelize/workflows-drizzle'
 import { TransactionalWorkflowStore, type TransactionalOutboxAppender, WorkflowWakeReconciler, workflowWakeMessageType } from '../src/index.js'
@@ -20,6 +21,7 @@ const migrations = [
   new URL('../../workflows-drizzle/migrations/0000_workflows_postgres.sql', import.meta.url),
   new URL('../../reliability-drizzle/migrations/0000_reliability_postgres.sql', import.meta.url),
   new URL('../../reliability-drizzle/migrations/0002_reliability_append_availability_postgres.sql', import.meta.url),
+  new URL('../../reliability-drizzle/migrations/0004_reliability_terminal_at_postgres.sql', import.meta.url),
 ]
 
 const definition = defineWorkflow({ name: 'postgres-proof', version: '1', steps: [defineStep({ name: 'work', run: () => null })] })
@@ -121,5 +123,29 @@ describe('PostgreSQL transactional workflow wake-ups', () => {
     expect(results.every(result => result.failed.length === 0)).toBe(true)
     const wakes = await client`select id from reliability_messages where kind = 'outbox' and id <> 'wake-concurrent-recovery' and envelope -> 'payload' ->> 'workflowId' = 'concurrent-recovery'`
     expect(wakes).toHaveLength(1)
+  })
+
+  it('prunes only old delivered workflow wakes', async () => {
+    const store = new DrizzlePostgresReliabilityStore(database)
+    const append = async (id: string, type = workflowWakeMessageType) => store.append(createEnvelope({ id, type, occurredAt: new Date(0).toISOString(), payload: type === workflowWakeMessageType ? { workflowId: id } : null }))
+    await append('prune-delivered')
+    await append('prune-dead')
+    await append('prune-pending')
+    await append('prune-other', 'other.retention.v1')
+    const finish = async (id: string, state: 'delivered' | 'dead') => {
+      const excluded = (await client`select id from reliability_messages where kind = 'outbox' and id <> ${id}`).map(row => String(row.id))
+      const [claimed] = await store.claim({ owner: 'retention', token: id, limit: 1, now: new Date(0).toISOString(), leaseUntil: new Date(1000).toISOString(), excludeIds: excluded })
+      if (state === 'delivered') await store.delivered('outbox', id, claimed!.leaseToken!, new Date(100).toISOString())
+      else await store.dead('outbox', id, claimed!.leaseToken!, new Date(100).toISOString(), 'preserve evidence')
+    }
+    await finish('prune-delivered', 'delivered')
+    await finish('prune-dead', 'dead')
+    await finish('prune-other', 'delivered')
+
+    const result = await store.prune({ namespace: 'outbox', completedBefore: new Date(200).toISOString(), states: ['delivered'], types: [workflowWakeMessageType], limit: 10 })
+
+    expect(result).toEqual({ deleted: 1, hasMore: false })
+    const retained = await client`select id from reliability_messages where id in ('prune-delivered', 'prune-dead', 'prune-pending', 'prune-other') order by id`
+    expect(retained.map(row => row.id)).toEqual(['prune-dead', 'prune-other', 'prune-pending'])
   })
 })

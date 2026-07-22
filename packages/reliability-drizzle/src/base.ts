@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm'
-import { canonicalizeEnvelope, createEnvelope, OutboxMessageConflictError, sanitizeErrorSummary, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxAppendOptions, type OutboxStore, type StoredMessage } from '@nuxt-laravelize/reliability'
+import { canonicalizeEnvelope, createEnvelope, normalizeReliabilityPruneOptions, OutboxMessageConflictError, sanitizeErrorSummary, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxAppendOptions, type OutboxStore, type PrunableReliabilityStore, type ReliabilityPruneOptions, type ReliabilityPruneResult, type StoredMessage } from '@nuxt-laravelize/reliability'
 import type { UnitOfWork } from '@nuxt-laravelize/database/runtime'
 
 export interface DrizzleReliabilityDatabase {
@@ -32,7 +32,7 @@ const persistedIso = (value: unknown, name: string): string => {
   return new Date(parsed).toISOString()
 }
 const stored = (row: Row): StoredMessage => ({ envelope: readEnvelope(row.envelope), state: String(row.state) as StoredMessage['state'], attempts: Number(row.attempts), availableAt: persistedIso(row.available_at, 'availableAt'), ...(row.lease_owner ? { leaseOwner: String(row.lease_owner) } : {}), ...(row.lease_token ? { leaseToken: String(row.lease_token) } : {}), ...(row.lease_until ? { leaseUntil: persistedIso(row.lease_until, 'leaseUntil') } : {}), ...(row.last_error ? { lastError: String(row.last_error) } : {}) })
-export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore {
+export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore, PrunableReliabilityStore {
   readonly durability = 'durable' as const
   constructor(protected readonly database: DrizzleReliabilityDatabase) { }
   async append(envelope: MessageEnvelope, options?: OutboxAppendOptions): Promise<void> {
@@ -88,7 +88,7 @@ export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore
   }
 
   async delivered(namespace: MessageNamespace, id: string, token: string, now: string) {
-    await this.transition(namespace, id, token, now, sql`state = 'delivered', lease_owner = null, lease_token = null, lease_until = null`)
+    await this.transition(namespace, id, token, now, sql`state = 'delivered', terminal_at = ${canonicalIso(now, 'now')}, lease_owner = null, lease_token = null, lease_until = null`)
   }
 
   async renew(namespace: MessageNamespace, id: string, token: string, now: string, leaseUntil: string) {
@@ -96,11 +96,20 @@ export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore
   }
 
   async retry(namespace: MessageNamespace, id: string, token: string, now: string, availableAt: string, error: string) {
-    await this.transition(namespace, id, token, now, sql`state = 'pending', available_at = ${availableAt}, last_error = ${sanitizeErrorSummary(error)}, lease_owner = null, lease_token = null, lease_until = null`)
+    await this.transition(namespace, id, token, now, sql`state = 'pending', terminal_at = null, available_at = ${availableAt}, last_error = ${sanitizeErrorSummary(error)}, lease_owner = null, lease_token = null, lease_until = null`)
   }
 
   async dead(namespace: MessageNamespace, id: string, token: string, now: string, error: string) {
-    await this.transition(namespace, id, token, now, sql`state = 'dead', last_error = ${sanitizeErrorSummary(error)}, lease_owner = null, lease_token = null, lease_until = null`)
+    await this.transition(namespace, id, token, now, sql`state = 'dead', terminal_at = ${canonicalIso(now, 'now')}, last_error = ${sanitizeErrorSummary(error)}, lease_owner = null, lease_token = null, lease_until = null`)
+  }
+
+  async prune(options: ReliabilityPruneOptions): Promise<ReliabilityPruneResult> {
+    const o = normalizeReliabilityPruneOptions(options)
+    const states = sql`state in (${sql.join(o.states.map(state => sql`${state}`), sql`, `)})`
+    const types = o.types ? sql`and message_type in (${sql.join(o.types.map(type => sql`${type}`), sql`, `)})` : sql``
+    const deleted = rows(await this.database.execute(sql`delete from reliability_messages where kind = ${o.namespace} and id in (select id from reliability_messages where kind = ${o.namespace} and ${states} and terminal_at < ${o.completedBefore} ${types} order by terminal_at, id limit ${o.limit}) returning id`)).length
+    const remaining = rows(await this.database.execute(sql`select id from reliability_messages where kind = ${o.namespace} and ${states} and terminal_at < ${o.completedBefore} ${types} limit 1`)).length > 0
+    return { deleted, hasMore: remaining }
   }
 
   private async transition(namespace: MessageNamespace, id: string, token: string, now: string, values: SQL) {

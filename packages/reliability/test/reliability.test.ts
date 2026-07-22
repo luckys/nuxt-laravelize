@@ -214,6 +214,34 @@ describe('reliability', () => {
   it('redacts sensitive error summaries', () => {
     expect(sanitizeErrorSummary('POST https://secret.example token=abc123\nfailed')).toBe('POST [url] token=[redacted] failed')
   })
+  it('prunes only bounded terminal messages selected by namespace, state, type, and cutoff', async () => {
+    const store = new InMemoryReliabilityStore()
+    const terminal = async (id: string, type: string, state: 'delivered' | 'dead', at: number) => {
+      await store.append(createEnvelope({ id, type, occurredAt: new Date(0).toISOString(), payload: null }))
+      const [claimed] = await store.claim({ owner: 'worker', token: id, limit: 1, now: new Date(0).toISOString(), leaseUntil: new Date(1000).toISOString() })
+      if (state === 'delivered') await store.delivered('outbox', id, claimed!.leaseToken!, new Date(at).toISOString())
+      else await store.dead('outbox', id, claimed!.leaseToken!, new Date(at).toISOString(), 'failed')
+    }
+    await terminal('old-1', 'workflow.wake.v1', 'delivered', 100)
+    await terminal('old-2', 'workflow.wake.v1', 'delivered', 110)
+    await terminal('recent', 'workflow.wake.v1', 'delivered', 200)
+    await terminal('dead', 'workflow.wake.v1', 'dead', 100)
+    await terminal('other', 'other.v1', 'delivered', 100)
+    await store.append(createEnvelope({ id: 'pending', type: 'workflow.wake.v1', occurredAt: new Date(0).toISOString(), payload: null }))
+    const options = { namespace: 'outbox' as const, completedBefore: new Date(150).toISOString(), states: ['delivered'] as const, types: ['workflow.wake.v1'], limit: 1 }
+
+    await expect(store.prune(options)).resolves.toEqual({ deleted: 1, hasMore: true })
+    await expect(store.prune(options)).resolves.toEqual({ deleted: 1, hasMore: false })
+    await expect(store.prune(options)).resolves.toEqual({ deleted: 0, hasMore: false })
+    expect([...store.records.keys()].sort()).toEqual(['outbox:dead', 'outbox:other', 'outbox:pending', 'outbox:recent'])
+  })
+  it('rejects unsafe pruning policies before mutation', async () => {
+    const store = new InMemoryReliabilityStore()
+    await expect(store.prune({ namespace: 'outbox', completedBefore: 'yesterday', states: ['delivered'] })).rejects.toThrow(/completedBefore/)
+    await expect(store.prune({ namespace: 'outbox', completedBefore: new Date(0).toISOString(), states: [], limit: 1 })).rejects.toThrow(/states/)
+    await expect(store.prune({ namespace: 'outbox', completedBefore: new Date(0).toISOString(), states: ['delivered'], types: [] })).rejects.toThrow(/types/)
+    await expect(store.prune({ namespace: 'outbox', completedBefore: new Date(0).toISOString(), states: ['delivered'], types: Array.from({ length: 101 }, (_, index) => `type.${index}`) })).rejects.toThrow(/100/)
+  })
   it('rejects unsafe processor numeric options', () => {
     const store = new InMemoryReliabilityStore()
     expect(() => new OutboxProcessor(store, async () => ({ ok: true }), { owner: 'x', limit: Number.POSITIVE_INFINITY })).toThrow(/limit/)

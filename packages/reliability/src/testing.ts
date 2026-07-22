@@ -1,4 +1,4 @@
-import { canonicalizeEnvelope, createEnvelope, OutboxMessageConflictError, sanitizeErrorSummary, type InboxClaim, type InboxStore, type MessageEnvelope, type OutboxAppendOptions, type OutboxStore, type StoredMessage } from './index.js'
+import { canonicalizeEnvelope, createEnvelope, normalizeReliabilityPruneOptions, OutboxMessageConflictError, sanitizeErrorSummary, type InboxClaim, type InboxStore, type MessageEnvelope, type OutboxAppendOptions, type OutboxStore, type PrunableReliabilityStore, type ReliabilityPruneOptions, type ReliabilityPruneResult, type StoredMessage } from './index.js'
 
 type Mutable = {
   envelope: MessageEnvelope
@@ -10,6 +10,7 @@ type Mutable = {
   leaseToken?: string
   leaseUntil?: string
   lastError?: string
+  terminalAt?: string
 }
 const iso = (value: string) => Date.parse(value)
 const canonicalIso = (value: string, name: string): string => {
@@ -17,7 +18,7 @@ const canonicalIso = (value: string, name: string): string => {
   if (!Number.isFinite(parsed) || new Date(parsed).toISOString() !== value) throw new TypeError(`${name} must be a canonical ISO timestamp`)
   return value
 }
-export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
+export class InMemoryReliabilityStore implements OutboxStore, InboxStore, PrunableReliabilityStore {
   readonly durability = 'volatile' as const
   readonly records = new Map<string, Mutable>()
   constructor(private readonly capacity = 1000) {
@@ -119,6 +120,7 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
   async delivered(namespace: 'outbox' | 'inbox', id: string, token: string, now: string) {
     this.update(namespace, id, token, now, (r) => {
       r.state = 'delivered'
+      r.terminalAt = canonicalIso(now, 'now')
       this.clearLease(r)
     })
   }
@@ -132,6 +134,7 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
   async retry(namespace: 'outbox' | 'inbox', id: string, token: string, now: string, availableAt: string, error: string) {
     this.update(namespace, id, token, now, (r) => {
       r.state = 'pending'
+      delete r.terminalAt
       r.availableAt = availableAt
       r.lastError = sanitizeErrorSummary(error)
       this.clearLease(r)
@@ -141,9 +144,23 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore {
   async dead(namespace: 'outbox' | 'inbox', id: string, token: string, now: string, error: string) {
     this.update(namespace, id, token, now, (r) => {
       r.state = 'dead'
+      r.terminalAt = canonicalIso(now, 'now')
       r.lastError = sanitizeErrorSummary(error)
       this.clearLease(r)
     })
+  }
+
+  async prune(options: ReliabilityPruneOptions): Promise<ReliabilityPruneResult> {
+    const normalized = normalizeReliabilityPruneOptions(options)
+    const candidates = [...this.records.entries()]
+      .filter(([key, row]) => key.startsWith(`${normalized.namespace}:`)
+        && !!row.terminalAt
+        && row.terminalAt < normalized.completedBefore
+        && normalized.states.includes(row.state as 'delivered' | 'dead')
+        && (!normalized.types || normalized.types.includes(row.envelope.type)))
+      .sort((left, right) => left[1].terminalAt!.localeCompare(right[1].terminalAt!) || left[0].localeCompare(right[0]))
+    for (const [key] of candidates.slice(0, normalized.limit)) this.records.delete(key)
+    return { deleted: Math.min(candidates.length, normalized.limit), hasMore: candidates.length > normalized.limit }
   }
 
   private clearLease(row: Mutable) {

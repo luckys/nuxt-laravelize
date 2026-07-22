@@ -150,6 +150,33 @@ export interface OutboxStore {
   retry(namespace: MessageNamespace, id: string, token: string, now: string, availableAt: string, error: string): Promise<void>
   dead(namespace: MessageNamespace, id: string, token: string, now: string, error: string): Promise<void>
 }
+export type TerminalMessageState = 'delivered' | 'dead'
+export interface ReliabilityPruneOptions {
+  namespace: MessageNamespace
+  completedBefore: string
+  states: readonly TerminalMessageState[]
+  limit?: number
+  types?: readonly string[]
+}
+export interface ReliabilityPruneResult { deleted: number, hasMore: boolean }
+export interface PrunableReliabilityStore {
+  prune(options: ReliabilityPruneOptions): Promise<ReliabilityPruneResult>
+}
+export type NormalizedReliabilityPruneOptions = Required<Pick<ReliabilityPruneOptions, 'namespace' | 'completedBefore' | 'states' | 'limit'>> & Pick<ReliabilityPruneOptions, 'types'>
+export function normalizeReliabilityPruneOptions(options: ReliabilityPruneOptions): NormalizedReliabilityPruneOptions {
+  if (options.namespace !== 'outbox' && options.namespace !== 'inbox') throw new TypeError('namespace must be outbox or inbox')
+  const completedBefore = new Date(options.completedBefore)
+  if (!Number.isFinite(completedBefore.getTime()) || completedBefore.toISOString() !== options.completedBefore) throw new TypeError('completedBefore must be a canonical ISO timestamp')
+  const states = [...new Set(options.states)]
+  if (!states.length || states.some(state => state !== 'delivered' && state !== 'dead')) throw new TypeError('states must contain delivered or dead')
+  const limit = boundedInteger(options.limit ?? 100, 'limit', 1000)
+  const types = options.types ? [...new Set(options.types)] : undefined
+  if (types && (!types.length || types.length > 100 || types.some(type => !ID.test(type)))) throw new TypeError('types must contain between 1 and 100 valid message types')
+  return { namespace: options.namespace, completedBefore: options.completedBefore, states, limit, ...(types ? { types } : {}) }
+}
+export function isPrunableReliabilityStore(store: unknown): store is PrunableReliabilityStore {
+  return !!store && typeof store === 'object' && typeof (store as { prune?: unknown }).prune === 'function'
+}
 export type InboxClaim = {
   status: 'claimed'
   attempts: number
