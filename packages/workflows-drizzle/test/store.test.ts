@@ -90,6 +90,18 @@ describe.each(adapters)('workflow adapter %#', (adapter) => {
     await expect(adapter([], [row(snapshot({ revision: 1, lease: { token: 'old', expiresAt: 300 } }))]).store.claim('wf-1', 1, 'new', 200, 900)).rejects.toBeInstanceOf(LeaseConflictError)
   })
 
+  it('renews only an owned live lease without revision churn', async () => {
+    const renewed = snapshot({ revision: 2, cancellationRequested: true, lease: { token: 'lease', expiresAt: 900 }, updatedAt: 100 })
+    const success = adapter([row(renewed)])
+    await expect(success.store.renewLease('wf-1', 1, 'lease', 200, 900)).resolves.toEqual(renewed)
+    const rendered = new PgDialect().sqlToQuery(success.call.mock.calls[0]![0])
+    expect(rendered.sql).toContain('lease_expires_at = $1')
+    expect(rendered.sql).not.toContain('revision = revision +')
+    expect(rendered.sql).not.toContain('updated_at =')
+    await expect(adapter([], [row(snapshot({ revision: 1, lease: { token: 'other', expiresAt: 300 } }))]).store.renewLease('wf-1', 1, 'lease', 200, 900)).rejects.toBeInstanceOf(LeaseConflictError)
+    await expect(adapter([], [row(snapshot({ revision: 3, lease: { token: 'lease', expiresAt: 300 } }))]).store.renewLease('wf-1', 1, 'lease', 200, 900)).rejects.toBeInstanceOf(RevisionConflictError)
+  })
+
   it('fences commits and preserves the one-revision cancellation race', async () => {
     const committed = snapshot({ revision: 3, state: 'completed', cancellationRequested: true, updatedAt: 250 })
     await expect(adapter([row(committed)]).store.commit(snapshot({ revision: 2, state: 'completed', updatedAt: 250 }), 1, 'lease', 200)).resolves.toEqual(committed)

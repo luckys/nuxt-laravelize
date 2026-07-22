@@ -13,9 +13,9 @@ const store = new TransactionalWorkflowStore({
 const workflows = new WorkflowManager(store, registry)
 ```
 
-Each newly created workflow receives an immediate wake-up. Claims receive a lease-expiry fallback, released non-terminal commits receive an immediate or retry-deadline wake-up, and cancellations receive an immediate wake-up. Attempt-start commits that retain a lease and terminal commits emit nothing. Delivery is at least once and payloads contain only `workflowId`; the workflow store remains authoritative.
+Each newly created workflow receives an immediate wake-up. Claims and every successful lease renewal atomically receive a lease-expiry fallback, released non-terminal commits receive an immediate or retry-deadline wake-up, and cancellations receive an immediate wake-up. Heartbeats therefore add workflow and outbox writes; retain/prune delivered wakes accordingly. Delivery is at least once and payloads contain only `workflowId`; the workflow store remains authoritative.
 
-Call `registerWorkflowWakeHandler(reliableHandlers, workflows)` to register the wake-up protocol in a compatible reliability handler registry. The helper owns the message type and version tuple without coupling this package to a queue transport.
+Call `registerWorkflowWakeHandler(reliableHandlers, workflows)` to register the wake-up protocol in a compatible reliability handler registry. The helper owns the message type and version tuple without coupling this package to a queue transport, and forwards the reliability execution signal for cooperative shutdown.
 
 Use `workflows.using(store.in(unitOfWork))` to atomically start a workflow inside an existing domain transaction without opening a nested transaction. Never wrap `processResult()` as one large transaction because workflow handlers may perform slow external effects between persisted boundaries.
 

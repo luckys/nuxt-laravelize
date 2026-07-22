@@ -1,6 +1,6 @@
 # Workflows Drizzle
 
-Durable `WorkflowStore` implementations for PostgreSQL, SQLite, and Turso. Claims/reclaims are a single conditional `UPDATE … RETURNING`; commits are fenced by revision, lease token, and lease expiry while preserving the workflow manager's one-revision concurrent-cancellation merge.
+Durable `WorkflowStore` implementations for PostgreSQL, SQLite, and Turso. Claims/reclaims are a single conditional `UPDATE … RETURNING`; commits are fenced by revision, lease token, and lease expiry while preserving the workflow manager's one-revision concurrent-cancellation merge. `renewLease()` conditionally updates only lease expiry and never increments revision or changes `updatedAt`.
 
 ```ts
 import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'

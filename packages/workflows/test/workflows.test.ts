@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { describe, expect, it, vi } from 'vitest'
-import { defineStep, defineWorkflow, InMemoryWorkflowStore, LeaseConflictError, RevisionConflictError, StartKeyConflictError, WorkflowManager, WorkflowRegistry } from '../src'
+import { defineStep, defineWorkflow, InMemoryWorkflowStore, LeaseConflictError, RevisionConflictError, StartKeyConflictError, WorkflowExecutionAbortedError, WorkflowLeaseLostError, WorkflowManager, WorkflowRegistry } from '../src'
 import type { Clock, WorkflowSnapshot, WorkflowStore } from '../src'
 
 class FakeClock implements Clock {
@@ -8,7 +8,7 @@ class FakeClock implements Clock {
   now() { return this.time }
 }
 
-function setup(steps: ReturnType<typeof defineStep>[], options: { clock?: FakeClock, ids?: string[] } = {}) {
+function setup(steps: ReturnType<typeof defineStep>[], options: { clock?: FakeClock, ids?: string[], leaseDurationMs?: number, heartbeatIntervalMs?: number } = {}) {
   const workflow = defineWorkflow({ name: 'order', version: '1', steps })
   const registry = new WorkflowRegistry().register(workflow)
   const store = new InMemoryWorkflowStore()
@@ -19,6 +19,8 @@ function setup(steps: ReturnType<typeof defineStep>[], options: { clock?: FakeCl
     retrySchedule: () => 10,
     idFactory: () => ids.shift() ?? 'unused-id',
     tokenFactory: () => `lease-${++token}`,
+    leaseDurationMs: options.leaseDurationMs,
+    heartbeatIntervalMs: options.heartbeatIntervalMs,
   })
   return { workflow, registry, store, manager }
 }
@@ -124,6 +126,7 @@ describe('WorkflowManager', () => {
     const store: WorkflowStore = {
       get: async () => reads++ === 0 ? observed : authoritative,
       claim: async () => { throw new RevisionConflictError() },
+      renewLease: async () => { throw new Error('unused') },
       create: async () => { throw new Error('unused') },
       commit: async () => { throw new Error('unused') },
       requestCancellation: async () => { throw new Error('unused') },
@@ -160,6 +163,116 @@ describe('WorkflowManager', () => {
     await store.create(snapshot)
     const claimed = await store.claim(snapshot.id, 0, 'lease', 0, 5)
     await expect(store.commit(claimed, claimed.revision, 'lease', 5)).rejects.toBeInstanceOf(LeaseConflictError)
+  })
+
+  it('renews only lease expiration and accepts a cancellation revision race', async () => {
+    const store = new InMemoryWorkflowStore()
+    await store.create(snapshotFixture())
+    const claimed = await store.claim('id', 0, 'lease', 0, 10)
+    const renewed = await store.renewLease('id', claimed.revision, 'lease', 1, 20)
+    expect(renewed).toMatchObject({ revision: claimed.revision, updatedAt: claimed.updatedAt, lease: { token: 'lease', expiresAt: 20 } })
+    const cancelled = await store.requestCancellation('id', renewed.revision, 2)
+    const afterCancellation = await store.renewLease('id', renewed.revision, 'lease', 3, 30)
+    expect(afterCancellation).toMatchObject({ revision: cancelled.revision, cancellationRequested: true, lease: { expiresAt: 30 } })
+    await expect(store.renewLease('id', renewed.revision, 'other', 3, 40)).rejects.toBeInstanceOf(LeaseConflictError)
+  })
+
+  it('heartbeats long handlers without workflow revision churn', async () => {
+    let contextSignal: AbortSignal | undefined
+    const { manager, workflow, store } = setup([defineStep({ name: 'long', run: async (context) => {
+      contextSignal = context.signal
+      await new Promise(resolve => setTimeout(resolve, 35))
+      return 'done'
+    } })], { leaseDurationMs: 60, heartbeatIntervalMs: 10 })
+    const renew = vi.spyOn(store, 'renewLease')
+    const started = await manager.start(workflow, {}, 'heartbeat')
+    const processed = await manager.process(started.id)
+    expect(contextSignal).toBeInstanceOf(AbortSignal)
+    expect(renew.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(processed.revision).toBe(3)
+  })
+
+  it('observes active cancellation through heartbeat without scheduling a business retry', async () => {
+    let startedHandler!: () => void
+    const handlerStarted = new Promise<void>((resolve) => { startedHandler = resolve })
+    const { manager, workflow } = setup([defineStep({ name: 'long', maxAttempts: 3, run: async ({ signal }) => {
+      startedHandler()
+      await new Promise<void>((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }))
+      return null
+    } })], { leaseDurationMs: 100, heartbeatIntervalMs: 10 })
+    const started = await manager.start(workflow, {}, 'cancel-active')
+    const processing = manager.process(started.id)
+    await handlerStarted
+    await manager.cancel(started.id)
+    const cancelled = await processing
+    expect(cancelled).toMatchObject({ state: 'cancelled', cancellationRequested: true, steps: [{ state: 'pending', attempts: 1 }] })
+  })
+
+  it('aborts on caller shutdown without committing a business failure', async () => {
+    let startedHandler!: () => void
+    const handlerStarted = new Promise<void>((resolve) => { startedHandler = resolve })
+    const { manager, workflow } = setup([defineStep({ name: 'long', maxAttempts: 3, run: async ({ signal }) => {
+      startedHandler()
+      await new Promise<void>((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }))
+      return null
+    } })], { leaseDurationMs: 100, heartbeatIntervalMs: 10 })
+    const started = await manager.start(workflow, {}, 'shutdown')
+    const controller = new AbortController()
+    const processing = manager.process(started.id, { signal: controller.signal })
+    await handlerStarted
+    controller.abort()
+    await expect(processing).rejects.toBeInstanceOf(WorkflowExecutionAbortedError)
+    expect(await manager.status(started.id)).toMatchObject({ state: 'running', steps: [{ state: 'running' }] })
+  })
+
+  it('does not claim or consume an attempt for an already-aborted caller', async () => {
+    const { manager, workflow } = setup([defineStep({ name: 'never', run: () => null })])
+    const started = await manager.start(workflow, {}, 'already-aborted')
+    const controller = new AbortController()
+    controller.abort()
+    await expect(manager.process(started.id, { signal: controller.signal })).rejects.toBeInstanceOf(WorkflowExecutionAbortedError)
+    expect(await manager.status(started.id)).toEqual(started)
+  })
+
+  it.each([WorkflowLeaseLostError, WorkflowExecutionAbortedError])('treats handler-thrown %s as a business failure', async (ErrorType) => {
+    const { manager, workflow } = setup([defineStep({ name: 'business', run: () => { throw new ErrorType() } })])
+    const started = await manager.start(workflow, {}, ErrorType.name)
+    const failed = await manager.process(started.id)
+    expect(failed).toMatchObject({ state: 'failed', steps: [{ state: 'failed', error: { name: ErrorType.name } }] })
+  })
+
+  it('rejects a renewal that completes after its proposed expiration', async () => {
+    const clock = new FakeClock(0)
+    let release!: () => void
+    const renewalBlocked = new Promise<void>((resolve) => { release = resolve })
+    const { manager, workflow, store } = setup([defineStep({ name: 'slow-renewal', run: async ({ signal }) => {
+      await new Promise<void>(resolve => signal.addEventListener('abort', () => resolve(), { once: true }))
+      return null
+    } })], { clock, leaseDurationMs: 20, heartbeatIntervalMs: 5 })
+    const realRenew = store.renewLease.bind(store)
+    vi.spyOn(store, 'renewLease').mockImplementation(async (...args) => {
+      await renewalBlocked
+      return realRenew(...args)
+    })
+    const started = await manager.start(workflow, {}, 'late-renewal')
+    const processing = manager.process(started.id)
+    await new Promise(resolve => setTimeout(resolve, 8))
+    clock.time = 25
+    release()
+    await expect(processing).rejects.toBeInstanceOf(WorkflowLeaseLostError)
+  })
+
+  it('discards handler completion after heartbeat lease loss', async () => {
+    const { manager, workflow, store } = setup([defineStep({ name: 'long', run: async ({ signal }) => {
+      await new Promise<void>(resolve => signal.addEventListener('abort', () => resolve(), { once: true }))
+      return 'must-not-commit'
+    } })], { leaseDurationMs: 100, heartbeatIntervalMs: 10 })
+    vi.spyOn(store, 'renewLease').mockRejectedValue(new LeaseConflictError())
+    const started = await manager.start(workflow, {}, 'lease-loss')
+    await expect(manager.process(started.id)).rejects.toBeInstanceOf(WorkflowLeaseLostError)
+    const authoritative = await store.get(started.id)
+    expect(authoritative).toMatchObject({ state: 'running', steps: [{ state: 'running' }] })
+    expect(authoritative!.steps[0]).not.toHaveProperty('output')
   })
 
   it('uses only the registered definition when a same-name reference differs', async () => {

@@ -47,6 +47,7 @@ export interface StepContext<I extends JsonValue = JsonValue> {
   previousOutput: JsonValue | undefined
   idempotencyKey: string
   attempt: number
+  readonly signal: AbortSignal
 }
 
 export interface CompensationContext<I extends JsonValue = JsonValue> extends StepContext<I> {

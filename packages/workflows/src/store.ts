@@ -4,11 +4,14 @@ import type { WorkflowSnapshot } from './types'
 export class StartKeyConflictError extends Error { constructor() { super('Start key already exists with different workflow or input'); this.name = 'StartKeyConflictError' } }
 export class RevisionConflictError extends Error { constructor() { super('Workflow revision is stale'); this.name = 'RevisionConflictError' } }
 export class LeaseConflictError extends Error { constructor() { super('Workflow lease is stale or unavailable'); this.name = 'LeaseConflictError' } }
+export class WorkflowLeaseLostError extends Error { constructor() { super('Workflow lease ownership was lost'); this.name = 'WorkflowLeaseLostError' } }
+export class WorkflowExecutionAbortedError extends Error { constructor() { super('Workflow execution was aborted'); this.name = 'WorkflowExecutionAbortedError' } }
 
 export interface WorkflowStore {
   create(snapshot: WorkflowSnapshot): Promise<{ snapshot: WorkflowSnapshot, created: boolean }>
   get(id: string): Promise<WorkflowSnapshot | null>
   claim(id: string, expectedRevision: number, token: string, now: number, expiresAt: number): Promise<WorkflowSnapshot>
+  renewLease(id: string, expectedRevision: number, token: string, now: number, expiresAt: number): Promise<WorkflowSnapshot>
   /** Fences revision/lease, merges a concurrent cancellation, and optionally retains the lease. */
   commit(snapshot: WorkflowSnapshot, expectedRevision: number, leaseToken: string, now: number, releaseLease?: boolean): Promise<WorkflowSnapshot>
   requestCancellation(id: string, expectedRevision: number, now: number): Promise<WorkflowSnapshot>
@@ -81,6 +84,16 @@ export class InMemoryWorkflowStore implements WorkflowStore {
     if (current.revision !== expectedRevision) throw new RevisionConflictError()
     if (current.lease && current.lease.expiresAt > now) throw new LeaseConflictError()
     const next = { ...current, revision: current.revision + 1, lease: { token, expiresAt }, updatedAt: now }
+    this.snapshots.set(id, clone(next)); return clone(next)
+  }
+
+  async renewLease(id: string, expectedRevision: number, token: string, now: number, expiresAt: number) {
+    if (!Number.isSafeInteger(now) || !Number.isSafeInteger(expiresAt) || expiresAt <= now) throw new TypeError('expiresAt must be greater than now')
+    const current = this.required(id)
+    if (!current.lease || current.lease.token !== token || current.lease.expiresAt <= now) throw new LeaseConflictError()
+    const cancellationRace = current.revision === expectedRevision + 1 && current.cancellationRequested
+    if (current.revision !== expectedRevision && !cancellationRace) throw new RevisionConflictError()
+    const next = { ...current, lease: { token, expiresAt } }
     this.snapshots.set(id, clone(next)); return clone(next)
   }
 

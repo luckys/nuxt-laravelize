@@ -152,6 +152,18 @@ export abstract class DrizzleWorkflowStore implements RecoverableWorkflowStore {
     throw new LeaseConflictError()
   }
 
+  async renewLease(id: string, expectedRevision: number, token: string, now: number, expiresAt: number): Promise<WorkflowSnapshot> {
+    safeInteger(expectedRevision, 'expectedRevision')
+    epoch(now, 'now')
+    epoch(expiresAt, 'expiresAt')
+    if (expiresAt <= now) throw new TypeError('expiresAt must be greater than now')
+    const renewed = (await this.executeRows(sql`update workflows set lease_expires_at = ${expiresAt} where id = ${id} and lease_token = ${token} and lease_expires_at > ${now} and (revision = ${expectedRevision} or (revision = ${expectedRevision + 1} and cancellation_requested = ${true})) returning *`))[0]
+    if (renewed) return hydrate(renewed)
+    const current = await this.requiredRow(id)
+    if (current.lease_token !== token || current.lease_expires_at == null || epoch(current.lease_expires_at, 'leaseExpiresAt') <= now) throw new LeaseConflictError()
+    throw new RevisionConflictError()
+  }
+
   async commit(snapshot: WorkflowSnapshot, expectedRevision: number, leaseToken: string, now: number, releaseLease = true): Promise<WorkflowSnapshot> {
     const payload = serialize(snapshot)
     safeInteger(expectedRevision, 'expectedRevision')

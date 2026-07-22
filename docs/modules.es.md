@@ -1086,7 +1086,7 @@ Los repositorios reciben `unitOfWork.session` explicitamente para compartir la t
 
 ## Workflows y sagas
 
-`@nuxt-laravelize/workflows` implementa workflows lineales persistidos con definiciones versionadas, leases con fencing, reintentos, intentos reanudables, cancelacion entre intentos y compensacion en orden inverso.
+`@nuxt-laravelize/workflows` implementa workflows lineales persistidos con definiciones versionadas, leases renovables con fencing, reintentos, intentos reanudables, cancelacion cooperativa en curso y compensacion en orden inverso.
 
 ```ts
 const fulfill = defineWorkflow({
@@ -1103,7 +1103,7 @@ const started = await workflows.start(fulfill, { orderId }, orderId)
 await workflows.run(started.id)
 ```
 
-El store en memoria incluido es volatil y solo sirve para tests o desarrollo local. Los stores de produccion deben implementar fencing atomico de revision y lease. Steps y compensaciones se invocan at-least-once: pasa sus claves de idempotencia estables a sistemas externos que soporten deduplicacion.
+El store en memoria incluido es volatil y solo sirve para tests o desarrollo local. Los stores de produccion deben implementar fencing atomico de revision y lease, incluyendo `renewLease()`. Configura `leaseDurationMs` y un `heartbeatIntervalMs` menor; los contexts reciben `signal`, la cancelacion se observa al ritmo del heartbeat y resultados stale se descartan al perder el lease. Una signal no revierte efectos externos aceptados, asi que se mantienen las claves de idempotencia estables.
 
 `@nuxt-laravelize/workflows-drizzle` proporciona stores durables para PostgreSQL, SQLite y Turso. La identidad e input canonico del workflow son inmutables; las columnas relacionales de revision, cancelacion y lease prevalecen sobre el snapshot serializado al hidratar. Claims y commits usan sentencias condicionales que devuelven la fila, impidiendo que owners obsoletos o expirados persistan estado. Estos stores tambien implementan la capability opcional `RecoverableWorkflowStore`, que devuelve IDs no terminales en paginas acotadas por cursor `(updatedAt, id)`.
 
@@ -1129,7 +1129,7 @@ const workflows = new WorkflowManager(workflowStore, registry)
 registerWorkflowWakeHandler(reliableHandlers, workflows)
 ```
 
-El helper de registro mantiene el tipo y la version del mensaje wake-up y acepta cualquier registry de reliability estructuralmente compatible, sin acoplar la persistencia del workflow a un transporte de colas. La creacion emite un wake-up inmediato. Cada claim registra un fallback al expirar el lease, los commits no terminales que liberan lease emiten de inmediato o en su deadline de retry, y la cancelacion emite inmediatamente. Los commits que retienen lease y los estados terminales no emiten. El payload solo contiene `workflowId`; entregas repetidas recargan el estado autoritativo y son inocuas gracias al fencing de revision y lease.
+El helper de registro mantiene el tipo y la version del wake-up, acepta cualquier registry compatible y propaga la signal de reliability. Cada claim y renovacion registra un fallback al expirar el lease; renovacion y fallback comparten una transaccion y no cambian la revision. Los commits no terminales que liberan lease emiten de inmediato o en su deadline de retry, y la cancelacion emite inmediatamente.
 
 Para unirte a una transaccion de dominio existente, llama `workflows.using(workflowStore.in(unitOfWork)).start(...)`. Asi estado de dominio, workflow y wake-up outbox se escriben juntos sin abrir una transaccion anidada. Nunca envuelvas todo `processResult()` en una transaccion: los handlers pueden ejecutar efectos externos lentos entre limites persistidos. Esos efectos siguen siendo at-least-once y requieren sus claves de idempotencia estables.
 

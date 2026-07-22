@@ -41,12 +41,13 @@ describe('PostgreSQL transactional workflow wake-ups', () => {
 
   function setup(id: string, outbox: TransactionalOutboxAppender<Session> = new DrizzlePostgresReliabilityStore(database)) {
     const transactions = new DrizzleTransactionManager(database as unknown as DrizzleAsyncTransactionSource<Session>)
+    let wake = 0
     const store = new TransactionalWorkflowStore({
       transactions,
       readStore: new DrizzlePostgresWorkflowStore(database),
       storeForSession: session => new DrizzlePostgresWorkflowStore(session),
       outbox,
-      idFactory: () => `wake-${id}`,
+      idFactory: () => ++wake === 1 ? `wake-${id}` : `wake-${id}-${wake}`,
     })
     const manager = new WorkflowManager(store, new WorkflowRegistry().register(definition), { idFactory: () => id, clock: { now: () => 100 } })
     return { manager, store, transactions }
@@ -84,6 +85,20 @@ describe('PostgreSQL transactional workflow wake-ups', () => {
     expect(await client`select id from domain_markers where id = 'domain-rollback'`).toHaveLength(0)
     expect(await client`select id from workflows where id = 'domain-rollback'`).toHaveLength(0)
     expect(await client`select id from reliability_messages where id = 'wake-domain-rollback'`).toHaveLength(0)
+  })
+
+  it('renews workflow lease and replacement wake without revision churn', async () => {
+    const { manager, store } = setup('lease-renewal')
+    const started = await manager.start(definition, {}, 'lease-renewal')
+    const claimed = await store.claim(started.id, started.revision, 'renew-owner', 100, 200)
+    const renewed = await store.renewLease(started.id, claimed.revision, 'renew-owner', 120, 300)
+
+    expect(renewed).toMatchObject({ revision: claimed.revision, updatedAt: 100, lease: { token: 'renew-owner', expiresAt: 300 } })
+    const wakes = await client`select id, available_at from reliability_messages where id in ('wake-lease-renewal-2', 'wake-lease-renewal-3') order by id`
+    expect(wakes.map(row => [row.id, new Date(row.available_at).toISOString()])).toEqual([
+      ['wake-lease-renewal-2', new Date(200).toISOString()],
+      ['wake-lease-renewal-3', new Date(300).toISOString()],
+    ])
   })
 
   it('preserves a dead wake and appends a fresh recoverable wake', async () => {

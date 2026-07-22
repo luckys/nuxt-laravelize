@@ -1,13 +1,16 @@
 import type { WorkflowRegistry } from './definition'
-import { LeaseConflictError, RevisionConflictError, type WorkflowStore } from './store'
+import { LeaseConflictError, RevisionConflictError, WorkflowExecutionAbortedError, WorkflowLeaseLostError, type WorkflowStore } from './store'
 import { isWorkflowTerminal, isWorkflowWaiting, workflowNextRetryAt } from './state'
 /* eslint-disable @stylistic/max-statements-per-line */
 import type { Clock, JsonValue, RetrySchedule, WorkflowDefinition, WorkflowError, WorkflowSnapshot } from './types'
 
-export interface WorkflowManagerOptions { clock?: Clock, retrySchedule?: RetrySchedule, leaseDurationMs?: number, idFactory?: () => string, tokenFactory?: () => string }
+export interface WorkflowManagerOptions { clock?: Clock, retrySchedule?: RetrySchedule, leaseDurationMs?: number, heartbeatIntervalMs?: number, idFactory?: () => string, tokenFactory?: () => string }
+export interface WorkflowProcessOptions { signal?: AbortSignal }
 
 const systemClock: Clock = { now: () => Date.now() }
 const defaultRetry: RetrySchedule = attempt => Math.min(60_000, 1000 * 2 ** (attempt - 1))
+class LeaseLostControl extends Error {}
+class ExecutionAbortedControl extends Error {}
 export type WorkflowProcessResult
   = | { outcome: 'processed', snapshot: WorkflowSnapshot }
     | { outcome: 'waiting', snapshot: WorkflowSnapshot, retryAt: number }
@@ -18,6 +21,7 @@ export class WorkflowManager {
   private readonly clock: Clock
   private readonly retrySchedule: RetrySchedule
   private readonly leaseDurationMs: number
+  private readonly heartbeatIntervalMs: number
   private readonly idFactory: () => string
   private readonly tokenFactory: () => string
 
@@ -25,6 +29,9 @@ export class WorkflowManager {
     this.clock = options.clock ?? systemClock
     this.retrySchedule = options.retrySchedule ?? defaultRetry
     this.leaseDurationMs = options.leaseDurationMs ?? 30_000
+    if (!Number.isSafeInteger(this.leaseDurationMs) || this.leaseDurationMs < 2) throw new TypeError('leaseDurationMs must be an integer of at least 2')
+    this.heartbeatIntervalMs = options.heartbeatIntervalMs ?? Math.max(1, Math.floor(this.leaseDurationMs / 3))
+    if (!Number.isSafeInteger(this.heartbeatIntervalMs) || this.heartbeatIntervalMs < 1 || this.heartbeatIntervalMs >= this.leaseDurationMs) throw new TypeError('heartbeatIntervalMs must be a positive integer less than leaseDurationMs')
     this.idFactory = options.idFactory ?? (() => crypto.randomUUID())
     this.tokenFactory = options.tokenFactory ?? (() => crypto.randomUUID())
   }
@@ -35,6 +42,7 @@ export class WorkflowManager {
       clock: this.clock,
       retrySchedule: this.retrySchedule,
       leaseDurationMs: this.leaseDurationMs,
+      heartbeatIntervalMs: this.heartbeatIntervalMs,
       idFactory: this.idFactory,
       tokenFactory: this.tokenFactory,
     })
@@ -64,12 +72,13 @@ export class WorkflowManager {
   }
 
   /** Processes at most one handler attempt (plus its persisted boundaries). */
-  async process(id: string): Promise<WorkflowSnapshot> {
-    return (await this.processResult(id)).snapshot
+  async process(id: string, options: WorkflowProcessOptions = {}): Promise<WorkflowSnapshot> {
+    return (await this.processResult(id, options)).snapshot
   }
 
   /** Processes at most one authoritative transition and reports why processing stopped. */
-  async processResult(id: string): Promise<WorkflowProcessResult> {
+  async processResult(id: string, options: WorkflowProcessOptions = {}): Promise<WorkflowProcessResult> {
+    if (options.signal?.aborted) throw new WorkflowExecutionAbortedError()
     const observed = await this.required(id)
     if (isWorkflowTerminal(observed)) return { outcome: 'terminal', snapshot: observed }
     const now = this.clock.now()
@@ -83,25 +92,26 @@ export class WorkflowManager {
       throw error
     }
     const definition = this.registry.get(claimed.workflowName, claimed.workflowVersion)
-    return { outcome: 'processed', snapshot: await this.advance(claimed, definition, token) }
+    return { outcome: 'processed', snapshot: await this.advance(claimed, definition, token, options) }
   }
 
-  async run(id: string, maxTransitions = 100): Promise<WorkflowSnapshot> {
+  async run(id: string, maxTransitions = 100, options: WorkflowProcessOptions = {}): Promise<WorkflowSnapshot> {
     let snapshot = await this.required(id)
     for (let count = 0; count < maxTransitions && !isWorkflowTerminal(snapshot); count++) {
       const before = snapshot.revision
-      snapshot = await this.process(id)
+      snapshot = await this.process(id, options)
       if (snapshot.revision === before || isWorkflowWaiting(snapshot)) break
     }
     return snapshot
   }
 
-  private async advance(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string) {
+  private async advance(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string, options: WorkflowProcessOptions) {
+    if (options.signal?.aborted) throw new WorkflowExecutionAbortedError()
     if (snapshot.cancellationRequested && !isCompensating(snapshot)) return this.commit(snapshot, token, this.beginCompensationOrCancel(snapshot, definition))
-    return isCompensating(snapshot) ? this.compensate(snapshot, definition, token) : this.execute(snapshot, definition, token)
+    return isCompensating(snapshot) ? this.compensate(snapshot, definition, token, options) : this.execute(snapshot, definition, token, options)
   }
 
-  private async execute(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string) {
+  private async execute(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string, options: WorkflowProcessOptions) {
     const index = snapshot.steps.findIndex(step => step.state !== 'committed')
     if (index < 0) return this.commit(snapshot, token, { ...snapshot, state: 'completed' })
     if (snapshot.steps[index]!.state === 'running') return this.interruptedForward(snapshot, definition, token, index)
@@ -111,13 +121,22 @@ export class WorkflowManager {
     current.state = 'running'; current.attempts++; current.retryAt = undefined; current.error = undefined
     const started = await this.commit(snapshot, token, { ...snapshot, steps, state: 'running' }, false)
     try {
-      const output = await step.run({ workflowId: started.id, input: started.input, previousOutput: index ? started.steps[index - 1]?.output : undefined, idempotencyKey: current.idempotencyKey, attempt: current.attempts })
+      const execution = await this.withHeartbeat(started, token, options.signal, true, signal => step.run({ workflowId: started.id, input: started.input, previousOutput: index ? started.steps[index - 1]?.output : undefined, idempotencyKey: current.idempotencyKey, attempt: current.attempts, signal }))
+      if (execution.cancelled) {
+        current.state = 'pending'
+        return this.commit(started, token, this.beginCompensationOrCancel({ ...started, steps, state: 'running' }, definition))
+      }
+      const output = execution.value
       assertJsonSafe(output, 'Workflow step output')
       current.output = output; current.state = 'committed'
       // Completion is a separate transition so a cancellation racing this effect is observed and compensated.
       return this.commit(started, token, { ...started, steps, state: 'running' })
     }
-    catch (error) { return this.finishForwardFailure(started, definition, token, index, steps, error) }
+    catch (error) {
+      if (error instanceof LeaseLostControl) throw new WorkflowLeaseLostError()
+      if (error instanceof ExecutionAbortedControl) throw new WorkflowExecutionAbortedError()
+      return this.finishForwardFailure(started, definition, token, index, steps, error)
+    }
   }
 
   private finishForwardFailure(started: WorkflowSnapshot, definition: WorkflowDefinition, token: string, index: number, steps: WorkflowSnapshot['steps'], error: unknown) {
@@ -135,7 +154,7 @@ export class WorkflowManager {
     return this.finishForwardFailure(snapshot, definition, token, index, snapshot.steps.map(value => ({ ...value })), error)
   }
 
-  private async compensate(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string) {
+  private async compensate(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string, options: WorkflowProcessOptions) {
     let index = -1
     for (let cursor = snapshot.steps.length - 1; cursor >= 0; cursor--) {
       const state = snapshot.steps[cursor]!.state
@@ -149,11 +168,15 @@ export class WorkflowManager {
     current.state = 'compensating'; current.compensationAttempts++; current.retryAt = undefined; current.error = undefined
     const started = await this.commit(snapshot, token, { ...snapshot, steps, state: 'compensating' }, false)
     try {
-      await step.compensate!({ workflowId: started.id, input: started.input, previousOutput: index ? started.steps[index - 1]?.output : undefined, stepOutput: current.output!, idempotencyKey: current.compensationIdempotencyKey!, attempt: current.compensationAttempts })
+      await this.withHeartbeat(started, token, options.signal, false, signal => step.compensate!({ workflowId: started.id, input: started.input, previousOutput: index ? started.steps[index - 1]?.output : undefined, stepOutput: current.output!, idempotencyKey: current.compensationIdempotencyKey!, attempt: current.compensationAttempts, signal }))
       current.state = 'compensated'
       return this.commit(started, token, { ...started, steps, state: 'compensating' })
     }
-    catch (error) { return this.finishCompensationFailure(started, definition, token, index, steps, error) }
+    catch (error) {
+      if (error instanceof LeaseLostControl) throw new WorkflowLeaseLostError()
+      if (error instanceof ExecutionAbortedControl) throw new WorkflowExecutionAbortedError()
+      return this.finishCompensationFailure(started, definition, token, index, steps, error)
+    }
   }
 
   private finishCompensationFailure(started: WorkflowSnapshot, definition: WorkflowDefinition, token: string, index: number, steps: WorkflowSnapshot['steps'], error: unknown) {
@@ -179,6 +202,54 @@ export class WorkflowManager {
   private commit(original: WorkflowSnapshot, token: string, next: WorkflowSnapshot, releaseLease = true) {
     const now = this.clock.now()
     return this.store.commit({ ...next, updatedAt: now }, original.revision, token, now, releaseLease)
+  }
+
+  private async withHeartbeat<T>(started: WorkflowSnapshot, token: string, parentSignal: AbortSignal | undefined, abortOnCancellation: boolean, handler: (signal: AbortSignal) => T | Promise<T>): Promise<{ cancelled: true } | { cancelled: false, value: T }> {
+    if (parentSignal?.aborted) throw new ExecutionAbortedControl()
+    const controller = new AbortController()
+    const signal = parentSignal ? AbortSignal.any([parentSignal, controller.signal]) : controller.signal
+    let renewal = Promise.resolve()
+    let leaseLost = false
+    let cancellationObserved = false
+    let renewing = false
+    const renew = () => {
+      if (renewing || leaseLost) return
+      renewing = true
+      renewal = (async () => {
+        try {
+          const now = this.clock.now()
+          const expiresAt = now + this.leaseDurationMs
+          const authoritative = await this.store.renewLease(started.id, started.revision, token, now, expiresAt)
+          if (this.clock.now() >= expiresAt) throw new LeaseConflictError()
+          if (abortOnCancellation && authoritative.cancellationRequested) {
+            cancellationObserved = true
+            controller.abort(new Error('Workflow cancellation requested'))
+          }
+        }
+        catch {
+          leaseLost = true
+          controller.abort(new WorkflowLeaseLostError())
+        }
+        finally {
+          renewing = false
+        }
+      })()
+    }
+    const heartbeat = setInterval(renew, this.heartbeatIntervalMs)
+    let value: T | undefined
+    let failure: unknown
+    let failed = false
+    try { value = await handler(signal) }
+    catch (error) { failed = true; failure = error }
+    finally {
+      clearInterval(heartbeat)
+      await renewal
+    }
+    if (leaseLost) throw new LeaseLostControl()
+    if (parentSignal?.aborted) throw new ExecutionAbortedControl()
+    if (cancellationObserved) return { cancelled: true }
+    if (failed) throw failure
+    return { cancelled: false, value: value as T }
   }
 
   private async required(id: string) { const snapshot = await this.store.get(id); if (!snapshot) throw new Error(`Workflow not found: ${id}`); return snapshot }

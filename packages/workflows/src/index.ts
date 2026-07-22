@@ -1,5 +1,5 @@
 export { defineStep, defineWorkflow, WorkflowRegistry } from './definition'
-export { canonicalize, WorkflowManager, type WorkflowManagerOptions, type WorkflowProcessResult } from './manager'
+export { canonicalize, WorkflowManager, type WorkflowManagerOptions, type WorkflowProcessOptions, type WorkflowProcessResult } from './manager'
 export { isWorkflowTerminal, isWorkflowWaiting, workflowNextRetryAt } from './state'
-export { InMemoryWorkflowStore, isRecoverableWorkflowStore, LeaseConflictError, RevisionConflictError, StartKeyConflictError, type RecoverableWorkflowStore, type WorkflowRecoveryCursor, type WorkflowRecoveryPage, type WorkflowRecoveryQuery, type WorkflowStore } from './store'
+export { InMemoryWorkflowStore, isRecoverableWorkflowStore, LeaseConflictError, RevisionConflictError, StartKeyConflictError, WorkflowExecutionAbortedError, WorkflowLeaseLostError, type RecoverableWorkflowStore, type WorkflowRecoveryCursor, type WorkflowRecoveryPage, type WorkflowRecoveryQuery, type WorkflowStore } from './store'
 export type { Clock, CompensationContext, JsonPrimitive, JsonValue, RetrySchedule, StepContext, StepSnapshot, WorkflowDefinition, WorkflowError, WorkflowLease, WorkflowSnapshot, WorkflowState, WorkflowStep } from './types'

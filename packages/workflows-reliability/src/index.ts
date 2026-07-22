@@ -4,7 +4,7 @@ import { isRecoverableWorkflowStore, isWorkflowTerminal, isWorkflowWaiting, type
 
 export const workflowWakeMessageType = 'laravelize.workflow.wake.v1'
 export type WorkflowWakePayload = { workflowId: string }
-export type WorkflowWakeReason = 'start' | 'lease-expired' | 'transition' | 'cancellation'
+export type WorkflowWakeReason = 'start' | 'lease-expired' | 'lease-renewed' | 'transition' | 'cancellation'
 
 export interface WorkflowWakeHandlerRegistrar {
   register(type: string, version: number, handler: (message: MessageEnvelope, context: MessageExecutionContext) => void | Promise<void>): void
@@ -68,6 +68,10 @@ export class TransactionalWorkflowStore<Session> implements WorkflowStore {
     return this.options.transactions.transaction(unitOfWork => this.in(unitOfWork).claim(id, expectedRevision, token, now, expiresAt))
   }
 
+  renewLease(id: string, expectedRevision: number, token: string, now: number, expiresAt: number) {
+    return this.options.transactions.transaction(unitOfWork => this.in(unitOfWork).renewLease(id, expectedRevision, token, now, expiresAt))
+  }
+
   commit(snapshot: WorkflowSnapshot, expectedRevision: number, leaseToken: string, now: number, releaseLease = true) {
     return this.options.transactions.transaction(unitOfWork => this.in(unitOfWork).commit(snapshot, expectedRevision, leaseToken, now, releaseLease))
   }
@@ -90,6 +94,11 @@ export class TransactionalWorkflowStore<Session> implements WorkflowStore {
         const claimed = await store.claim(id, expectedRevision, token, now, expiresAt)
         await this.append(unitOfWork, claimed, 'lease-expired', now, expiresAt)
         return claimed
+      },
+      renewLease: async (id, expectedRevision, token, now, expiresAt) => {
+        const renewed = await store.renewLease(id, expectedRevision, token, now, expiresAt)
+        await this.append(unitOfWork, renewed, 'lease-renewed', now, expiresAt)
+        return renewed
       },
       commit: async (snapshot, expectedRevision, leaseToken, now, releaseLease = true) => {
         const committed = await store.commit(snapshot, expectedRevision, leaseToken, now, releaseLease)
@@ -247,12 +256,12 @@ export class WorkflowWakeReconciliationWorker {
   }
 }
 
-export function createWorkflowWakeHandler(manager: WorkflowManager): (message: MessageEnvelope) => Promise<void> {
-  return async (message) => {
+export function createWorkflowWakeHandler(manager: WorkflowManager): (message: MessageEnvelope, context?: MessageExecutionContext) => Promise<void> {
+  return async (message, context) => {
     const payload = message.payload as Record<string, unknown> | null
     if (message.type !== workflowWakeMessageType || !payload || typeof payload !== 'object' || Array.isArray(payload) || Object.keys(payload).length !== 1 || typeof payload.workflowId !== 'string' || !payload.workflowId)
       throw new TypeError('Invalid workflow wake message')
-    await manager.processResult(payload.workflowId)
+    await manager.processResult(payload.workflowId, { signal: context?.signal })
   }
 }
 

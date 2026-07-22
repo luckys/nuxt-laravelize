@@ -62,6 +62,16 @@ describe('transactional workflow outbox', () => {
     expect(appended.map(item => item.options?.availableAt)).toEqual([new Date(130).toISOString(), new Date(150).toISOString()])
   })
 
+  it('atomically records a replacement fallback for every lease renewal', async () => {
+    const { appended, store, unitOfWork } = setup()
+    await store.create(snapshot('renewed'))
+    const claimed = await store.claim('renewed', 0, 'lease', 0, 100)
+    appended.length = 0
+    const renewed = await store.renewLease('renewed', claimed.revision, 'lease', 10, 200)
+    expect(renewed).toMatchObject({ revision: claimed.revision, lease: { expiresAt: 200 } })
+    expect(appended).toEqual([expect.objectContaining({ unitOfWork, options: { availableAt: new Date(200).toISOString() }, envelope: expect.objectContaining({ type: workflowWakeMessageType, payload: { workflowId: 'renewed' } }) })])
+  })
+
   it('emits cancellation wake-ups and stops emitting after terminal commits', async () => {
     const { appended, store } = setup()
     const definition = defineWorkflow({ name: 'cancel', version: '1', steps: [defineStep({ name: 'work', run: () => null })] })
@@ -87,8 +97,9 @@ describe('transactional workflow outbox', () => {
   it('validates wake payloads and processes one authoritative transition', async () => {
     const manager = { processResult: vi.fn(async () => ({ outcome: 'terminal' })) } as unknown as WorkflowManager
     const handler = createWorkflowWakeHandler(manager)
-    await handler({ version: 1, id: 'wake', type: workflowWakeMessageType, occurredAt: new Date(0).toISOString(), payload: { workflowId: 'workflow-1' } })
-    expect(manager.processResult).toHaveBeenCalledWith('workflow-1')
+    const controller = new AbortController()
+    await handler({ version: 1, id: 'wake', type: workflowWakeMessageType, occurredAt: new Date(0).toISOString(), payload: { workflowId: 'workflow-1' } }, { signal: controller.signal, leaseToken: 'lease', attempt: 1 })
+    expect(manager.processResult).toHaveBeenCalledWith('workflow-1', { signal: controller.signal })
     await expect(handler({ version: 1, id: 'bad', type: workflowWakeMessageType, occurredAt: new Date(0).toISOString(), payload: { workflowId: '', extra: true } })).rejects.toThrow(TypeError)
   })
 })
@@ -180,6 +191,7 @@ describe('workflow wake reconciliation', () => {
       create: value => store.create(value),
       get: id => store.get(id),
       claim: (...args) => store.claim(...args),
+      renewLease: (...args) => store.renewLease(...args),
       commit: (...args) => store.commit(...args),
       requestCancellation: (...args) => store.requestCancellation(...args),
     }
