@@ -8,6 +8,7 @@ export interface Cache {
   add<T>(key: string, value: T, ttl?: CacheTtl): Promise<boolean>
   forget(key: string): Promise<boolean>
   forgetIf<T>(key: string, expected: T): Promise<boolean>
+  expireIf?<T>(key: string, expected: T, ttl: CacheTtl): Promise<boolean>
   flush(): Promise<void>
   pull<T>(key: string, defaultValue?: T): Promise<T | undefined>
   remember<T>(key: string, ttl: CacheTtl, factory: () => T | Promise<T>): Promise<T>

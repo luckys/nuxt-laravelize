@@ -18,6 +18,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/broadcasting` | Broadcasting de servidor para canales publicos, privados y de presencia |
 | `@nuxt-laravelize/broadcasting-pusher` | Adapter opcional de servidor para Pusher Channels |
 | `@nuxt-laravelize/cache` | Contrato cache portable, operaciones TTL, locks atomicos, contadores, memoizacion y driver en memoria |
+| `@nuxt-laravelize/cache-redis` | Adapter opcional Node-only para Redis/Valkey (no incluido en el preset) |
 | `@nuxt-laravelize/core` | Contenedor, tokens, providers, lifecycle y logging |
 | `@nuxt-laravelize/execution-context` | Identidad inmutable, correlacion confiable y logging contextual |
 | `@nuxt-laravelize/execution-context-queue` | Propagacion transparente del contexto por colas |
@@ -145,6 +146,7 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/workflows-reliability` | Raiz del paquete | - |
 | `@nuxt-laravelize/workflows-queue` | `/runtime` | - |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
+| `@nuxt-laravelize/cache-redis` | raiz del paquete | — |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |
 | `@nuxt-laravelize/execution-context-queue` | `/runtime` | - |

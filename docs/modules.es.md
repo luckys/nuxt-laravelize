@@ -127,6 +127,10 @@ export default defineEventHandler(async (event) => {
 
 Cada lock expone un token opaco `owner`. Pasa ese token como cuarto argumento de `useCacheLock()` para restaurar y liberar ownership desde otro proceso. `release()` usa compare-and-delete atomico y no puede borrar un lock readquirido por otro owner despues de expirar. Reserva `forceRelease()` para recuperacion administrativa porque ignora ownership intencionalmente.
 
+Usa `lock.renew(ttlSeconds?)` para extender atomicamente un lease solo mientras coincida su owner. La capacidad `Cache.expireIf` es opcional para mantener compatibilidad con adapters personalizados; la renovacion falla de forma segura con `false` cuando no esta disponible y nunca se emula con una lectura y escritura expuestas a carreras. Los locks de cache no tienen fencing token, y un failover o lag de replicacion de Redis/Valkey puede romper la exclusion mutua.
+
+Para despliegues Node compartidos, instala `@nuxt-laravelize/cache-redis` con ioredis 5. Soporta Redis y Valkey, usa un prefijo obligatorio y deja a la aplicacion el inicio/cierre de la conexion. No esta incluido en el preset `@nuxt-laravelize/nuxt`. Su `flush()` por prefijo usa `SCAN` escapado y lotes acotados de `UNLINK`/`DEL`, no es atomico y debe ejecutarse en cada primario de Redis Cluster.
+
 Los locks distribuidos requieren que los adapters cache compartidos implementen `add()` y `forgetIf()` atomicamente. El TTL debe superar la operacion protegida; la expiracion evita deadlocks permanentes pero no cancela un callback que tarde demasiado.
 
 ## Rate limiting

@@ -34,6 +34,12 @@ export class CacheLock {
     return this.cache.forgetIf(this.#key, this.owner)
   }
 
+  renew(ttlSeconds = this.ttlSeconds): Promise<boolean> {
+    if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) throw new Error('Lock TTL must be a positive finite number of seconds.')
+    if (!this.cache.expireIf) return Promise.resolve(false)
+    return this.cache.expireIf(this.#key, this.owner, ttlSeconds)
+  }
+
   forceRelease(): Promise<boolean> {
     return this.cache.forget(this.#key)
   }

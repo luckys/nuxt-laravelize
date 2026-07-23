@@ -65,6 +65,20 @@ export class InMemoryCache implements Cache {
     return this.#entries.delete(key)
   }
 
+  async expireIf<T>(key: string, expected: T, ttl: CacheTtl): Promise<boolean> {
+    const entry = this.#entry(key)
+    if (entry === undefined || !Object.is(entry.value, expected)) return false
+    const now = this.now()
+    const expiresAt = resolveExpiration(ttl, now)
+    this.#touch(key)
+    if (expiresAt === null || expiresAt <= now) {
+      this.#entries.delete(key)
+      return expiresAt !== null
+    }
+    entry.expiresAt = expiresAt
+    return true
+  }
+
   async flush(): Promise<void> {
     this.#entries.clear()
     this.#pending.clear()

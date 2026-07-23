@@ -48,6 +48,19 @@ describe('InMemoryCache', () => {
     await expect(cache.has('lock')).resolves.toBe(false)
   })
 
+  it('expires only a matching value and removes on nonpositive expiration', async () => {
+    let now = 1_000
+    const cache = new InMemoryCache(() => now)
+    await cache.put('lock', 'owner-a')
+    await expect(cache.expireIf('lock', 'owner-b', 10)).resolves.toBe(false)
+    await expect(cache.expireIf('lock', 'owner-a', 1)).resolves.toBe(true)
+    now = 2_000
+    await expect(cache.has('lock')).resolves.toBe(false)
+    await cache.put('lock', 'owner-a')
+    await expect(cache.expireIf('lock', 'owner-a', 0)).resolves.toBe(true)
+    await expect(cache.has('lock')).resolves.toBe(false)
+  })
+
   it('allows only one concurrent add for a missing key', async () => {
     const cache = new InMemoryCache()
 

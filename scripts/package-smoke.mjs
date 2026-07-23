@@ -14,6 +14,7 @@ const packageNames = [
   'broadcasting',
   'broadcasting-pusher',
   'cache',
+  'cache-redis',
   'core',
   'database',
   'database-drizzle',
@@ -114,6 +115,7 @@ runFixture('features', {
   '@nuxt-laravelize/core',
   '@nuxt-laravelize/cache/runtime',
   '@nuxt-laravelize/cache/testing',
+  '@nuxt-laravelize/cache-redis',
   '@nuxt-laravelize/core/runtime',
   '@nuxt-laravelize/core/kit',
   '@nuxt-laravelize/core/testing',
@@ -201,6 +203,7 @@ runFixture('features', {
     '@nuxt-laravelize/broadcasting-pusher': ['PusherBroadcaster'],
     '@nuxt-laravelize/testing': ['BroadcastFake'],
     '@nuxt-laravelize/cache/runtime': ['CacheLock', 'InMemoryCache', 'LockTimeoutError', 'cacheToken'],
+    '@nuxt-laravelize/cache-redis': ['RedisCache', 'JsonCacheSerializer', 'CacheCorruptionError'],
     '@nuxt-laravelize/core/runtime': ['createContainer', 'loggerFor'],
     '@nuxt-laravelize/database/runtime': ['transactionManagerToken', 'createTransactionManagerToken'],
     '@nuxt-laravelize/database-drizzle': ['DrizzleTransactionManager', 'DrizzleSyncTransactionManager'],
@@ -263,7 +266,7 @@ runFixture('preset-default', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/agent-sdk', '@nuxt-laravelize/agents-cloudflare', '@nuxt-laravelize/agents-flue', '@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/database-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/idempotency', '@nuxt-laravelize/idempotency-drizzle', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', '@nuxt-laravelize/workflows', '@nuxt-laravelize/workflows-drizzle', '@nuxt-laravelize/workflows-queue', 'agents', '@flue/runtime', '@flue/sdk', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
+}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/cache-redis', '@nuxt-laravelize/agent-sdk', '@nuxt-laravelize/agents-cloudflare', '@nuxt-laravelize/agents-flue', '@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/database-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/idempotency', '@nuxt-laravelize/idempotency-drizzle', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', '@nuxt-laravelize/workflows', '@nuxt-laravelize/workflows-drizzle', '@nuxt-laravelize/workflows-queue', 'agents', '@flue/runtime', '@flue/sdk', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
   requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
   buildNuxt: true,
 })

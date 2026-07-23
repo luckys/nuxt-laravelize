@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { CacheLock, LockTimeoutError } from '../../src/runtime/CacheLock'
+import type { Cache } from '../../src/runtime/Cache'
 import { InMemoryCache } from '../../src/runtime/InMemoryCache'
 
 describe('CacheLock', () => {
@@ -25,6 +26,46 @@ describe('CacheLock', () => {
 
     await expect(restored.owned()).resolves.toBe(true)
     await expect(restored.release()).resolves.toBe(true)
+  })
+
+  it('renews only a currently owned lease without recreating stale locks', async () => {
+    let now = 0
+    const cache = new InMemoryCache(() => now)
+    const stale = new CacheLock(cache, 'report', 1, 'owner-a')
+    await stale.acquire()
+    now = 500
+    await expect(stale.renew(2)).resolves.toBe(true)
+    now = 1_500
+    await expect(stale.owned()).resolves.toBe(true)
+    now = 2_500
+    const current = new CacheLock(cache, 'report', 10, 'owner-b')
+    await current.acquire()
+    await expect(stale.renew()).resolves.toBe(false)
+    await expect(current.owned()).resolves.toBe(true)
+  })
+
+  it('fails closed when a legacy cache does not support atomic renewal', async () => {
+    const backing = new InMemoryCache()
+    const legacyCache: Cache = {
+      get: backing.get.bind(backing),
+      has: backing.has.bind(backing),
+      put: backing.put.bind(backing),
+      forever: backing.forever.bind(backing),
+      add: backing.add.bind(backing),
+      forget: backing.forget.bind(backing),
+      forgetIf: backing.forgetIf.bind(backing),
+      flush: backing.flush.bind(backing),
+      pull: backing.pull.bind(backing),
+      remember: backing.remember.bind(backing),
+      rememberForever: backing.rememberForever.bind(backing),
+      increment: backing.increment.bind(backing),
+      decrement: backing.decrement.bind(backing),
+    }
+    const lock = new CacheLock(legacyCache, 'legacy', 60, 'owner')
+    await lock.acquire()
+
+    await expect(lock.renew()).resolves.toBe(false)
+    await expect(lock.owned()).resolves.toBe(true)
   })
 
   it('releases after callbacks resolve or reject', async () => {
