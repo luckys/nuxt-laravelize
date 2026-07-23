@@ -30,6 +30,13 @@ describe('Authorization', () => {
     expect(await new Authorization(registry, queueContext, ordinaryResolver).inspect('report.view')).toEqual({ allowed: false, code: 'untrusted-queue-principal' })
     expect(ordinaryResolver.resolve).toHaveBeenCalledWith(expect.objectContaining({ source: { type: 'queue' }, actor: { type: 'user', id: 'propagated' } }))
   })
+  it('lets a resolver explicitly reject queue-restored provenance', async () => {
+    const registry = new AuthorizationRegistry().registerAbility('report.view', () => true)
+    const queueContext = ExecutionContext.create({ source: { type: 'queue' }, actor: { type: 'user', id: 'propagated' }, tenantId: 'propagated-tenant' }, () => 'id')
+    const queueAwareResolver = { resolve: vi.fn(snapshot => snapshot.source.type === 'queue' ? null : { id: snapshot.actor?.id }) }
+    expect(await new Authorization(registry, queueContext, queueAwareResolver).inspect('report.view')).toEqual({ allowed: false, code: 'principal-not-found' })
+    expect(queueAwareResolver.resolve).toHaveBeenCalledWith(expect.objectContaining({ source: { type: 'queue' }, actor: { type: 'user', id: 'propagated' } }))
+  })
   it('accepts an explicitly trusted queue principal resolution', async () => {
     const registry = new AuthorizationRegistry().registerAbility('report.view', ({ principal }) => (principal as { id: string }).id === 'verified-worker')
     const queueContext = ExecutionContext.create({ source: { type: 'queue' }, actor: { type: 'user', id: 'propagated' } }, () => 'id')
