@@ -28,6 +28,12 @@ export default defineNuxtConfig({
 
 Usa `$t()` en templates o `useI18n().$t()` en scripts. Define `i18n: false` para desactivar la integracion.
 
+## Autorizacion
+
+`@nuxt-laravelize/authorization` esta incluido en el preset. Su core no depende de H3: resuelve `authorizationToken` en scopes HTTP, queues, workflows o CLI, y usa el autoimport `useAuthorization(event)` solo en el borde HTTP. Las abilities globales y policies de recursos se registran una vez mediante el singleton `authorizationRegistryToken`; los tipos de recurso usan keys estables explicitas y los duplicados fallan inmediatamente.
+
+El authorizer scoped llama al `principalResolverToken` reemplazable para recargar el principal vigente. Los snapshots propagados o serializados son metadata, nunca credenciales. En contextos de cola, un principal ordinario se deniega centralmente; devuelve `trustQueuePrincipal(principal)` solo despues de que la aplicacion autentique independientemente la delegacion o la identidad actual del worker. Esta afirmacion es responsabilidad de la aplicacion y no debe derivarse del actor, tenant, atributos u otros claims del envelope. El resolver por defecto no devuelve principal y por ello deniega. `inspect` devuelve una decision tipada y acotada; `allows`, `denies`, `authorize`, `any` y `none` agregan conveniencia. El nombre de ability de recurso `before` esta reservado para el hook de policy; la accion solicitada debe existir antes de ejecutar el hook y `null`/`undefined` significa continuar. Los errores portables no dependen de H3; el borde HTTP debe mapear denegaciones a 403.
+
 ## Rutas tipadas
 
 `@nuxt-laravelize/routes` genera `#laravelize/routes` desde declaraciones explicitas y esta incluido en el preset. Solo infiere parametros de URL y metodos HTTP; intencionalmente **no infiere** bodies de request ni responses.
@@ -969,6 +975,8 @@ return UserResource.collection(paginator)
 ```
 
 ### Gates y policies
+
+Estas APIs HTTP se conservan por compatibilidad concreta. El codigo nuevo debe usar `@nuxt-laravelize/authorization`: en lugar del lookup legacy por nombre de constructor y el user suministrado por el caller, usa keys de recurso explicitas y recarga el principal scoped. El `authorize()` legacy mantiene su mapping 403 especifico de H3.
 
 | API | Proposito |
 |---|---|

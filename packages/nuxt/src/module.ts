@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import Authorization from '@nuxt-laravelize/authorization'
 import ReliabilityQueue from '@nuxt-laravelize/reliability-queue'
 import { defineNuxtModule, installModule } from '@nuxt/kit'
 import type { ModuleOptions as I18nModuleOptions } from 'nuxt-i18n-micro'
@@ -50,6 +51,7 @@ export default defineNuxtModule({
     'nuxt-i18n-micro': {},
   },
   async setup(_options, nuxt) {
+    await installModule(Authorization, {}, nuxt)
     await installModule(ReliabilityQueue, {}, nuxt)
     const h3Entry = createRequire(import.meta.url).resolve('h3')
     ;(nuxt.hooks as { hook(name: 'nitro:config', callback: (config: { alias?: Record<string, string> }) => void): void }).hook('nitro:config', (nitroConfig) => {

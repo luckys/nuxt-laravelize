@@ -6,6 +6,7 @@ describe('Nuxt 4 default profile', async () => {
   await setup({ rootDir: fileURLToPath(new URL('../fixtures/nuxt4-default', import.meta.url)) })
   it('provides the standard runtime services', async () => {
     expect(await $fetch('/api/health')).toEqual({
+      authorization: true,
       audit: true,
       container: true,
       cache: true,
@@ -29,6 +30,12 @@ describe('Nuxt 4 default profile', async () => {
       reliableJobRegistered: true,
       route: { method: 'GET', url: '/api/users/42?preview=1&tags=b&tags=a' },
     })
+  })
+  it('wires fixture authorization through request-scoped services', async () => {
+    const [first, second] = await Promise.all([$fetch<{ requestId: string, sameService: boolean }>('/api/authorization-scope'), $fetch<{ requestId: string, sameService: boolean }>('/api/authorization-scope')])
+    expect(first.sameService).toBe(true)
+    expect(second.sameService).toBe(true)
+    expect(first.requestId).not.toBe(second.requestId)
   })
 
   it('emits isolated correlation IDs and ignores untrusted incoming values', async () => {

@@ -22,7 +22,9 @@ export default defineEventHandler(async (event) => {
     name: ReliableMessageJob.jobName,
     payload: { envelope: { version: 1, id: 'health', type: 'health.checked', occurredAt: new Date().toISOString(), payload: null } },
   })
+  const authorization = useAuthorization(event)
   return {
+    authorization: authorization === useAuthorization(event) && await authorization.allows('health.allow') && await authorization.denies('health.deny'),
     audit: Boolean(useAudit(event)),
     container: Boolean(useContainer(event)),
     dispatcher: Boolean(useDispatcher(event)),

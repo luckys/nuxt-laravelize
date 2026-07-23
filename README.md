@@ -9,6 +9,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | Package | Purpose |
 |---|---|
 | `@nuxt-laravelize/audit` | Secure append-only audit recording enriched by execution context |
+| `@nuxt-laravelize/authorization` | Portable centralized abilities and policies with scoped principals |
 | `@nuxt-laravelize/audit-drizzle` | Optional PostgreSQL, SQLite, and Turso/libSQL audit stores |
 | `@nuxt-laravelize/ai-sdk` | Opt-in named AI model connections, typed agents, streaming, and testing |
 | `@nuxt-laravelize/agent-sdk` | Opt-in runtime-neutral agent invocation, dispatch, observation, and testing |

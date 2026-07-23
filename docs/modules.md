@@ -28,6 +28,12 @@ export default defineNuxtConfig({
 
 Use `$t()` in templates or `useI18n().$t()` in scripts. Set `i18n: false` to disable the integration.
 
+## Authorization
+
+`@nuxt-laravelize/authorization` is included in the preset. Its core is H3-independent: resolve `authorizationToken` in HTTP, queues, workflows or CLI scopes, and use the auto-imported `useAuthorization(event)` only at the HTTP boundary. Register global abilities and resource policies once through the singleton `authorizationRegistryToken`; resource types are explicit stable keys and duplicate registrations fail immediately.
+
+The scoped authorizer calls the overrideable `principalResolverToken` to reload the current principal. Propagated or serialized execution-context snapshots are metadata, never credentials. For queue contexts, an ordinary principal result is centrally denied; return `trustQueuePrincipal(principal)` only after the application independently authenticates delegation or the current worker identity. That assertion is application responsibility and must not derive from envelope actor, tenant, attributes, or other claims. The default resolver returns no principal and therefore denies. `inspect` returns a bounded typed decision, while `allows`, `denies`, `authorize`, `any`, and `none` provide convenience behavior. The resource ability name `before` is reserved for the policy hook; the requested action must exist before the hook runs, and `null`/`undefined` means continue. Portable denial and undefined-ability errors contain no H3 dependency; map denials to 403 in HTTP code.
+
 ## Typed routes
 
 `@nuxt-laravelize/routes` generates `#laravelize/routes` from explicit declarations and is included in the preset. It infers URL parameters and HTTP methods only; request bodies and responses are intentionally **not inferred**.
@@ -980,6 +986,8 @@ return UserResource.collection(paginator)
 ```
 
 ### Gates and policies
+
+These HTTP gate/policy APIs remain for concrete backward compatibility. New code should use `@nuxt-laravelize/authorization`; unlike the legacy constructor-name policy lookup and caller-supplied user argument below, it uses explicit resource keys and reloads the scoped principal. The legacy `authorize()` keeps its H3-specific 403 mapping.
 
 | API | Purpose |
 |---|---|

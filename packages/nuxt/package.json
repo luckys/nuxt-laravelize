@@ -24,6 +24,7 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
+    "@nuxt-laravelize/authorization": "workspace:^",
     "@nuxt-laravelize/audit": "workspace:^",
     "@nuxt-laravelize/broadcasting": "workspace:^",
     "@nuxt-laravelize/cache": "workspace:^",
