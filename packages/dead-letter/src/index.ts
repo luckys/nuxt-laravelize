@@ -19,6 +19,7 @@ export type DeadLetterPage = Readonly<{ items: readonly DeadLetterSummary[], nex
 export type DeadLetterMutation = Readonly<{ key: DeadLetterKey, revision: string, operationId: string, reason?: string }>
 export type DeadLetterRetry = DeadLetterMutation & Readonly<{ availableAt: string }>
 export type DeadLetterMutationResult = Readonly<{ key: DeadLetterKey, disposition: DeadLetterDisposition, revision: string, operationId: string, committedAt: string }>
+export type DeadLetterAdapterCapabilities = Readonly<{ retry: boolean, discard: boolean, scheduleRetry: boolean }>
 
 export class DeadLetterNotFoundError extends Error { constructor() { super('Dead letter not found'); this.name = 'DeadLetterNotFoundError' } }
 export class DeadLetterStaleRevisionError extends Error { constructor() { super('Dead letter revision is stale'); this.name = 'DeadLetterStaleRevisionError' } }
@@ -30,6 +31,8 @@ export class DeadLetterAdapterError extends Error { constructor() { super('Dead-
 
 export interface DeadLetterAdapter {
   readonly source: string
+  /** Omitted capabilities fail closed. Adapters must explicitly advertise supported mutations. */
+  readonly capabilities?: DeadLetterAdapterCapabilities
   list(request: Omit<DeadLetterListRequest, 'source' | 'cursor'> & { cursor?: string }): Promise<DeadLetterPage>
   get(key: DeadLetterKey, options?: { includePayload?: boolean, includeTenantHint?: boolean, includeErrorSummary?: boolean }): Promise<DeadLetterDetail>
   retry(request: DeadLetterRetry): Promise<DeadLetterMutationResult>
@@ -104,12 +107,16 @@ export const decodeDeadLetterCursor = (cursor: string, source: string): string =
 
 export class DeadLetterAdapterRegistry {
   readonly #adapters = new Map<string, DeadLetterAdapter>()
+  readonly #capabilities = new Map<string, DeadLetterAdapterCapabilities>()
   register(adapter: DeadLetterAdapter): this {
     if (!NAME.test(adapter.source) || RESERVED.has(adapter.source)) throw new TypeError('Invalid or reserved dead-letter source')
     if (this.#adapters.has(adapter.source)) throw new TypeError(`Duplicate dead-letter source: ${adapter.source}`)
-    this.#adapters.set(adapter.source, adapter); return this
+    const capabilities = adapter.capabilities ?? { retry: false, discard: false, scheduleRetry: false }
+    if ([capabilities.retry, capabilities.discard, capabilities.scheduleRetry].some(value => typeof value !== 'boolean') || (capabilities.scheduleRetry && !capabilities.retry)) throw new TypeError('Invalid dead-letter adapter capabilities')
+    this.#adapters.set(adapter.source, adapter); this.#capabilities.set(adapter.source, Object.freeze({ ...capabilities })); return this
   }
   get(source: string): DeadLetterAdapter { const adapter = this.#adapters.get(source); if (!adapter) throw new TypeError(`Unknown dead-letter source: ${source}`); return adapter }
+  capabilities(source: string): DeadLetterAdapterCapabilities { this.get(source); return this.#capabilities.get(source)! }
   sources(): readonly string[] { return [...this.#adapters.keys()] }
 }
 
@@ -151,4 +158,4 @@ export class DeadLetterManager {
   private async observe(event: DeadLetterOperationEvent) { try { await this.observer?.observe(event) } catch { /* fail-safe: committed operations are not rolled back */ } }
 }
 
-export const DEAD_LETTER_ABILITIES = Object.freeze(['dead-letters.list', 'dead-letters.view', 'dead-letters.view-payload', 'dead-letters.retry', 'dead-letters.discard', 'dead-letters.retry-inbox'] as const)
+export const DEAD_LETTER_ABILITIES = Object.freeze(['dead-letters.list', 'dead-letters.view', 'dead-letters.view-payload', 'dead-letters.view-error-summary', 'dead-letters.retry', 'dead-letters.discard', 'dead-letters.retry-inbox'] as const)

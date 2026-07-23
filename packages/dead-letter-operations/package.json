@@ -1,0 +1,33 @@
+{
+  "name": "@nuxt-laravelize/dead-letter-operations",
+  "version": "0.1.0",
+  "description": "Opt-in, fail-closed dead-letter operations console for Nuxt Laravelize",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "main": "./dist/module.mjs",
+  "exports": {
+    ".": { "types": "./dist/types.d.mts", "import": "./dist/module.mjs" },
+    "./runtime": { "types": "./dist/runtime/index.d.ts", "import": "./dist/runtime/index.js" },
+    "./runtime/server": { "types": "./dist/runtime/server/index.d.ts", "import": "./dist/runtime/server/index.js" },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "nuxt-module-build build",
+    "test": "nuxt-module-build prepare && vitest run",
+    "typecheck": "nuxt-module-build prepare && vue-tsc --noEmit",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "dependencies": {
+    "@nuxt-laravelize/authorization": "workspace:^",
+    "@nuxt-laravelize/core": "workspace:^",
+    "@nuxt-laravelize/dead-letter": "workspace:^",
+    "@nuxt/kit": "^4.4.5",
+    "h3": "^1.15.11",
+    "nitropack": "^2.13.4"
+  },
+  "peerDependencies": { "nuxt": ">=4.3.0 <5" },
+  "devDependencies": { "@nuxt/module-builder": "^1.0.2", "@nuxt/test-utils": "^4.0.3", "@vue/test-utils": "^2.4.6", "nuxt": "^4.4.5", "typescript": "^5.9.3", "vitest": "^4.1.5", "vue": "^3.5.28", "vue-tsc": "^3.2.8" }
+}

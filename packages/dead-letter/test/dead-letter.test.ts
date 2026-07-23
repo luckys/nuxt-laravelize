@@ -1,10 +1,16 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { describe, expect, it } from 'vitest'
-import { DeadLetterAdapterError, DeadLetterAdapterRegistry, DeadLetterManager, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, decodeDeadLetterCursor } from '../src/index.js'
+import { DEAD_LETTER_ABILITIES, DeadLetterAdapterError, DeadLetterAdapterRegistry, DeadLetterManager, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, decodeDeadLetterCursor } from '../src/index.js'
 import { MemoryDeadLetterAdapter } from '../src/testing.js'
 
 const item = (id: string, terminalAt: string) => ({ key: { source: 'reliability', namespace: 'outbox', id }, type: 'webhook.deliver.v1', disposition: 'active' as const, attempts: 3, terminalAt, error: 'token=secret\ntrace', revision: '1', payload: { private: true }, tenantHint: 'tenant-1' })
 describe('dead-letter manager contract', () => {
+  it('fails closed for omitted capabilities and publishes the error-summary ability', () => {
+    const memory = new MemoryDeadLetterAdapter('one')
+    const registry = new DeadLetterAdapterRegistry().register({ source: 'custom', list: request => memory.list(request), get: (key, options) => memory.get(key, options), retry: request => memory.retry(request), discard: request => memory.discard(request) })
+    expect(registry.capabilities('custom')).toEqual({ retry: false, discard: false, scheduleRetry: false })
+    expect(DEAD_LETTER_ABILITIES).toContain('dead-letters.view-error-summary')
+  })
   it('requires one source, hides payload and qualifies opaque pagination', async () => {
     const registry = new DeadLetterAdapterRegistry().register(new MemoryDeadLetterAdapter('reliability', [item('a', new Date(0).toISOString()), item('b', new Date(1).toISOString())])).register(new MemoryDeadLetterAdapter('bullmq'))
     const manager = new DeadLetterManager(registry)

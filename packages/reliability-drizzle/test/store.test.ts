@@ -9,6 +9,9 @@ import { DeadLetterAmbiguousError, DeadLetterOperationConflictError, DeadLetterS
 import { DrizzlePostgresReliabilityStore, DrizzleReliabilityDeadLetterAdapter, DrizzleSQLiteReliabilityStore } from '../src/index.js'
 
 describe('drizzle reliability stores', () => {
+  it('advertises retry, scheduling, and discard support', () => {
+    expect(new DrizzleReliabilityDeadLetterAdapter({} as never).capabilities).toEqual({ retry: true, discard: true, scheduleRetry: true })
+  })
   it.each([DrizzlePostgresReliabilityStore, DrizzleSQLiteReliabilityStore])('uses parameterized transaction-bound append', async (Store) => {
     const envelope = { version: 1 as const, id: 'm-1', type: 'x.v1', occurredAt: new Date(0).toISOString(), payload: null }
     const database = { execute: vi.fn().mockResolvedValue({ rows: [{ id: envelope.id }] }) }

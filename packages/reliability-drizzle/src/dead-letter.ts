@@ -26,6 +26,7 @@ const canonicalRevision = (revision: string): string => {
 /** Administrative capability. Use credentials separate from the worker store. */
 export class DrizzleReliabilityDeadLetterAdapter implements DeadLetterAdapter {
   readonly source = 'reliability'
+  readonly capabilities = Object.freeze({ retry: true, discard: true, scheduleRetry: true })
   constructor(private readonly database: DrizzleReliabilityDatabase, private readonly clock: () => Date = () => new Date()) {}
   async list(request: Omit<DeadLetterListRequest, 'source' | 'cursor'> & { cursor?: string }) {
     const limit = request.limit ?? 25; const cursor = parseCursor(request.cursor)

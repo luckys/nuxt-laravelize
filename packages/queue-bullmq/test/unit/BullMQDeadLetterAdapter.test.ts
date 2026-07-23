@@ -6,6 +6,9 @@ import { BullMQDeadLetterAdapter } from '../../src/runtime/BullMQDeadLetterAdapt
 
 const job = () => ({ id: 'job-1', name: 'mail.send', data: { secret: true }, opts: { attempts: 4 }, failedReason: 'token=hidden\nstack', attemptsMade: 3, finishedOn: 100, processedOn: 50, timestamp: 0, getState: vi.fn().mockResolvedValue('failed'), retry: vi.fn().mockResolvedValue(undefined), remove: vi.fn().mockResolvedValue(undefined) })
 describe('BullMQDeadLetterAdapter', () => {
+  it('advertises immediate retry without discard or scheduling', () => {
+    expect(new BullMQDeadLetterAdapter({} as never, new MemoryDeadLetterOperationStore()).capabilities).toEqual({ retry: true, discard: false, scheduleRetry: false })
+  })
   it('lists metadata only, opts into payload and fences mutations', async () => {
     const failed = job(); const queue = { name: 'emails', getJobs: vi.fn().mockResolvedValue([failed]), getJob: vi.fn().mockResolvedValue(failed) }
     const adapter = new BullMQDeadLetterAdapter(queue as never, new MemoryDeadLetterOperationStore(), () => new Date(200))

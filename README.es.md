@@ -33,6 +33,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/reliability` | Outbox at-least-once e inbox idempotente independientes del framework |
 | `@nuxt-laravelize/reliability-drizzle` | Stores durables opcionales para PostgreSQL, SQLite y Turso |
 | `@nuxt-laravelize/dead-letter` | Contratos portables para gestionar mensajes fallidos por origen |
+| `@nuxt-laravelize/dead-letter-operations` | Dashboard dead-letter opcional y fail-closed (fuera del preset) |
 | `@nuxt-laravelize/reliability-queue` | Bridge Nuxt de mensajes Inbox/Outbox durables a jobs registrados |
 | `@nuxt-laravelize/routes` | Helpers de URL tipados generados desde declaraciones explicitas |
 | `@nuxt-laravelize/events-queue` | Integracion de listeners encolados entre eventos y colas |
@@ -164,6 +165,7 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/rate-limiter` | `/runtime` | - |
 | `@nuxt-laravelize/reliability` | Raiz del paquete | `/testing` |
 | `@nuxt-laravelize/dead-letter` | Raiz del paquete | `/testing` |
+| `@nuxt-laravelize/dead-letter-operations` | Modulo Nuxt | `/runtime`, `/runtime/server` |
 | `@nuxt-laravelize/reliability-drizzle` | Raiz del paquete, `/postgres`, `/sqlite`, `/turso` | - |
 | `@nuxt-laravelize/reliability-queue` | Raiz del paquete, `/runtime` | - |
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |

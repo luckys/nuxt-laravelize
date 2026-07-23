@@ -27,6 +27,7 @@ const throwFailure = (receipt: DeadLetterOperationReceipt): never => { if (recei
 /** Retry uses durable reservations but BullMQ public APIs cannot make Redis mutation and external receipt commit atomic. Pending outcomes are therefore ambiguous and are never re-executed. */
 export class BullMQDeadLetterAdapter implements DeadLetterAdapter {
   readonly source = 'bullmq'
+  readonly capabilities = Object.freeze({ retry: true, discard: false, scheduleRetry: false })
   constructor(private readonly queue: Queue, private readonly operations: DeadLetterOperationStore, private readonly clock: () => Date = () => new Date()) { if (!operations) throw new TypeError('BullMQ dead-letter mutations require a DeadLetterOperationStore') }
   async list(request: Omit<DeadLetterListRequest, 'source' | 'cursor'> & { cursor?: string }) {
     if (request.namespace && request.namespace !== this.queue.name) return { items: [] }

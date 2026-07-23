@@ -8,6 +8,7 @@ export class MemoryDeadLetterOperationStore implements DeadLetterOperationStore 
   async finalize(id: string, fingerprint: string, resolution: { status: 'committed', result: DeadLetterMutationResult } | { status: 'failed', failureCode: 'not_found' | 'stale_revision' | 'invalid_state' }) { const prior = this.#items.get(id); if (!prior || prior.fingerprint !== fingerprint) throw new DeadLetterOperationConflictError(); this.#items.set(id, { fingerprint, ...resolution }) }
 }
 export class MemoryDeadLetterAdapter implements DeadLetterAdapter {
+  readonly capabilities = Object.freeze({ retry: true, discard: true, scheduleRetry: true })
   readonly #items = new Map<string, DeadLetterDetail>()
   readonly #operations = new MemoryDeadLetterOperationStore()
   constructor(readonly source: string, items: readonly DeadLetterDetail[] = []) { for (const item of items) this.#items.set(this.id(item.key), structuredClone(item)) }
