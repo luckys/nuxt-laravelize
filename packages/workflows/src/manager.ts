@@ -1,8 +1,9 @@
-import type { WorkflowRegistry } from './definition'
 import { LeaseConflictError, RevisionConflictError, WorkflowExecutionAbortedError, WorkflowLeaseLostError, type WorkflowStore } from './store'
 import { isWorkflowTerminal, isWorkflowWaiting, workflowNextRetryAt } from './state'
 /* eslint-disable @stylistic/max-statements-per-line */
-import type { Clock, JsonValue, RetrySchedule, WorkflowDefinition, WorkflowError, WorkflowSnapshot } from './types'
+import type { Clock, JsonValue, RetrySchedule, WorkflowDefinition, WorkflowDefinitionReference, WorkflowDefinitionResolver, WorkflowError, WorkflowSnapshot } from './types'
+import { assertWorkflowCancellationReceipt, assertWorkflowClaimReceipt, assertWorkflowCommitReceipt, assertWorkflowCreateReceipt, assertWorkflowRenewLeaseReceipt, assertWorkflowSnapshot, assertWorkflowSnapshotMatchesDefinition, materializeCanonicalJson, normalizePersistedWorkflowSnapshot, normalizeWorkflowSnapshot, WorkflowIdentityConflictError } from './validation'
+import { resolveWorkflowDefinitionExact } from './definition'
 
 export interface WorkflowManagerOptions { clock?: Clock, retrySchedule?: RetrySchedule, leaseDurationMs?: number, heartbeatIntervalMs?: number, idFactory?: () => string, tokenFactory?: () => string }
 export interface WorkflowProcessOptions { signal?: AbortSignal }
@@ -25,7 +26,7 @@ export class WorkflowManager {
   private readonly idFactory: () => string
   private readonly tokenFactory: () => string
 
-  constructor(private readonly store: WorkflowStore, private readonly registry: WorkflowRegistry, options: WorkflowManagerOptions = {}) {
+  constructor(private readonly store: WorkflowStore, private readonly resolver: WorkflowDefinitionResolver, options: WorkflowManagerOptions = {}) {
     this.clock = options.clock ?? systemClock
     this.retrySchedule = options.retrySchedule ?? defaultRetry
     this.leaseDurationMs = options.leaseDurationMs ?? 30_000
@@ -38,7 +39,7 @@ export class WorkflowManager {
 
   /** Rebinds persistence while retaining this manager's registry and execution policy. */
   using(store: WorkflowStore): WorkflowManager {
-    return new WorkflowManager(store, this.registry, {
+    return new WorkflowManager(store, this.resolver, {
       clock: this.clock,
       retrySchedule: this.retrySchedule,
       leaseDurationMs: this.leaseDurationMs,
@@ -48,27 +49,46 @@ export class WorkflowManager {
     })
   }
 
-  async start<I extends JsonValue>(reference: WorkflowDefinition<I>, input: I, startKey: string): Promise<WorkflowSnapshot> {
+  async start<I extends JsonValue>(reference: WorkflowDefinitionReference | WorkflowDefinition<I>, input: I, startKey: string): Promise<WorkflowSnapshot> {
     if (!startKey) throw new TypeError('A non-empty start key is required')
-    assertJsonSafe(input)
-    const definition = this.registry.get(reference.name, reference.version) as WorkflowDefinition<I>
+    const canonicalInput = materializeCanonicalJson(input, 'Workflow input') as I
+    const definition = resolveWorkflowDefinitionExact(this.resolver, reference) as WorkflowDefinition<I>
+    if ('steps' in reference && !sameDefinition(reference, definition)) throw new TypeError('Workflow definition must match the exact registered definition; pass a { name, version } reference instead')
     const now = this.clock.now()
     const id = this.idFactory()
     const snapshot: WorkflowSnapshot = {
-      id, workflowName: definition.name, workflowVersion: definition.version, startKey,
-      canonicalInput: canonicalize(input), input, state: 'pending', revision: 0,
+      snapshotFormatVersion: 1, id, workflowName: definition.name, workflowVersion: definition.version, startKey,
+      canonicalInput: canonicalize(canonicalInput), input: canonicalInput, state: 'pending', revision: 0,
       cancellationRequested: false, createdAt: now, updatedAt: now,
       steps: definition.steps.map((step, index) => ({ name: step.name, state: 'pending', attempts: 0, compensationAttempts: 0, idempotencyKey: `${id}:step:${index}`, ...(step.compensate ? { compensationIdempotencyKey: `${id}:compensate:${index}` } : {}) })),
     }
-    return (await this.store.create(snapshot)).snapshot
+    assertWorkflowSnapshotMatchesDefinition(snapshot, definition)
+    const result = assertWorkflowCreateReceipt(snapshot, await this.store.create(snapshot))
+    this.assertStartResult(snapshot, result.snapshot, definition, result.created)
+    return result.snapshot
   }
 
-  async status(id: string) { return this.store.get(id) }
+  /** Diagnostic read: validates snapshot format but does not require a deployed definition. */
+  async status(id: string): Promise<WorkflowSnapshot | null> {
+    const snapshot = await this.store.get(id)
+    return snapshot ? normalizePersistedWorkflowSnapshot(snapshot) : null
+  }
+
+  resolveSnapshot(snapshot: WorkflowSnapshot): WorkflowDefinition {
+    const normalized = normalizeWorkflowSnapshot(snapshot)
+    const definition = resolveWorkflowDefinitionExact(this.resolver, { name: normalized.workflowName, version: normalized.workflowVersion })
+    assertWorkflowSnapshotMatchesDefinition(normalized, definition)
+    return definition
+  }
+
+  assertProcessable(snapshot: WorkflowSnapshot): WorkflowDefinition { return this.resolveSnapshot(snapshot) }
 
   async cancel(id: string): Promise<WorkflowSnapshot> {
-    const snapshot = await this.required(id)
+    const snapshot = normalizePersistedWorkflowSnapshot(await this.required(id))
+    this.assertProcessable(snapshot)
     if (isWorkflowTerminal(snapshot) || snapshot.cancellationRequested) return snapshot
-    return this.store.requestCancellation(id, snapshot.revision, this.clock.now())
+    const now = this.clock.now()
+    return assertWorkflowCancellationReceipt(snapshot, await this.store.requestCancellation(id, snapshot.revision, now), now)
   }
 
   /** Processes at most one handler attempt (plus its persisted boundaries). */
@@ -79,7 +99,8 @@ export class WorkflowManager {
   /** Processes at most one authoritative transition and reports why processing stopped. */
   async processResult(id: string, options: WorkflowProcessOptions = {}): Promise<WorkflowProcessResult> {
     if (options.signal?.aborted) throw new WorkflowExecutionAbortedError()
-    const observed = await this.required(id)
+    const observed = normalizePersistedWorkflowSnapshot(await this.required(id))
+    const definition = this.assertProcessable(observed)
     if (isWorkflowTerminal(observed)) return { outcome: 'terminal', snapshot: observed }
     const now = this.clock.now()
     const retryAt = workflowNextRetryAt(observed)
@@ -88,49 +109,61 @@ export class WorkflowManager {
     let claimed: WorkflowSnapshot
     try { claimed = await this.store.claim(id, observed.revision, token, now, now + this.leaseDurationMs) }
     catch (error) {
-      if (error instanceof RevisionConflictError || error instanceof LeaseConflictError) return this.classifyClaimConflict(await this.required(id))
+      if (error instanceof RevisionConflictError || error instanceof LeaseConflictError) {
+        const authoritative = normalizePersistedWorkflowSnapshot(await this.required(id))
+        this.assertProcessable(authoritative)
+        return this.classifyClaimConflict(authoritative)
+      }
       throw error
     }
-    const definition = this.registry.get(claimed.workflowName, claimed.workflowVersion)
+    claimed = assertWorkflowClaimReceipt(observed, claimed, token, now, now + this.leaseDurationMs)
+    assertWorkflowSnapshotMatchesDefinition(claimed, definition)
     return { outcome: 'processed', snapshot: await this.advance(claimed, definition, token, options) }
   }
 
   async run(id: string, maxTransitions = 100, options: WorkflowProcessOptions = {}): Promise<WorkflowSnapshot> {
-    let snapshot = await this.required(id)
+    let snapshot = normalizePersistedWorkflowSnapshot(await this.required(id))
+    this.assertProcessable(snapshot)
     for (let count = 0; count < maxTransitions && !isWorkflowTerminal(snapshot); count++) {
       const before = snapshot.revision
       snapshot = await this.process(id, options)
-      if (snapshot.revision === before || isWorkflowWaiting(snapshot)) break
+      if (snapshot.revision === before) break
     }
     return snapshot
   }
 
   private async advance(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string, options: WorkflowProcessOptions) {
     if (options.signal?.aborted) throw new WorkflowExecutionAbortedError()
-    if (snapshot.cancellationRequested && !isCompensating(snapshot)) return this.commit(snapshot, token, this.beginCompensationOrCancel(snapshot, definition))
+    if (snapshot.cancellationRequested && !isCompensating(snapshot)) {
+      const steps = snapshot.steps.map((step) => {
+        if (step.state !== 'waiting_retry') return step
+        const { retryAt: _retryAt, error: _error, ...cancelledStep } = step
+        return { ...cancelledStep, state: 'pending' as const }
+      })
+      return this.commit(snapshot, definition, token, this.beginCompensationOrCancel({ ...snapshot, steps }, definition))
+    }
     return isCompensating(snapshot) ? this.compensate(snapshot, definition, token, options) : this.execute(snapshot, definition, token, options)
   }
 
   private async execute(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string, options: WorkflowProcessOptions) {
     const index = snapshot.steps.findIndex(step => step.state !== 'committed')
-    if (index < 0) return this.commit(snapshot, token, { ...snapshot, state: 'completed' })
+    if (index < 0) return this.commit(snapshot, definition, token, { ...snapshot, state: 'completed' })
     if (snapshot.steps[index]!.state === 'running') return this.interruptedForward(snapshot, definition, token, index)
     const step = definition.steps[index]!
     const steps = snapshot.steps.map(value => ({ ...value }))
     const current = steps[index]!
-    current.state = 'running'; current.attempts++; current.retryAt = undefined; current.error = undefined
-    const started = await this.commit(snapshot, token, { ...snapshot, steps, state: 'running' }, false)
+    current.state = 'running'; current.attempts++; delete current.retryAt; delete current.error
+    const started = await this.commit(snapshot, definition, token, { ...snapshot, steps, state: 'running' }, false)
     try {
-      const execution = await this.withHeartbeat(started, token, options.signal, true, signal => step.run({ workflowId: started.id, input: started.input, previousOutput: index ? started.steps[index - 1]?.output : undefined, idempotencyKey: current.idempotencyKey, attempt: current.attempts, signal }))
+      const execution = await this.withHeartbeat(started, token, options.signal, true, signal => step.run({ workflowId: started.id, input: materializeCanonicalJson(started.input) as never, previousOutput: index && started.steps[index - 1]?.output !== undefined ? materializeCanonicalJson(started.steps[index - 1]!.output) : undefined, idempotencyKey: current.idempotencyKey, attempt: current.attempts, signal }))
       if (execution.cancelled) {
         current.state = 'pending'
-        return this.commit(started, token, this.beginCompensationOrCancel({ ...started, steps, state: 'running' }, definition))
+        return this.commit(started, definition, token, this.beginCompensationOrCancel({ ...started, steps, state: 'running', cancellationRequested: true }, definition))
       }
-      const output = execution.value
-      assertJsonSafe(output, 'Workflow step output')
+      const output = materializeCanonicalJson(execution.value, 'Workflow step output')
       current.output = output; current.state = 'committed'
       // Completion is a separate transition so a cancellation racing this effect is observed and compensated.
-      return this.commit(started, token, { ...started, steps, state: 'running' })
+      return this.commit(started, definition, token, { ...started, steps, state: 'running', cancellationRequested: execution.cancellationObserved || started.cancellationRequested })
     }
     catch (error) {
       if (error instanceof LeaseLostControl) throw new WorkflowLeaseLostError()
@@ -142,11 +175,11 @@ export class WorkflowManager {
   private finishForwardFailure(started: WorkflowSnapshot, definition: WorkflowDefinition, token: string, index: number, steps: WorkflowSnapshot['steps'], error: unknown) {
     const current = steps[index]!
     const step = definition.steps[index]!
-    current.error = serializeError(error)
+    current.error = normalizeError(error)
     const delay = current.attempts < step.maxAttempts ? this.retrySchedule(current.attempts, error, 'step') : null
-    if (delay !== null) { current.state = 'waiting_retry'; current.retryAt = this.clock.now() + Math.max(0, delay); return this.commit(started, token, { ...started, steps, state: 'waiting_retry' }) }
+    if (delay !== null) { current.state = 'waiting_retry'; current.retryAt = this.clock.now() + Math.max(0, delay); return this.commit(started, definition, token, { ...started, steps, state: 'waiting_retry' }) }
     current.state = 'failed'
-    return this.commit(started, token, this.beginCompensationOrCancel({ ...started, steps, state: 'failed' }, definition, false))
+    return this.commit(started, definition, token, this.beginCompensationOrCancel({ ...started, steps, state: 'failed' }, definition, false))
   }
 
   private interruptedForward(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string, index: number) {
@@ -160,17 +193,17 @@ export class WorkflowManager {
       const state = snapshot.steps[cursor]!.state
       if ((state === 'committed' || state === 'compensation_waiting_retry' || state === 'compensating') && definition.steps[cursor]?.compensate) { index = cursor; break }
     }
-    if (index < 0) return this.commit(snapshot, token, { ...snapshot, state: snapshot.cancellationRequested ? 'cancelled' : 'compensated' })
+    if (index < 0) return this.commit(snapshot, definition, token, { ...snapshot, state: snapshot.cancellationRequested ? 'cancelled' : 'compensated' })
     if (snapshot.steps[index]!.state === 'compensating') return this.interruptedCompensation(snapshot, definition, token, index)
     const steps = snapshot.steps.map(value => ({ ...value }))
     const current = steps[index]!
     const step = definition.steps[index]!
-    current.state = 'compensating'; current.compensationAttempts++; current.retryAt = undefined; current.error = undefined
-    const started = await this.commit(snapshot, token, { ...snapshot, steps, state: 'compensating' }, false)
+    current.state = 'compensating'; current.compensationAttempts++; delete current.retryAt; delete current.error
+    const started = await this.commit(snapshot, definition, token, { ...snapshot, steps, state: 'compensating' }, false)
     try {
-      await this.withHeartbeat(started, token, options.signal, false, signal => step.compensate!({ workflowId: started.id, input: started.input, previousOutput: index ? started.steps[index - 1]?.output : undefined, stepOutput: current.output!, idempotencyKey: current.compensationIdempotencyKey!, attempt: current.compensationAttempts, signal }))
+      await this.withHeartbeat(started, token, options.signal, false, signal => step.compensate!({ workflowId: started.id, input: materializeCanonicalJson(started.input) as never, previousOutput: index && started.steps[index - 1]?.output !== undefined ? materializeCanonicalJson(started.steps[index - 1]!.output) : undefined, stepOutput: materializeCanonicalJson(current.output!), idempotencyKey: current.compensationIdempotencyKey!, attempt: current.compensationAttempts, signal }))
       current.state = 'compensated'
-      return this.commit(started, token, { ...started, steps, state: 'compensating' })
+      return this.commit(started, definition, token, { ...started, steps, state: 'compensating' })
     }
     catch (error) {
       if (error instanceof LeaseLostControl) throw new WorkflowLeaseLostError()
@@ -182,11 +215,11 @@ export class WorkflowManager {
   private finishCompensationFailure(started: WorkflowSnapshot, definition: WorkflowDefinition, token: string, index: number, steps: WorkflowSnapshot['steps'], error: unknown) {
     const current = steps[index]!
     const step = definition.steps[index]!
-    current.error = serializeError(error)
+    current.error = normalizeError(error)
     const delay = current.compensationAttempts < step.maxAttempts ? this.retrySchedule(current.compensationAttempts, error, 'compensation') : null
-    if (delay !== null) { current.state = 'compensation_waiting_retry'; current.retryAt = this.clock.now() + Math.max(0, delay); return this.commit(started, token, { ...started, steps, state: 'compensation_waiting_retry' }) }
+    if (delay !== null) { current.state = 'compensation_waiting_retry'; current.retryAt = this.clock.now() + Math.max(0, delay); return this.commit(started, definition, token, { ...started, steps, state: 'compensation_waiting_retry' }) }
     current.state = 'compensation_failed'
-    return this.commit(started, token, { ...started, steps, state: 'compensation_failed' })
+    return this.commit(started, definition, token, { ...started, steps, state: 'compensation_failed' })
   }
 
   private interruptedCompensation(snapshot: WorkflowSnapshot, definition: WorkflowDefinition, token: string, index: number) {
@@ -199,12 +232,29 @@ export class WorkflowManager {
     return { ...snapshot, state: hasCompensation ? 'compensating' : cancellation ? 'cancelled' : 'failed' }
   }
 
-  private commit(original: WorkflowSnapshot, token: string, next: WorkflowSnapshot, releaseLease = true) {
+  private async commit(original: WorkflowSnapshot, definition: WorkflowDefinition, token: string, next: WorkflowSnapshot, releaseLease = true): Promise<WorkflowSnapshot> {
     const now = this.clock.now()
-    return this.store.commit({ ...next, updatedAt: now }, original.revision, token, now, releaseLease)
+    const candidate = { ...next, updatedAt: Math.max(next.updatedAt, now) }
+    assertWorkflowSnapshot(candidate)
+    assertWorkflowSnapshotMatchesDefinition(candidate, definition)
+    let receipt: WorkflowSnapshot
+    try { receipt = await this.store.commit(candidate, original.revision, token, now, releaseLease) }
+    catch (error) {
+      if (!(error instanceof RevisionConflictError) || (candidate.state !== 'completed' && candidate.state !== 'failed')) throw error
+      const authoritative = normalizePersistedWorkflowSnapshot(await this.required(candidate.id))
+      assertWorkflowSnapshotMatchesDefinition(authoritative, definition)
+      if (!authoritative.cancellationRequested || authoritative.lease?.token !== token) throw error
+      const cancellationCandidate = candidate.state === 'failed'
+        ? { ...candidate, revision: authoritative.revision, cancellationRequested: true, updatedAt: Math.max(candidate.updatedAt, authoritative.updatedAt), lease: authoritative.lease }
+        : authoritative
+      return this.commit(authoritative, definition, token, this.beginCompensationOrCancel(cancellationCandidate, definition))
+    }
+    const committed = assertWorkflowCommitReceipt(original, candidate, receipt, token, now, releaseLease)
+    assertWorkflowSnapshotMatchesDefinition(committed, definition)
+    return committed
   }
 
-  private async withHeartbeat<T>(started: WorkflowSnapshot, token: string, parentSignal: AbortSignal | undefined, abortOnCancellation: boolean, handler: (signal: AbortSignal) => T | Promise<T>): Promise<{ cancelled: true } | { cancelled: false, value: T }> {
+  private async withHeartbeat<T>(started: WorkflowSnapshot, token: string, parentSignal: AbortSignal | undefined, abortOnCancellation: boolean, handler: (signal: AbortSignal) => T | Promise<T>): Promise<{ cancelled: true } | { cancelled: false, value: T, cancellationObserved: boolean }> {
     if (parentSignal?.aborted) throw new ExecutionAbortedControl()
     const controller = new AbortController()
     const signal = parentSignal ? AbortSignal.any([parentSignal, controller.signal]) : controller.signal
@@ -212,6 +262,7 @@ export class WorkflowManager {
     let leaseLost = false
     let cancellationObserved = false
     let renewing = false
+    let observedLease = started
     const renew = () => {
       if (renewing || leaseLost) return
       renewing = true
@@ -219,8 +270,9 @@ export class WorkflowManager {
         try {
           const now = this.clock.now()
           const expiresAt = now + this.leaseDurationMs
-          const authoritative = await this.store.renewLease(started.id, started.revision, token, now, expiresAt)
-          if (this.clock.now() >= expiresAt) throw new LeaseConflictError()
+          const authoritative = assertWorkflowRenewLeaseReceipt(observedLease, await this.store.renewLease(started.id, started.revision, token, now, expiresAt), started.revision, token, now, expiresAt)
+          observedLease = authoritative
+          if (this.clock.now() >= authoritative.lease!.expiresAt) throw new LeaseConflictError()
           if (abortOnCancellation && authoritative.cancellationRequested) {
             cancellationObserved = true
             controller.abort(new Error('Workflow cancellation requested'))
@@ -247,9 +299,9 @@ export class WorkflowManager {
     }
     if (leaseLost) throw new LeaseLostControl()
     if (parentSignal?.aborted) throw new ExecutionAbortedControl()
-    if (cancellationObserved) return { cancelled: true }
+    if (cancellationObserved && failed) return { cancelled: true }
     if (failed) throw failure
-    return { cancelled: false, value: value as T }
+    return { cancelled: false, value: value as T, cancellationObserved }
   }
 
   private async required(id: string) { const snapshot = await this.store.get(id); if (!snapshot) throw new Error(`Workflow not found: ${id}`); return snapshot }
@@ -260,24 +312,51 @@ export class WorkflowManager {
     if (isWorkflowWaiting(snapshot) && retryAt !== null) return { outcome: 'waiting', snapshot, retryAt }
     return { outcome: 'contended', snapshot }
   }
+
+  private assertStartResult<I extends JsonValue>(requested: WorkflowSnapshot, persisted: WorkflowSnapshot, definition: WorkflowDefinition<I>, created: boolean): void {
+    assertWorkflowSnapshotMatchesDefinition(persisted, definition)
+    if (created) {
+      return
+    }
+    const persistedInput = materializeCanonicalJson(persisted.input, 'Workflow input')
+    if (persisted.workflowName !== requested.workflowName
+      || persisted.workflowVersion !== requested.workflowVersion
+      || persisted.startKey !== requested.startKey
+      || persisted.canonicalInput !== requested.canonicalInput
+      || canonicalize(persistedInput) !== requested.canonicalInput)
+      throw new WorkflowIdentityConflictError()
+  }
 }
 
 function isCompensating(snapshot: WorkflowSnapshot) { return snapshot.state === 'compensating' || snapshot.state === 'compensation_waiting_retry' }
-function serializeError(error: unknown): WorkflowError { return error instanceof Error ? { name: error.name, message: error.message } : { name: 'Error', message: String(error) } }
-
-export function canonicalize(value: JsonValue): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`
-  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalize(value[key]!)}`).join(',')}}`
+function sameDefinition<I extends JsonValue>(reference: WorkflowDefinition<I>, registered: WorkflowDefinition<I>): boolean {
+  return reference.name === registered.name && reference.version === registered.version && reference.steps.length === registered.steps.length
+    && reference.steps.every((step, index) => {
+      const expected = registered.steps[index]
+      return step.name === expected?.name && step.run === expected.run && step.compensate === expected.compensate && step.maxAttempts === expected.maxAttempts
+    })
+}
+function normalizeError(error: unknown): WorkflowError {
+  const safeText = (read: () => unknown, fallback: string, max: number, allowEmpty = false) => {
+    let value: string
+    try { value = String(read()) }
+    catch { value = fallback }
+    if (!allowEmpty && value.length === 0) value = fallback
+    return value.slice(0, max)
+  }
+  const candidate = error && (typeof error === 'object' || typeof error === 'function') ? error as { name?: unknown, message?: unknown } : null
+  return {
+    name: safeText(() => candidate?.name ?? 'Error', 'Error', 128),
+    message: safeText(() => candidate ? candidate.message ?? error : error, 'Unknown workflow handler error', 4096),
+  }
 }
 
-function assertJsonSafe(value: unknown, subject = 'Workflow input', seen = new Set<object>()): asserts value is JsonValue {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return
-  if (typeof value === 'number') { if (!Number.isFinite(value)) throw new TypeError(`${subject} must contain only finite JSON numbers`); return }
-  if (typeof value !== 'object') throw new TypeError(`${subject} must be JSON-safe`)
-  if (seen.has(value)) throw new TypeError(`${subject} must not be circular`)
-  seen.add(value)
-  if (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype) throw new TypeError(`${subject} must contain only arrays and plain objects`)
-  for (const item of Array.isArray(value) ? value : Object.values(value)) assertJsonSafe(item, subject, seen)
-  seen.delete(value)
+export function canonicalize(value: JsonValue): string {
+  return canonicalizeMaterialized(materializeCanonicalJson(value))
+}
+
+function canonicalizeMaterialized(value: JsonValue): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(canonicalizeMaterialized).join(',')}]`
+  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalizeMaterialized(value[key]!)}`).join(',')}}`
 }

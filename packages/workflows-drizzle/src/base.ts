@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm'
-import { canonicalize, LeaseConflictError, RevisionConflictError, StartKeyConflictError, type JsonValue, type RecoverableWorkflowStore, type StepSnapshot, type WorkflowRecoveryPage, type WorkflowRecoveryQuery, type WorkflowSnapshot, type WorkflowState } from '@nuxt-laravelize/workflows'
+import { assertWorkflowIdentityUnchanged, assertWorkflowSnapshot, assertWorkflowStoreExpectedRevision, assertWorkflowStoreLeaseArguments, assertWorkflowStoreLeaseToken, assertWorkflowStoreTimestamp, assertWorkflowVersion, LeaseConflictError, normalizePersistedWorkflowSnapshot, normalizeWorkflowSnapshot, RevisionConflictError, StartKeyConflictError, UnsupportedWorkflowSnapshotFormatError, type JsonValue, type RecoverableWorkflowStore, type StepSnapshot, type WorkflowRecoveryPage, type WorkflowRecoveryQuery, type WorkflowSnapshot, type WorkflowState } from '@nuxt-laravelize/workflows'
 
 type Row = Record<string, unknown>
 export type WorkflowQueryExecutor = (query: SQL) => Row[] | PromiseLike<Row[]>
@@ -22,40 +22,9 @@ const epoch = (value: unknown, name: string): number => {
   return safeInteger(value, name)
 }
 
-const assertJsonSafe = (value: unknown, seen = new WeakSet<object>()): void => {
-  if (value === undefined || typeof value === 'function' || typeof value === 'symbol' || typeof value === 'bigint')
-    throw new TypeError('Workflow snapshot contains values that are not JSON safe')
-  if (typeof value === 'number' && !Number.isFinite(value)) throw new TypeError('Workflow snapshot contains values that are not JSON safe')
-  if (value && typeof value === 'object') {
-    if (seen.has(value)) throw new TypeError('Workflow snapshot must be JSON serializable')
-    seen.add(value)
-    if (Array.isArray(value)) value.forEach(item => assertJsonSafe(item, seen))
-    else {
-      if (Object.getPrototypeOf(value) !== Object.prototype) throw new TypeError('Workflow snapshot must contain only arrays and plain objects')
-      Object.values(value).forEach(item => assertJsonSafe(item, seen))
-    }
-    seen.delete(value)
-  }
-}
-
-const assertSnapshot = (snapshot: WorkflowSnapshot): void => {
-  if (!snapshot || typeof snapshot !== 'object' || typeof snapshot.id !== 'string' || !snapshot.id || typeof snapshot.workflowName !== 'string' || typeof snapshot.workflowVersion !== 'string' || typeof snapshot.startKey !== 'string' || typeof snapshot.canonicalInput !== 'string')
-    throw new TypeError('Invalid workflow snapshot identity')
-  if (!Array.isArray(snapshot.steps) || typeof snapshot.cancellationRequested !== 'boolean') throw new TypeError('Invalid workflow snapshot')
-  if (safeInteger(snapshot.revision, 'revision') < 0) throw new TypeError('revision must be non-negative')
-  epoch(snapshot.createdAt, 'createdAt')
-  epoch(snapshot.updatedAt, 'updatedAt')
-  if (snapshot.lease) epoch(snapshot.lease.expiresAt, 'lease.expiresAt')
-  for (const step of snapshot.steps) {
-    if (safeInteger(step.attempts, `steps.${step.name}.attempts`) < 0 || safeInteger(step.compensationAttempts, `steps.${step.name}.compensationAttempts`) < 0) throw new TypeError('Workflow attempts must be non-negative')
-    if (step.retryAt !== undefined) epoch(step.retryAt, `steps.${step.name}.retryAt`)
-  }
-  assertJsonSafe(snapshot)
-  if (canonicalize(snapshot.input) !== snapshot.canonicalInput) throw new TypeError('canonicalInput must match workflow input')
-}
-
-const serialize = (snapshot: WorkflowSnapshot): string => {
-  assertSnapshot(snapshot)
+const serialize = (candidate: WorkflowSnapshot): string => {
+  const snapshot = normalizeWorkflowSnapshot(candidate)
+  assertWorkflowSnapshot(snapshot)
   let json: string | undefined
   try {
     json = JSON.stringify(snapshot)
@@ -70,16 +39,23 @@ const text = (value: unknown, name: string): string => {
   return value
 }
 
-const boolean = (value: unknown): boolean => value === true || value === 1 || value === '1' || value === 'true'
+const boolean = (value: unknown): boolean => {
+  if (value === true || value === 1 || value === '1' || value === 'true') return true
+  if (value === false || value === 0 || value === '0' || value === 'false') return false
+  throw new TypeError('Invalid persisted workflow boolean')
+}
 
-const hydrate = (row: Row): WorkflowSnapshot => {
+const hydrate = (row: Row, mode: 'persisted-read' | 'mutation-receipt'): WorkflowSnapshot => {
   let body: unknown
   try {
     body = typeof row.snapshot === 'string' ? JSON.parse(row.snapshot) : row.snapshot
   }
   catch { throw new TypeError('Invalid persisted workflow snapshot JSON') }
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new TypeError('Invalid persisted workflow snapshot')
-  const persisted = body as Partial<WorkflowSnapshot>
+  const raw = body as Partial<WorkflowSnapshot>
+  const format = raw.snapshotFormatVersion === undefined ? 1 : raw.snapshotFormatVersion
+  if (format !== 1) throw new UnsupportedWorkflowSnapshotFormatError(format, typeof raw.id === 'string' ? raw.id : undefined)
+  const persisted = { ...raw, snapshotFormatVersion: 1 } as WorkflowSnapshot
   const leaseToken = row.lease_token == null ? undefined : text(row.lease_token, 'lease token')
   const leaseExpiresAt = row.lease_expires_at == null ? undefined : epoch(row.lease_expires_at, 'leaseExpiresAt')
   if ((leaseToken === undefined) !== (leaseExpiresAt === undefined)) throw new TypeError('Invalid persisted workflow lease')
@@ -99,10 +75,15 @@ const hydrate = (row: Row): WorkflowSnapshot => {
     updatedAt: epoch(row.updated_at, 'updatedAt'),
     ...(leaseToken === undefined ? { lease: undefined } : { lease: { token: leaseToken, expiresAt: leaseExpiresAt! } }),
   }
+  assertWorkflowVersion(result.workflowVersion, true)
   if (result.lease === undefined) delete result.lease
-  assertSnapshot(result)
-  return result
+  return mode === 'persisted-read'
+    ? normalizePersistedWorkflowSnapshot(result)
+    : normalizeWorkflowSnapshot(result)
 }
+
+const hydratePersistedRead = (row: Row): WorkflowSnapshot => hydrate(row, 'persisted-read')
+const hydrateMutationReceipt = (row: Row): WorkflowSnapshot => hydrate(row, 'mutation-receipt')
 
 export abstract class DrizzleWorkflowStore implements RecoverableWorkflowStore {
   readonly durability = 'durable' as const
@@ -111,16 +92,16 @@ export abstract class DrizzleWorkflowStore implements RecoverableWorkflowStore {
   async create(snapshot: WorkflowSnapshot): Promise<{ snapshot: WorkflowSnapshot, created: boolean }> {
     const payload = serialize(snapshot)
     const inserted = (await this.executeRows(sql`insert into workflows (id, workflow_name, workflow_version, start_key, canonical_input, snapshot, state, revision, cancellation_requested, lease_token, lease_expires_at, created_at, updated_at) values (${snapshot.id}, ${snapshot.workflowName}, ${snapshot.workflowVersion}, ${snapshot.startKey}, ${snapshot.canonicalInput}, ${payload}, ${snapshot.state}, ${snapshot.revision}, ${snapshot.cancellationRequested}, ${snapshot.lease?.token ?? null}, ${snapshot.lease?.expiresAt ?? null}, ${snapshot.createdAt}, ${snapshot.updatedAt}) on conflict do nothing returning *`))[0]
-    if (inserted) return { snapshot: hydrate(inserted), created: true }
+    if (inserted) return { snapshot: hydrateMutationReceipt(inserted), created: true }
     const candidates = await this.executeRows(sql`select * from workflows where id = ${snapshot.id} or (workflow_name = ${snapshot.workflowName} and workflow_version = ${snapshot.workflowVersion} and start_key = ${snapshot.startKey})`)
     const existing = candidates.find(row => row.workflow_name === snapshot.workflowName && row.workflow_version === snapshot.workflowVersion && row.start_key === snapshot.startKey)
     if (!existing || existing.canonical_input !== snapshot.canonicalInput) throw new StartKeyConflictError()
-    return { snapshot: hydrate(existing), created: false }
+    return { snapshot: hydratePersistedRead(existing), created: false }
   }
 
   async get(id: string): Promise<WorkflowSnapshot | null> {
     const row = (await this.executeRows(sql`select * from workflows where id = ${id} limit ${1}`))[0]
-    return row ? hydrate(row) : null
+    return row ? hydratePersistedRead(row) : null
   }
 
   async discoverRecoverable(query: WorkflowRecoveryQuery): Promise<WorkflowRecoveryPage> {
@@ -141,46 +122,50 @@ export abstract class DrizzleWorkflowStore implements RecoverableWorkflowStore {
   }
 
   async claim(id: string, expectedRevision: number, token: string, now: number, expiresAt: number): Promise<WorkflowSnapshot> {
-    safeInteger(expectedRevision, 'expectedRevision')
-    epoch(now, 'now')
-    epoch(expiresAt, 'expiresAt')
-    if (expiresAt <= now) throw new TypeError('expiresAt must be greater than now')
-    const claimed = (await this.executeRows(sql`update workflows set revision = revision + ${1}, lease_token = ${token}, lease_expires_at = ${expiresAt}, updated_at = ${now} where id = ${id} and revision = ${expectedRevision} and (lease_token is null or lease_expires_at <= ${now}) returning *`))[0]
-    if (claimed) return hydrate(claimed)
+    assertWorkflowStoreLeaseArguments(expectedRevision, token, now, expiresAt)
+    const observed = hydratePersistedRead(await this.requiredRow(id))
+    const payload = serialize(observed)
+    const claimed = (await this.executeRows(sql`update workflows set snapshot = ${payload}, revision = revision + ${1}, lease_token = ${token}, lease_expires_at = ${expiresAt}, updated_at = case when updated_at > ${now} then updated_at else ${now} end where id = ${id} and revision = ${expectedRevision} and revision = ${observed.revision} and cancellation_requested = ${observed.cancellationRequested} and (lease_token is null or lease_expires_at <= ${now}) returning *`))[0]
+    if (claimed) return hydrateMutationReceipt(claimed)
     const current = await this.requiredRow(id)
     if (safeInteger(current.revision, 'revision') !== expectedRevision) throw new RevisionConflictError()
     throw new LeaseConflictError()
   }
 
   async renewLease(id: string, expectedRevision: number, token: string, now: number, expiresAt: number): Promise<WorkflowSnapshot> {
-    safeInteger(expectedRevision, 'expectedRevision')
-    epoch(now, 'now')
-    epoch(expiresAt, 'expiresAt')
-    if (expiresAt <= now) throw new TypeError('expiresAt must be greater than now')
-    const renewed = (await this.executeRows(sql`update workflows set lease_expires_at = ${expiresAt} where id = ${id} and lease_token = ${token} and lease_expires_at > ${now} and (revision = ${expectedRevision} or (revision = ${expectedRevision + 1} and cancellation_requested = ${true})) returning *`))[0]
-    if (renewed) return hydrate(renewed)
+    assertWorkflowStoreLeaseArguments(expectedRevision, token, now, expiresAt)
+    const observed = hydratePersistedRead(await this.requiredRow(id))
+    const payload = serialize(observed)
+    const renewed = (await this.executeRows(sql`update workflows set snapshot = ${payload}, lease_expires_at = case when lease_expires_at > ${expiresAt} then lease_expires_at else ${expiresAt} end where id = ${id} and lease_token = ${token} and lease_expires_at > ${now} and revision = ${observed.revision} and cancellation_requested = ${observed.cancellationRequested} and (revision = ${expectedRevision} or (revision = ${expectedRevision + 1} and cancellation_requested = ${true})) returning *`))[0]
+    if (renewed) return hydrateMutationReceipt(renewed)
     const current = await this.requiredRow(id)
     if (current.lease_token !== token || current.lease_expires_at == null || epoch(current.lease_expires_at, 'leaseExpiresAt') <= now) throw new LeaseConflictError()
     throw new RevisionConflictError()
   }
 
   async commit(snapshot: WorkflowSnapshot, expectedRevision: number, leaseToken: string, now: number, releaseLease = true): Promise<WorkflowSnapshot> {
+    assertWorkflowStoreExpectedRevision(expectedRevision)
+    assertWorkflowStoreLeaseToken(leaseToken)
+    assertWorkflowStoreTimestamp(now, 'now')
+    snapshot = normalizeWorkflowSnapshot(snapshot)
     const payload = serialize(snapshot)
-    safeInteger(expectedRevision, 'expectedRevision')
-    epoch(now, 'now')
-    const committed = (await this.executeRows(sql`update workflows set snapshot = ${payload}, state = ${snapshot.state}, revision = revision + ${1}, cancellation_requested = case when cancellation_requested = ${true} or ${snapshot.cancellationRequested} = ${true} then ${true} else ${false} end, lease_token = case when ${releaseLease} = ${true} then null else lease_token end, lease_expires_at = case when ${releaseLease} = ${true} then null else lease_expires_at end, updated_at = ${snapshot.updatedAt} where id = ${snapshot.id} and canonical_input = ${snapshot.canonicalInput} and lease_token = ${leaseToken} and lease_expires_at > ${now} and (revision = ${expectedRevision} or (revision = ${expectedRevision + 1} and cancellation_requested = ${true} and ${snapshot.cancellationRequested} = ${false})) returning *`))[0]
-    if (committed) return hydrate(committed)
+    const currentBeforeCommit = hydratePersistedRead(await this.requiredRow(snapshot.id))
+    assertWorkflowIdentityUnchanged(currentBeforeCommit, snapshot)
+    const committed = (await this.executeRows(sql`update workflows set snapshot = ${payload}, state = ${snapshot.state}, revision = revision + ${1}, cancellation_requested = case when cancellation_requested = ${true} or ${snapshot.cancellationRequested} = ${true} then ${true} else ${false} end, lease_token = case when ${releaseLease} = ${true} then null else lease_token end, lease_expires_at = case when ${releaseLease} = ${true} then null else lease_expires_at end, updated_at = case when updated_at > ${snapshot.updatedAt} then updated_at else ${snapshot.updatedAt} end where id = ${snapshot.id} and workflow_name = ${snapshot.workflowName} and workflow_version = ${snapshot.workflowVersion} and start_key = ${snapshot.startKey} and canonical_input = ${snapshot.canonicalInput} and created_at = ${snapshot.createdAt} and lease_token = ${leaseToken} and lease_expires_at > ${now} and ((${snapshot.state} <> ${'completed'} and ${snapshot.state} <> ${'failed'}) or cancellation_requested = ${false}) and (revision = ${expectedRevision} or (revision = ${expectedRevision + 1} and cancellation_requested = ${true} and ${snapshot.state} <> ${'completed'} and ${snapshot.state} <> ${'failed'})) returning *`))[0]
+    if (committed) return hydrateMutationReceipt(committed)
     const current = await this.requiredRow(snapshot.id)
-    if (current.canonical_input !== snapshot.canonicalInput) throw new StartKeyConflictError()
+    assertWorkflowIdentityUnchanged(hydratePersistedRead(current), snapshot)
     if (current.lease_token !== leaseToken || current.lease_expires_at == null || epoch(current.lease_expires_at, 'leaseExpiresAt') <= now) throw new LeaseConflictError()
     throw new RevisionConflictError()
   }
 
   async requestCancellation(id: string, expectedRevision: number, now: number): Promise<WorkflowSnapshot> {
-    safeInteger(expectedRevision, 'expectedRevision')
-    epoch(now, 'now')
-    const cancelled = (await this.executeRows(sql`update workflows set cancellation_requested = ${true}, revision = revision + ${1}, updated_at = ${now} where id = ${id} and revision = ${expectedRevision} returning *`))[0]
-    if (cancelled) return hydrate(cancelled)
+    assertWorkflowStoreExpectedRevision(expectedRevision)
+    assertWorkflowStoreTimestamp(now, 'now')
+    const observed = hydratePersistedRead(await this.requiredRow(id))
+    const payload = serialize(observed)
+    const cancelled = (await this.executeRows(sql`update workflows set snapshot = ${payload}, cancellation_requested = ${true}, revision = revision + ${1}, updated_at = case when updated_at > ${now} then updated_at else ${now} end where id = ${id} and revision = ${expectedRevision} and revision = ${observed.revision} and cancellation_requested = ${observed.cancellationRequested} and state <> ${'completed'} and state <> ${'failed'} and state <> ${'compensated'} and state <> ${'compensation_failed'} and state <> ${'cancelled'} returning *`))[0]
+    if (cancelled) return hydrateMutationReceipt(cancelled)
     await this.requiredRow(id)
     throw new RevisionConflictError()
   }

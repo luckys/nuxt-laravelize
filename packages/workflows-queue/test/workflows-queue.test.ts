@@ -63,6 +63,31 @@ describe('workflow queue bridge', () => {
     expect(published.at(-1)?.delay).toBe(20)
   })
 
+  it('publishes a cancelled forward retry successor immediately without rerunning its handler', async () => {
+    const retrying = vi.fn(() => {
+      throw new Error('later')
+    })
+    const definition = defineWorkflow({ name: 'cancel-retry', version: '1', steps: [
+      defineStep({ name: 'effect', run: () => 'receipt', compensate: () => {} }),
+      defineStep({ name: 'retrying', maxAttempts: 2, run: retrying }),
+    ] })
+    const { coordinator, manager, published, queue } = setup(100, definition)
+    const started = await manager.start(definition, {}, 'cancelled-waiting')
+    await manager.process(started.id)
+    await manager.process(started.id)
+    await manager.cancel(started.id)
+    published.length = 0
+    vi.mocked(queue.push).mockClear()
+    vi.mocked(queue.later).mockClear()
+
+    await coordinator.process(started.id)
+
+    expect(published).toEqual([expect.objectContaining({ delay: 0 })])
+    expect(queue.push).toHaveBeenCalledOnce()
+    expect(queue.later).not.toHaveBeenCalled()
+    expect(retrying).toHaveBeenCalledOnce()
+  })
+
   it('separates contention scheduling and propagates publication failures', async () => {
     const { coordinator, definition, store, published, queue } = setup()
     const started = await coordinator.start(definition, {}, 'busy')
@@ -131,6 +156,50 @@ describe('workflow queue bridge', () => {
     const result = await coordinator.reconcileStore({ pageSize: 1 })
     expect(result.failed.map(item => item.workflowId)).toEqual([first.id])
     expect(result.scheduled).toEqual([second.id])
+  })
+
+  it('does not publish an unregistered exact version and continues reconciliation', async () => {
+    const { coordinator, definition, manager, store, published } = setup()
+    const unsupported = await manager.start(definition, {}, 'unsupported-source')
+    const active = await manager.start(definition, {}, 'supported')
+    await store.create({ ...unsupported, id: 'unsupported', workflowVersion: '2', startKey: 'unsupported' })
+    const result = await coordinator.reconcile(['unsupported', active.id])
+    expect(result.scheduled).toEqual([active.id])
+    expect(result.failed).toMatchObject([{ workflowId: 'unsupported', error: { workflowName: definition.name, workflowVersion: '2' } }])
+    expect(published.map(item => item.job.payload)).toEqual([{ workflowId: active.id }])
+  })
+
+  it('rejects resolver fallback output before publish, claim, or handler', async () => {
+    const fallbackRun = vi.fn(() => null)
+    const fallback = defineWorkflow({ name: 'fallback', version: '1', steps: [defineStep({ name: 'work', run: fallbackRun })] })
+    const store = new InMemoryWorkflowStore()
+    await store.create({ snapshotFormatVersion: 1, id: 'fallback-row', workflowName: 'fallback', workflowVersion: '2', startKey: 'fallback-row', canonicalInput: '{}', input: {}, state: 'pending', revision: 0, cancellationRequested: false, createdAt: 0, updatedAt: 0, steps: [{ name: 'work', state: 'pending', attempts: 0, compensationAttempts: 0, idempotencyKey: 'fallback-row:step:0' }] })
+    const manager = new WorkflowManager(store, { resolve: () => fallback })
+    const queue = { push: vi.fn(), later: vi.fn(), sync: vi.fn(), size: vi.fn(), clear: vi.fn(), onFailed: vi.fn() } as unknown as Queue
+    const coordinator = new WorkflowCoordinator(store, manager, queue, resolveWorkflowsQueueOptions({}))
+    const claim = vi.spyOn(store, 'claim')
+
+    await expect(coordinator.enqueue('fallback-row')).rejects.toThrow('exact requested definition')
+    await expect(coordinator.process('fallback-row')).rejects.toThrow('exact requested definition')
+    expect(queue.push).not.toHaveBeenCalled()
+    expect(claim).not.toHaveBeenCalled()
+    expect(fallbackRun).not.toHaveBeenCalled()
+  })
+
+  it('keeps ID-only old jobs authoritative and executes the persisted exact version', async () => {
+    const v1Run = vi.fn(() => null)
+    const v2Run = vi.fn(() => null)
+    const v1 = defineWorkflow({ name: 'versioned', version: '1', steps: [defineStep({ name: 'work', run: v1Run })] })
+    const v2 = defineWorkflow({ name: 'versioned', version: '2', steps: [defineStep({ name: 'work', run: v2Run })] })
+    const store = new InMemoryWorkflowStore()
+    const manager = new WorkflowManager(store, new WorkflowRegistry().register(v1, v2), { idFactory: () => 'old-row', tokenFactory: () => 'lease' })
+    const started = await manager.start(v1, {}, 'old')
+    const queue = { push: vi.fn(async () => ({ id: 'job', queue: 'workflows' })), later: vi.fn(), sync: vi.fn(), size: vi.fn(), clear: vi.fn(), onFailed: vi.fn() } as unknown as Queue
+    const coordinator = new WorkflowCoordinator(store, manager, queue, resolveWorkflowsQueueOptions({}), () => 100)
+    expect(new WorkflowJob({ workflowId: started.id }).payload).toEqual({ workflowId: started.id })
+    await coordinator.process(started.id)
+    expect(v1Run).toHaveBeenCalledOnce()
+    expect(v2Run).not.toHaveBeenCalled()
   })
 
   it('requires the optional recovery discovery capability', async () => {

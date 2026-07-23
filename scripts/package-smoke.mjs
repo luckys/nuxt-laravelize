@@ -90,6 +90,7 @@ runFixture('features', {
   '@flue/runtime': flueRuntimeVersion,
   '@flue/sdk': flueSdkVersion,
   'nuxt': nuxtVersion,
+  'typescript': typescriptVersion,
   'zod': zodVersion,
 }, featureDependencies, [
   '@nuxt-laravelize/agent-sdk',
@@ -269,7 +270,7 @@ runFixture('features', {
     '@nuxt-laravelize/validation/runtime': ['ErrorBag', 'ValidationError', 'Validator', 'validatorToken'],
     '@nuxt-laravelize/webhooks': ['OutgoingWebhookProcessor', 'WebhookInboxReceiver', 'assertSafeWebhookUrl', 'signWebhook', 'verifyWebhook'],
     '@nuxt-laravelize/webhooks/testing': ['WebhookTransportFake'],
-    '@nuxt-laravelize/workflows': ['WorkflowManager', 'WorkflowRegistry', 'InMemoryWorkflowStore', 'WorkflowExecutionAbortedError', 'WorkflowLeaseLostError', 'defineWorkflow', 'defineStep', 'isRecoverableWorkflowStore'],
+    '@nuxt-laravelize/workflows': ['WorkflowManager', 'WorkflowRegistry', 'InMemoryWorkflowStore', 'WorkflowExecutionAbortedError', 'WorkflowLeaseLostError', 'WorkflowDefinitionNotFoundError', 'DuplicateWorkflowDefinitionError', 'InvalidWorkflowVersionError', 'UnsupportedWorkflowSnapshotFormatError', 'WorkflowIdentityConflictError', 'WorkflowResolverContractError', 'assertWorkflowVersion', 'normalizeWorkflowSnapshot', 'resolveWorkflowDefinitionExact', 'defineWorkflow', 'defineStep', 'isRecoverableWorkflowStore'],
     '@nuxt-laravelize/workflows-drizzle': ['DrizzlePostgresWorkflowStore', 'DrizzleSQLiteWorkflowStore', 'TursoWorkflowStore'],
     '@nuxt-laravelize/workflows-reliability': ['TransactionalWorkflowStore', 'WorkflowWakeReconciler', 'WorkflowWakeReconciliationWorker', 'createWorkflowWakeHandler', 'registerWorkflowWakeHandler', 'workflowWakeMessageType'],
     '@nuxt-laravelize/workflows-reliability/cli': ['parseWorkflowWakeReconciliationArgs', 'runWorkflowWakeReconciliationCli', 'WORKFLOW_WAKE_RECONCILIATION_HELP'],
@@ -282,6 +283,7 @@ runFixture('features', {
     ['@nuxt-laravelize/workflows-reliability', 'dist/bin/workflow-wake-reconcile.mjs'],
   ],
   workflowWakeCli: true,
+  workflowTypes: true,
 })
 
 runFixture('preset-default', {
@@ -356,6 +358,20 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       '}',
       '',
     ].join('\n'))
+
+    if (options.workflowTypes) {
+      writeFileSync(join(fixture, 'tsconfig.json'), JSON.stringify({ compilerOptions: { strict: true, noEmit: true, module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022' }, include: ['workflow-types.ts'] }, null, 2))
+      writeFileSync(join(fixture, 'workflow-types.ts'), [
+        'import type { WorkflowSnapshot } from \'@nuxt-laravelize/workflows\'',
+        '',
+        'const base = { id: \'id\', workflowName: \'strict\', workflowVersion: \'1\', startKey: \'key\', canonicalInput: \'{}\', input: {}, state: \'pending\' as const, revision: 0, steps: [], cancellationRequested: false, createdAt: 0, updatedAt: 0 }',
+        '// @ts-expect-error snapshotFormatVersion is a required source field',
+        'const legacySource: WorkflowSnapshot = base',
+        'const currentSource: WorkflowSnapshot = { ...base, snapshotFormatVersion: 1 }',
+        'void legacySource; void currentSource',
+        '',
+      ].join('\n'))
+    }
 
     if (options.buildNuxt) {
       writeFileSync(join(fixture, 'tsconfig.json'), JSON.stringify({ extends: './.nuxt/tsconfig.json' }, null, 2))
@@ -508,6 +524,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       }
     }
     execFileSync(process.execPath, ['smoke.mjs'], { cwd: fixture, stdio: 'inherit' })
+    if (options.workflowTypes) execFileSync('pnpm', ['exec', 'tsc'], { cwd: fixture, stdio: 'inherit' })
     for (const [packageName, bin] of options.workerBins ?? []) {
       execFileSync(process.execPath, [join(fixture, 'node_modules', ...packageName.split('/'), bin), '--help'], { cwd: fixture, stdio: 'inherit' })
     }

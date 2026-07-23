@@ -15,6 +15,7 @@ describe('workflow wake-up delivery', () => {
     const unitOfWork: UnitOfWork<{ workflowState: InMemoryWorkflowStore }> = {
       session: { workflowState },
       afterCommit: () => {},
+      markRollbackOnly: () => {},
     }
     const transactions: TransactionManager<typeof unitOfWork.session> = {
       transaction: async work => await work(unitOfWork),
@@ -28,7 +29,8 @@ describe('workflow wake-up delivery', () => {
       idFactory: () => `wake-${++wakeId}`,
     })
     const definition = defineWorkflow({ name: 'delivery', version: '1', steps: [defineStep({ name: 'finish', run: () => 'done' })] })
-    const manager = new WorkflowManager(store, new WorkflowRegistry().register(definition), {
+    const registry = new WorkflowRegistry().register(definition)
+    const manager = new WorkflowManager(store, registry, {
       idFactory: () => 'workflow-1',
       tokenFactory: () => 'lease-1',
       clock: { now: () => 100 },
@@ -77,7 +79,7 @@ describe('workflow wake-up delivery', () => {
   it('replaces a dead wake with a fresh filtered delivery', async () => {
     const workflowState = new InMemoryWorkflowStore()
     const messages = new InMemoryReliabilityStore()
-    const unitOfWork: UnitOfWork<{ workflowState: InMemoryWorkflowStore }> = { session: { workflowState }, afterCommit: () => {} }
+    const unitOfWork: UnitOfWork<{ workflowState: InMemoryWorkflowStore }> = { session: { workflowState }, afterCommit: () => {}, markRollbackOnly: () => {} }
     const transactions: TransactionManager<typeof unitOfWork.session> = { transaction: async work => await work(unitOfWork) }
     let wakeId = 0
     const store = new TransactionalWorkflowStore({
@@ -115,7 +117,7 @@ describe('workflow wake-up delivery', () => {
     expect(failed.dead).toBe(1)
     expect(messages.records.get('outbox:original-1')?.state).toBe('dead')
 
-    const recovery = await new WorkflowWakeReconciler(workflowState, messages, { clock: () => 100, idFactory: () => 'recovery-wake-1' }).reconcile([started.id])
+    const recovery = await new WorkflowWakeReconciler(workflowState, messages, { resolver: new WorkflowRegistry().register(definition), clock: () => 100, idFactory: () => 'recovery-wake-1' }).reconcile([started.id])
     expect(recovery.scheduled).toEqual([started.id])
     expect(messages.records.get('outbox:original-1')?.state).toBe('dead')
     expect(messages.records.get('outbox:recovery-wake-1')?.state).toBe('pending')

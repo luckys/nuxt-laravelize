@@ -1,5 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import type { WorkflowSnapshot } from './types'
+import { assertWorkflowIdentityUnchanged, assertWorkflowStoreExpectedRevision, assertWorkflowStoreLeaseArguments, assertWorkflowStoreLeaseToken, assertWorkflowStoreTimestamp, normalizePersistedWorkflowSnapshot, normalizeWorkflowSnapshot } from './validation'
 
 export class StartKeyConflictError extends Error { constructor() { super('Start key already exists with different workflow or input'); this.name = 'StartKeyConflictError' } }
 export class RevisionConflictError extends Error { constructor() { super('Workflow revision is stale'); this.name = 'RevisionConflictError' } }
@@ -12,7 +13,7 @@ export interface WorkflowStore {
   get(id: string): Promise<WorkflowSnapshot | null>
   claim(id: string, expectedRevision: number, token: string, now: number, expiresAt: number): Promise<WorkflowSnapshot>
   renewLease(id: string, expectedRevision: number, token: string, now: number, expiresAt: number): Promise<WorkflowSnapshot>
-  /** Fences revision/lease, merges a concurrent cancellation, and optionally retains the lease. */
+  /** Fences revision/lease, merges a concurrent cancellation, and returns the exact authoritative snapshot. Immutable workflow/step identity must be preserved. */
   commit(snapshot: WorkflowSnapshot, expectedRevision: number, leaseToken: string, now: number, releaseLease?: boolean): Promise<WorkflowSnapshot>
   requestCancellation(id: string, expectedRevision: number, now: number): Promise<WorkflowSnapshot>
 }
@@ -49,6 +50,7 @@ export class InMemoryWorkflowStore implements WorkflowStore {
   private readonly startKeys = new Map<string, string>()
 
   async create(snapshot: WorkflowSnapshot) {
+    snapshot = normalizeWorkflowSnapshot(snapshot)
     const key = `${snapshot.workflowName}\u0000${snapshot.workflowVersion}\u0000${snapshot.startKey}`
     const existingId = this.startKeys.get(key)
     if (existingId) {
@@ -62,7 +64,7 @@ export class InMemoryWorkflowStore implements WorkflowStore {
     return { snapshot: clone(snapshot), created: true }
   }
 
-  async get(id: string) { const value = this.snapshots.get(id); return value ? clone(value) : null }
+  async get(id: string) { const value = this.snapshots.get(id); return value ? normalizePersistedWorkflowSnapshot(clone(value)) : null }
 
   async discoverRecoverable(query: WorkflowRecoveryQuery): Promise<WorkflowRecoveryPage> {
     const limit = validateRecoveryQuery(query)
@@ -80,37 +82,48 @@ export class InMemoryWorkflowStore implements WorkflowStore {
   }
 
   async claim(id: string, expectedRevision: number, token: string, now: number, expiresAt: number) {
+    assertWorkflowStoreLeaseArguments(expectedRevision, token, now, expiresAt)
     const current = this.required(id)
     if (current.revision !== expectedRevision) throw new RevisionConflictError()
     if (current.lease && current.lease.expiresAt > now) throw new LeaseConflictError()
-    const next = { ...current, revision: current.revision + 1, lease: { token, expiresAt }, updatedAt: now }
+    const next = { ...current, revision: current.revision + 1, lease: { token, expiresAt }, updatedAt: Math.max(current.updatedAt, now) }
     this.snapshots.set(id, clone(next)); return clone(next)
   }
 
   async renewLease(id: string, expectedRevision: number, token: string, now: number, expiresAt: number) {
-    if (!Number.isSafeInteger(now) || !Number.isSafeInteger(expiresAt) || expiresAt <= now) throw new TypeError('expiresAt must be greater than now')
+    assertWorkflowStoreLeaseArguments(expectedRevision, token, now, expiresAt)
     const current = this.required(id)
     if (!current.lease || current.lease.token !== token || current.lease.expiresAt <= now) throw new LeaseConflictError()
     const cancellationRace = current.revision === expectedRevision + 1 && current.cancellationRequested
     if (current.revision !== expectedRevision && !cancellationRace) throw new RevisionConflictError()
-    const next = { ...current, lease: { token, expiresAt } }
+    const next = { ...current, lease: { token, expiresAt: Math.max(current.lease.expiresAt, expiresAt) } }
     this.snapshots.set(id, clone(next)); return clone(next)
   }
 
   async commit(snapshot: WorkflowSnapshot, expectedRevision: number, leaseToken: string, now: number, releaseLease = true) {
+    assertWorkflowStoreExpectedRevision(expectedRevision)
+    assertWorkflowStoreLeaseToken(leaseToken)
+    assertWorkflowStoreTimestamp(now, 'now')
     const current = this.required(snapshot.id)
+    assertWorkflowIdentityUnchanged(normalizeWorkflowSnapshot(current), snapshot)
+    snapshot = normalizeWorkflowSnapshot(snapshot)
     if (!current.lease || current.lease.token !== leaseToken) throw new LeaseConflictError()
     if (current.lease.expiresAt <= now) throw new LeaseConflictError()
-    const cancellationRace = current.revision === expectedRevision + 1 && current.cancellationRequested && !snapshot.cancellationRequested
+    const cancellationRace = current.revision === expectedRevision + 1 && current.cancellationRequested
+    if ((snapshot.state === 'completed' || snapshot.state === 'failed') && cancellationRace) throw new RevisionConflictError()
     if (current.revision !== expectedRevision && !cancellationRace) throw new RevisionConflictError()
-    const next = { ...clone(snapshot), cancellationRequested: snapshot.cancellationRequested || current.cancellationRequested, revision: current.revision + 1, lease: releaseLease ? undefined : current.lease }
+    const next = { ...clone(snapshot), cancellationRequested: snapshot.cancellationRequested || current.cancellationRequested, revision: current.revision + 1, updatedAt: Math.max(current.updatedAt, snapshot.updatedAt), ...(!releaseLease && { lease: current.lease }) }
+    if (releaseLease) delete next.lease
     this.snapshots.set(next.id, clone(next)); return clone(next)
   }
 
   async requestCancellation(id: string, expectedRevision: number, now: number) {
+    assertWorkflowStoreExpectedRevision(expectedRevision)
+    assertWorkflowStoreTimestamp(now, 'now')
     const current = this.required(id)
     if (current.revision !== expectedRevision) throw new RevisionConflictError()
-    const next = { ...current, cancellationRequested: true, revision: current.revision + 1, updatedAt: now }
+    if (['completed', 'failed', 'compensated', 'compensation_failed', 'cancelled'].includes(current.state)) throw new RevisionConflictError()
+    const next = { ...current, cancellationRequested: true, revision: current.revision + 1, updatedAt: Math.max(current.updatedAt, now) }
     this.snapshots.set(id, clone(next)); return clone(next)
   }
 

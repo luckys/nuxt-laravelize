@@ -75,6 +75,25 @@ describe('DrizzleTransactionManager', () => {
     })).rejects.toThrow('post-commit failed')
     expect(committedSource.committed).toBe(true)
   })
+
+  it('rolls back and skips hooks when rollback-only is caught by outer work', async () => {
+    const source = new AsyncSource({})
+    const hook = vi.fn()
+    const reason = new Error('inner async failure')
+    const manager = new DrizzleTransactionManager(source)
+
+    await expect(manager.transaction(async (unitOfWork) => {
+      unitOfWork.afterCommit(hook)
+      try {
+        unitOfWork.markRollbackOnly(reason)
+        throw reason
+      }
+      catch (error) { expect(error).toBe(reason) }
+      return 'caught'
+    })).rejects.toBe(reason)
+    expect(source.committed).toBe(false)
+    expect(hook).not.toHaveBeenCalled()
+  })
 })
 
 describe('DrizzleSyncTransactionManager', () => {
@@ -101,5 +120,19 @@ describe('DrizzleSyncTransactionManager', () => {
 
   it('has distinct structural source contracts', () => {
     expectTypeOf<DrizzleAsyncTransactionSource<object>>().not.toEqualTypeOf<DrizzleSyncTransactionSource<object>>()
+  })
+
+  it('rolls back and skips hooks when rollback-only is caught by outer work', async () => {
+    const source = new SyncSource({})
+    const hook = vi.fn()
+    const manager = new DrizzleSyncTransactionManager(source)
+
+    await expect(manager.transaction((unitOfWork) => {
+      unitOfWork.afterCommit(hook)
+      unitOfWork.markRollbackOnly('unsafe')
+      return 'caught'
+    })).rejects.toThrow('Unit of work was marked rollback-only')
+    expect(source.committed).toBe(false)
+    expect(hook).not.toHaveBeenCalled()
   })
 })

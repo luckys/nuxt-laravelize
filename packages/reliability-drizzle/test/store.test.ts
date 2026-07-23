@@ -27,7 +27,7 @@ describe('drizzle reliability stores', () => {
     const session = { execute: vi.fn().mockResolvedValue({ rows: [{ id: envelope.id }] }) }
     const store = new Store({ execute: vi.fn() })
 
-    await store.appendIn({ session, afterCommit: vi.fn() }, envelope, { availableAt: new Date(1000).toISOString() })
+    await store.appendIn({ session, afterCommit: vi.fn(), markRollbackOnly: vi.fn() }, envelope, { availableAt: new Date(1000).toISOString() })
 
     expect(session.execute).toHaveBeenCalledOnce()
   })

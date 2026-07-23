@@ -30,6 +30,7 @@ export class WorkflowCoordinator {
   /** Reloads the authoritative revision before every publication. */
   async enqueue(workflowId: string, delayMs = 0): Promise<JobHandle | null> {
     const snapshot = await this.required(workflowId)
+    this.manager.assertProcessable(snapshot)
     if (isWorkflowTerminal(snapshot)) return null
     const pushOptions = this.pushOptions(snapshot)
     const job = new WorkflowJob({ workflowId })

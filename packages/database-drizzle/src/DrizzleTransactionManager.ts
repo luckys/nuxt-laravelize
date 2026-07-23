@@ -8,11 +8,23 @@ export interface DrizzleSyncTransactionSource<Session> {
   transaction<Result>(callback: (session: Session) => Result): Result
 }
 
-function unitOfWork<Session>(session: Session, hooks: AfterCommitHook[]): UnitOfWork<Session> {
+interface RollbackState { marked: boolean, reason?: unknown }
+
+const rollbackError = (state: RollbackState): Error => state.reason instanceof Error
+  ? state.reason
+  : new Error('Unit of work was marked rollback-only')
+
+function unitOfWork<Session>(session: Session, hooks: AfterCommitHook[], rollback: RollbackState): UnitOfWork<Session> {
   return {
     session,
     afterCommit(hook) {
       hooks.push(hook)
+    },
+    markRollbackOnly(reason) {
+      if (!rollback.marked) {
+        rollback.marked = true
+        rollback.reason = reason
+      }
     },
   }
 }
@@ -33,7 +45,12 @@ export class DrizzleTransactionManager<Session> implements TransactionManager<Se
 
   async transaction<Result>(work: (unitOfWork: UnitOfWork<Session>) => Result | PromiseLike<Result>): Promise<Result> {
     const hooks: AfterCommitHook[] = []
-    const result = await this.database.transaction(async session => await work(unitOfWork(session, hooks)))
+    const rollback: RollbackState = { marked: false }
+    const result = await this.database.transaction(async (session) => {
+      const value = await work(unitOfWork(session, hooks, rollback))
+      if (rollback.marked) throw rollbackError(rollback)
+      return value
+    })
     await runHooks(hooks)
     return result
   }
@@ -44,10 +61,12 @@ export class DrizzleSyncTransactionManager<Session> implements TransactionManage
 
   async transaction<Result>(work: (unitOfWork: UnitOfWork<Session>) => Result | PromiseLike<Result>): Promise<Result> {
     const hooks: AfterCommitHook[] = []
+    const rollback: RollbackState = { marked: false }
     const result = this.database.transaction((session) => {
-      const value = work(unitOfWork(session, hooks))
+      const value = work(unitOfWork(session, hooks, rollback))
       if (isPromiseLike(value))
         throw new TypeError('Synchronous Drizzle transactions do not support Promise-like work')
+      if (rollback.marked) throw rollbackError(rollback)
       return value
     })
     await runHooks(hooks)

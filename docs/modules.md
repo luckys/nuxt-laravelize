@@ -1109,16 +1109,22 @@ await transactions.transaction(async (unitOfWork) => {
 })
 ```
 
-Repositories receive `unitOfWork.session` explicitly, so domain writes and outbox records can share the physical transaction. `afterCommit` hooks run only after a confirmed commit; a hook failure cannot roll the commit back. Use `DrizzleSyncTransactionManager` for synchronous SQLite drivers: it deliberately rejects Promise-returning work instead of allowing async work to escape the native transaction.
+Repositories receive `unitOfWork.session` explicitly, so domain writes and outbox records can share the physical transaction. Call `unitOfWork.markRollbackOnly(error)` when a caught inner failure must still abort the transaction. Transaction managers throw before native commit and skip `afterCommit` hooks whenever rollback-only is marked; custom implementations must provide the same guarantee. `afterCommit` hooks otherwise run only after a confirmed commit, and a hook failure cannot roll the commit back. Use `DrizzleSyncTransactionManager` for synchronous SQLite drivers: it deliberately rejects Promise-returning work instead of allowing async work to escape the native transaction.
 
 ## Workflows and sagas
 
 `@nuxt-laravelize/workflows` implements persisted, linear workflows with versioned definitions, fenced renewable leases, retries, restart-safe attempts, cooperative in-flight cancellation, and reverse-order compensation.
 
+Versions are opaque, case-sensitive strings of 1–64 ASCII characters, with alphanumeric ends and `[A-Za-z0-9._-]` interiors; `latest`, `default`, and `current` are reserved case-insensitively. Resolution is exact, without fallback, latest aliases, or ranges. Never change handlers or steps under a published tuple; assign a new version. New source snapshots require `snapshotFormatVersion: 1`. Diagnostic `status` normalizes a legacy missing field and rejects unknown formats without requiring a deployed definition; execution exact-resolves even terminal/waiting rows before claim or mutation.
+
+This persisted-row validation is breaking. Before upgrade, stop every workflow writer and take a verified backup. Audit **every row**, not only identifiers, with the new validator and exact historical definitions: relational/JSON identity and exact definition/step names; timestamp monotonicity; workflow/step ordering; required outputs, errors, and `retryAt`; retry/compensation counters versus deployed `maxAttempts`; lease validity; and 128/4096 error bounds. Previous-release error strings are bounded on authoritative reads and missing JSON format remains format 1, but neither compatibility path repairs any other invariant. Migrate relational columns and snapshot JSON atomically from an explicit reviewed mapping, then rerun dry validation. Rows from custom/untrusted stores need application-specific repair or archival; automatic in-flight migration remains unsupported.
+
+Old `completed|failed + cancellationRequested` race rows are explicitly rejected and must not be silently normalized. Review each incident and either perform/verify compensation before marking `cancelled`/`compensated`, or document rejection of cancellation before clearing the flag; never blindly clear it. The workflows-drizzle README includes PostgreSQL discovery queries. After repair, dual-register old and new valid definitions everywhere and retain historical versions while any row or outstanding queue job/wake references them.
+
 ```ts
 const fulfill = defineWorkflow({
   name: 'orders.fulfill',
-  version: 1,
+  version: '1',
   steps: [
     defineStep({ name: 'reserve', run: reserve, compensate: release }),
     defineStep({ name: 'charge', run: charge, compensate: refund }),
@@ -1160,7 +1166,7 @@ The registration helper owns the wake-up message type and version while acceptin
 
 To join an existing domain transaction, call `workflows.using(workflowStore.in(unitOfWork)).start(...)`. This writes domain state, workflow state, and outbox wake-up together without opening a nested transaction. Never wrap all of `processResult()` in one transaction: handlers may perform slow external effects between the engine's persisted boundaries. External effects remain at least once and still require their stable idempotency keys.
 
-Run `new WorkflowWakeReconciler(durableWorkflowStore, durableReliabilityStore).reconcileStore({ pageSize: 100 })` periodically to repair dead or operationally lost wake-ups. The bounded scan reloads authoritative state and schedules after any active lease or business retry deadline. Repeated and concurrent scans of an unchanged workflow share one deterministic wake per 60-second generation; configure `generationMs` when a different recovery-latency bound is required. Later generations use fresh IDs, so recovery never revives or mutates an old dead row. Use `reconcile(ids)` with an application-owned index. Per-workflow failures are returned without aborting later pages.
+Run `new WorkflowWakeReconciler(durableWorkflowStore, durableReliabilityStore, { resolver: registry }).reconcileStore({ pageSize: 100 })` periodically to repair dead or operationally lost wake-ups. The exact resolver is required and must match workers. The bounded scan reloads authoritative state and schedules after any active lease or business retry deadline. Repeated and concurrent scans of an unchanged workflow share one deterministic wake per 60-second generation; configure `generationMs` when a different recovery-latency bound is required. Later generations use fresh IDs, so recovery never revives or mutates an old dead row. Use `reconcile(ids)` with an application-owned index. Per-workflow failures are returned without aborting later pages.
 
 For a long-lived process, `new WorkflowWakeReconciliationWorker(reconciler, { intervalMs: 60_000, reconcile: { pageSize: 100 }, onResult })` runs immediately and then waits after each completed scan. It coalesces overlapping local calls and drains an active scan on abort. Per-workflow failures are reported through `onResult`; discovery and callback errors stop the loop. Deterministic IDs keep multiple processes safe, although a single leader avoids redundant scans.
 
@@ -1187,6 +1193,8 @@ await useWorkflows(event).reconcileStore({ pageSize: 100 })
 ```
 
 Bind `workflowStoreToken` to a durable store and register definitions through `workflowRegistryToken`. Deterministic revision-based job IDs optimize transport deduplication, but correctness relies on store fencing, so duplicate jobs remain harmless. Persistence and publication are separate operations: run `reconcileStore()` periodically when the store supports recovery discovery, or call `reconcile(ids)` with IDs from a custom index. Every store scan captures an `updatedBefore` boundary so concurrent updates cannot make one pass unbounded; later passes pick up newer changes. This bridge does not claim transactional-outbox guarantees.
+
+Queue and wake payloads remain ID-only so old jobs reload the relationally authoritative tuple rather than carrying stale or attacker-controlled version metadata. Enqueue/reconciliation preflight exact definitions and continue after reporting unsupported IDs; handlers independently fail closed before claim. Wake reconcilers require `{ resolver: registry }`, using the same registry as workers.
 
 ## Testing
 

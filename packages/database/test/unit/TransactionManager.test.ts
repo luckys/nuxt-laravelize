@@ -17,5 +17,7 @@ describe('transaction contracts', () => {
     const unitOfWork = {} as UnitOfWork<{ id: string }>
     expectTypeOf(unitOfWork.session).toEqualTypeOf<{ id: string }>()
     expectTypeOf(unitOfWork.afterCommit).toBeCallableWith(hook)
+    expectTypeOf(unitOfWork.markRollbackOnly).toBeCallableWith(new Error('rollback'))
+    expectTypeOf(unitOfWork.markRollbackOnly).toBeCallableWith()
   })
 })

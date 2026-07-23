@@ -26,6 +26,7 @@ export interface StepSnapshot {
 export interface WorkflowLease { token: string, expiresAt: number }
 
 export interface WorkflowSnapshot {
+  snapshotFormatVersion: 1
   id: string
   workflowName: string
   workflowVersion: string
@@ -61,9 +62,16 @@ export interface WorkflowStep<I extends JsonValue = JsonValue> {
   maxAttempts: number
 }
 
-export interface WorkflowDefinition<I extends JsonValue = JsonValue> {
+export interface WorkflowDefinitionReference {
   name: string
   version: string
+}
+
+export interface WorkflowDefinitionResolver {
+  resolve(reference: WorkflowDefinitionReference): WorkflowDefinition
+}
+
+export interface WorkflowDefinition<I extends JsonValue = JsonValue> extends WorkflowDefinitionReference {
   steps: readonly WorkflowStep<I>[]
 }
 

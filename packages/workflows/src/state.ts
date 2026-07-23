@@ -11,5 +11,6 @@ export function isWorkflowWaiting(snapshot: WorkflowSnapshot): boolean {
 }
 
 export function workflowNextRetryAt(snapshot: WorkflowSnapshot): number | null {
+  if (snapshot.state === 'waiting_retry' && snapshot.cancellationRequested) return null
   return snapshot.steps.find(step => step.state === 'waiting_retry' || step.state === 'compensation_waiting_retry')?.retryAt ?? null
 }

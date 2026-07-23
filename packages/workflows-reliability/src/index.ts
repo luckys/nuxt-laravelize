@@ -1,6 +1,6 @@
 import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
 import { abortableSleep, createEnvelope, type MessageEnvelope, type MessageExecutionContext, type OutboxAppendOptions, type OutboxStore } from '@nuxt-laravelize/reliability'
-import { isRecoverableWorkflowStore, isWorkflowTerminal, isWorkflowWaiting, type WorkflowManager, type WorkflowRecoveryCursor, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
+import { assertWorkflowCancellationReceipt, assertWorkflowClaimReceipt, assertWorkflowCommitReceipt, assertWorkflowCreateReceipt, assertWorkflowRenewLeaseReceipt, assertWorkflowSnapshotMatchesDefinition, isRecoverableWorkflowStore, isWorkflowTerminal, isWorkflowWaiting, normalizePersistedWorkflowSnapshot, resolveWorkflowDefinitionExact, type WorkflowDefinitionResolver, type WorkflowManager, type WorkflowRecoveryCursor, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
 
 export const workflowWakeMessageType = 'laravelize.workflow.wake.v1'
 export type WorkflowWakePayload = { workflowId: string }
@@ -20,6 +20,8 @@ export interface WorkflowWakeReconcilerOptions {
   clock?: () => number
   generationMs?: number
   idFactory?: (snapshot: WorkflowSnapshot, generation: number) => string | Promise<string>
+  /** Must contain every persisted definition version that recovery may wake. */
+  resolver: WorkflowDefinitionResolver
 }
 export interface WorkflowWakeReconciliationWorkerOptions {
   intervalMs?: number
@@ -58,7 +60,10 @@ export class TransactionalWorkflowStore<Session> implements WorkflowStore {
     this.idFactory = options.idFactory ?? (() => crypto.randomUUID())
   }
 
-  get(id: string) { return this.options.readStore.get(id) }
+  async get(id: string) {
+    const snapshot = await this.options.readStore.get(id)
+    return snapshot ? normalizePersistedWorkflowSnapshot(snapshot) : null
+  }
 
   create(snapshot: WorkflowSnapshot) {
     return this.options.transactions.transaction(unitOfWork => this.in(unitOfWork).create(snapshot))
@@ -83,36 +88,52 @@ export class TransactionalWorkflowStore<Session> implements WorkflowStore {
   /** Joins a caller-owned unit of work without opening a nested transaction. */
   in(unitOfWork: UnitOfWork<Session>): WorkflowStore {
     const store = this.options.storeForSession(unitOfWork.session)
+    const rollbackOnFailure = async <Result>(operation: () => Result | PromiseLike<Result>): Promise<Result> => {
+      try {
+        return await operation()
+      }
+      catch (error) {
+        unitOfWork.markRollbackOnly(error)
+        throw error
+      }
+    }
     return {
-      get: id => store.get(id),
-      create: async (snapshot) => {
-        const result = await store.create(snapshot)
+      get: id => rollbackOnFailure(async () => {
+        const snapshot = await store.get(id)
+        return snapshot ? normalizePersistedWorkflowSnapshot(snapshot) : null
+      }),
+      create: snapshot => rollbackOnFailure(async () => {
+        const result = assertWorkflowCreateReceipt(snapshot, await store.create(snapshot))
         if (result.created) await this.append(unitOfWork, result.snapshot, 'start', result.snapshot.updatedAt)
         return result
-      },
-      claim: async (id, expectedRevision, token, now, expiresAt) => {
-        const claimed = await store.claim(id, expectedRevision, token, now, expiresAt)
+      }),
+      claim: (id, expectedRevision, token, now, expiresAt) => rollbackOnFailure(async () => {
+        const current = await requiredSnapshot(store, id)
+        const claimed = assertWorkflowClaimReceipt(current, await store.claim(id, expectedRevision, token, now, expiresAt), token, now, expiresAt, expectedRevision)
         await this.append(unitOfWork, claimed, 'lease-expired', now, expiresAt)
         return claimed
-      },
-      renewLease: async (id, expectedRevision, token, now, expiresAt) => {
-        const renewed = await store.renewLease(id, expectedRevision, token, now, expiresAt)
-        await this.append(unitOfWork, renewed, 'lease-renewed', now, expiresAt)
+      }),
+      renewLease: (id, expectedRevision, token, now, expiresAt) => rollbackOnFailure(async () => {
+        const current = await requiredSnapshot(store, id)
+        const renewed = assertWorkflowRenewLeaseReceipt(current, await store.renewLease(id, expectedRevision, token, now, expiresAt), expectedRevision, token, now, expiresAt)
+        await this.append(unitOfWork, renewed, 'lease-renewed', now, renewed.lease!.expiresAt)
         return renewed
-      },
-      commit: async (snapshot, expectedRevision, leaseToken, now, releaseLease = true) => {
-        const committed = await store.commit(snapshot, expectedRevision, leaseToken, now, releaseLease)
+      }),
+      commit: (snapshot, expectedRevision, leaseToken, now, releaseLease = true) => rollbackOnFailure(async () => {
+        const current = await requiredSnapshot(store, snapshot.id)
+        const committed = assertWorkflowCommitReceipt(current, snapshot, await store.commit(snapshot, expectedRevision, leaseToken, now, releaseLease), leaseToken, now, releaseLease, expectedRevision)
         if (releaseLease && !isWorkflowTerminal(committed)) {
           const availableAt = isWorkflowWaiting(committed) ? workflowNextRetryAt(committed) ?? now : now
           await this.append(unitOfWork, committed, 'transition', now, availableAt)
         }
         return committed
-      },
-      requestCancellation: async (id, expectedRevision, now) => {
-        const cancelled = await store.requestCancellation(id, expectedRevision, now)
+      }),
+      requestCancellation: (id, expectedRevision, now) => rollbackOnFailure(async () => {
+        const current = await requiredSnapshot(store, id)
+        const cancelled = assertWorkflowCancellationReceipt(current, await store.requestCancellation(id, expectedRevision, now), now, expectedRevision)
         if (!isWorkflowTerminal(cancelled)) await this.append(unitOfWork, cancelled, 'cancellation', now)
         return cancelled
-      },
+      }),
     }
   }
 
@@ -122,29 +143,42 @@ export class TransactionalWorkflowStore<Session> implements WorkflowStore {
   }
 }
 
+async function requiredSnapshot(store: WorkflowStore, id: string): Promise<WorkflowSnapshot> {
+  const snapshot = await store.get(id)
+  if (!snapshot) throw new Error(`Workflow not found: ${id}`)
+  return normalizePersistedWorkflowSnapshot(snapshot)
+}
+
 export class WorkflowWakeReconciler {
   private readonly clock: () => number
   private readonly generationMs: number
   private readonly idFactory: (snapshot: WorkflowSnapshot, generation: number) => string | Promise<string>
+  private readonly resolver: WorkflowDefinitionResolver
 
   constructor(
     private readonly store: WorkflowStore,
     private readonly outbox: Pick<OutboxStore, 'append'>,
-    options: WorkflowWakeReconcilerOptions = {},
+    options: WorkflowWakeReconcilerOptions,
   ) {
+    if (!options || typeof options !== 'object' || !options.resolver || typeof options.resolver !== 'object' || typeof options.resolver.resolve !== 'function')
+      throw new TypeError('resolver must provide a resolve function')
     this.clock = options.clock ?? Date.now
     this.generationMs = options.generationMs ?? 60_000
     if (!Number.isSafeInteger(this.generationMs) || this.generationMs < 1 || this.generationMs > 86_400_000)
       throw new TypeError('generationMs must be an integer between 1 and 86400000')
     this.idFactory = options.idFactory ?? recoveryWakeId
+    this.resolver = options.resolver
   }
 
   async reconcile(workflowIds: Iterable<string> | AsyncIterable<string>): Promise<WorkflowWakeReconcileResult> {
     const result: WorkflowWakeReconcileResult = { scheduled: [], skipped: [], failed: [] }
     for await (const workflowId of workflowIds) {
       try {
-        const snapshot = await this.store.get(workflowId)
+        const persisted = await this.store.get(workflowId)
+        const snapshot = persisted ? normalizePersistedWorkflowSnapshot(persisted) : null
         if (!snapshot) throw new Error(`Workflow not found: ${workflowId}`)
+        const definition = resolveWorkflowDefinitionExact(this.resolver, { name: snapshot.workflowName, version: snapshot.workflowVersion })
+        assertWorkflowSnapshotMatchesDefinition(snapshot, definition)
         if (isWorkflowTerminal(snapshot)) {
           result.skipped.push(workflowId)
           continue
