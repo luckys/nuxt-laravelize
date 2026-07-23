@@ -499,6 +499,8 @@ Audit is neither logging nor domain-event serialization. Do not pass request/res
 
 `@nuxt-laravelize/reliability` provides versioned JSON-safe envelopes, leased outbox processing, and inbox deduplication. The preset includes `@nuxt-laravelize/reliability-queue` so reliable handlers and `ReliableMessageJob` are registered, but deliberately binds no volatile production store. Every production application must bind durable, shared Inbox and Outbox stores; `reliability-drizzle` is optional. Webhooks remain a framework-neutral opt-in. Delivery is **at least once**: retries, lease expiry, worker crashes, and acknowledgement ambiguity (the effect committed but its acknowledgement was lost) can all repeat a message, so every handler and webhook receiver must be idempotent.
 
+Dead-letter management is opt-in through `@nuxt-laravelize/dead-letter`; the preset installs no administrative adapter. Applications must authorize list/view/payload/retry/discard and the stronger inbox-retry ability. Payload and tenant hints are opt-in and envelope identity is never authorization. Inbox retry can repeat side effects. Reliability receipts are bounded operation idempotency/audit metadata, not full attempt history. Active dead evidence is retained by default. BullMQ fencing is optimistic; its adapter lists bounded snapshots of at most 1000 retained failed jobs and rejects larger sources, which require a narrower queue or retention policy. No bulk actions are provided.
+
 ```bash
 pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
 # Optional durable Drizzle adapter:
@@ -1260,6 +1262,7 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 | `queue-bullmq` | `/runtime` | - |
 | `reliability` | package root | `/testing` |
 | `reliability-drizzle` | package root, `/postgres`, `/sqlite`, `/turso` | - |
+| `dead-letter` | package root | `/testing` |
 | `reliability-queue` | package root, `/runtime` | - |
 | `routes` | package root, `/runtime`, `/kit` | - |
 | `events-queue` | `/runtime` | - |

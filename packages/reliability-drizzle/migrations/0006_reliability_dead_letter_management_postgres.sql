@@ -1,0 +1,10 @@
+alter table reliability_messages add column if not exists management_revision bigint not null default 1;
+alter table reliability_messages add column if not exists disposition text not null default 'active' check (disposition in ('active','discarded'));
+alter table reliability_messages add column if not exists management_operation_id text;
+alter table reliability_messages add column if not exists management_operation_fingerprint text;
+alter table reliability_messages add column if not exists management_operation_action text;
+alter table reliability_messages add column if not exists management_operation_at timestamptz;
+alter table reliability_messages add column if not exists management_operation_result_revision bigint;
+alter table reliability_messages add column if not exists management_operation_result_disposition text;
+create unique index if not exists reliability_messages_management_operation_idx on reliability_messages (management_operation_id) where management_operation_id is not null;
+create index if not exists reliability_messages_dead_management_idx on reliability_messages (kind, state, disposition, terminal_at, id);

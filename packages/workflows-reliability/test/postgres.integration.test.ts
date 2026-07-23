@@ -4,7 +4,7 @@ import { sql as drizzleSql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { DrizzleTransactionManager, type DrizzleAsyncTransactionSource } from '@nuxt-laravelize/database-drizzle'
-import { DrizzlePostgresReliabilityStore, type DrizzleReliabilityDatabase } from '@nuxt-laravelize/reliability-drizzle'
+import { DrizzlePostgresReliabilityStore, DrizzleReliabilityDeadLetterAdapter, type DrizzleReliabilityDatabase } from '@nuxt-laravelize/reliability-drizzle'
 import { createEnvelope } from '@nuxt-laravelize/reliability'
 import { defineStep, defineWorkflow, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
 import { DrizzlePostgresWorkflowStore, type DrizzlePostgresWorkflowDatabase } from '@nuxt-laravelize/workflows-drizzle'
@@ -22,6 +22,8 @@ const migrations = [
   new URL('../../reliability-drizzle/migrations/0000_reliability_postgres.sql', import.meta.url),
   new URL('../../reliability-drizzle/migrations/0002_reliability_append_availability_postgres.sql', import.meta.url),
   new URL('../../reliability-drizzle/migrations/0004_reliability_terminal_at_postgres.sql', import.meta.url),
+  new URL('../../reliability-drizzle/migrations/0006_reliability_dead_letter_management_postgres.sql', import.meta.url),
+  new URL('../../reliability-drizzle/migrations/0008_reliability_dead_letter_operations_postgres.sql', import.meta.url),
 ]
 
 const definition = defineWorkflow({ name: 'postgres-proof', version: '1', steps: [defineStep({ name: 'work', run: () => null })] })
@@ -52,6 +54,21 @@ describe('PostgreSQL transactional workflow wake-ups', () => {
     const manager = new WorkflowManager(store, new WorkflowRegistry().register(definition), { idFactory: () => id, clock: { now: () => 100 } })
     return { manager, store, transactions }
   }
+
+  it('reserves and replays durable dead-letter operations on real PostgreSQL', async () => {
+    const store = new DrizzlePostgresReliabilityStore(database)
+    const id = 'postgres-dead-letter'
+    await store.append(createEnvelope({ id, type: 'test.dead.v1', occurredAt: new Date(0).toISOString(), payload: { private: true } }))
+    const [claimed] = await store.claim({ owner: 'worker', token: 'claim-dead-letter', limit: 1, now: new Date(0).toISOString(), leaseUntil: new Date(1000).toISOString() })
+    await store.dead('outbox', id, claimed!.leaseToken!, new Date(100).toISOString(), 'Bearer private-token')
+    const adapter = new DrizzleReliabilityDeadLetterAdapter(database, () => new Date(200))
+    const [item] = (await adapter.list({ namespace: 'outbox', type: 'test.dead.v1' })).items
+    expect(item).not.toHaveProperty('error')
+    const request = { key: item!.key, revision: item!.revision, operationId: 'postgres-discard-operation', reason: 'operator-reviewed' }
+    const committed = await adapter.discard(request)
+    expect(await adapter.discard(request)).toEqual(committed)
+    expect((await client`select status, fingerprint, failure_code from reliability_dead_letter_operations where operation_id = ${request.operationId}`)[0]).toMatchObject({ status: 'committed', failure_code: null })
+  })
 
   it('commits workflow and wake-up rows together', async () => {
     await setup('committed').manager.start(definition, {}, 'committed')

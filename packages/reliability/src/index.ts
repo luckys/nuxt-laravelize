@@ -157,22 +157,27 @@ export interface ReliabilityPruneOptions {
   states: readonly TerminalMessageState[]
   limit?: number
   types?: readonly string[]
+  /** Required before deleting dead evidence. By default only delivered rows may be pruned. */
+  allowDeadEvidenceDeletion?: boolean
+  /** Emergency override. Without it, only logically discarded dead rows are eligible. */
+  allowActiveDeadEvidenceDeletion?: boolean
 }
 export interface ReliabilityPruneResult { deleted: number, hasMore: boolean }
 export interface PrunableReliabilityStore {
   prune(options: ReliabilityPruneOptions): Promise<ReliabilityPruneResult>
 }
-export type NormalizedReliabilityPruneOptions = Required<Pick<ReliabilityPruneOptions, 'namespace' | 'completedBefore' | 'states' | 'limit'>> & Pick<ReliabilityPruneOptions, 'types'>
+export type NormalizedReliabilityPruneOptions = Required<Pick<ReliabilityPruneOptions, 'namespace' | 'completedBefore' | 'states' | 'limit' | 'allowDeadEvidenceDeletion' | 'allowActiveDeadEvidenceDeletion'>> & Pick<ReliabilityPruneOptions, 'types'>
 export function normalizeReliabilityPruneOptions(options: ReliabilityPruneOptions): NormalizedReliabilityPruneOptions {
   if (options.namespace !== 'outbox' && options.namespace !== 'inbox') throw new TypeError('namespace must be outbox or inbox')
   const completedBefore = new Date(options.completedBefore)
   if (!Number.isFinite(completedBefore.getTime()) || completedBefore.toISOString() !== options.completedBefore) throw new TypeError('completedBefore must be a canonical ISO timestamp')
   const states = [...new Set(options.states)]
   if (!states.length || states.some(state => state !== 'delivered' && state !== 'dead')) throw new TypeError('states must contain delivered or dead')
+  if (states.includes('dead') && !options.allowDeadEvidenceDeletion) throw new TypeError('allowDeadEvidenceDeletion is required to prune dead evidence')
   const limit = boundedInteger(options.limit ?? 100, 'limit', 1000)
   const types = options.types ? [...new Set(options.types)] : undefined
   if (types && (!types.length || types.length > 100 || types.some(type => !ID.test(type)))) throw new TypeError('types must contain between 1 and 100 valid message types')
-  return { namespace: options.namespace, completedBefore: options.completedBefore, states, limit, ...(types ? { types } : {}) }
+  return { namespace: options.namespace, completedBefore: options.completedBefore, states, limit, allowDeadEvidenceDeletion: options.allowDeadEvidenceDeletion ?? false, allowActiveDeadEvidenceDeletion: options.allowActiveDeadEvidenceDeletion ?? false, ...(types ? { types } : {}) }
 }
 export function isPrunableReliabilityStore(store: unknown): store is PrunableReliabilityStore {
   return !!store && typeof store === 'object' && typeof (store as { prune?: unknown }).prune === 'function'

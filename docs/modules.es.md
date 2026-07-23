@@ -490,6 +490,8 @@ Audit no es logging ni serializacion de domain events. No se pasan bodies reques
 
 `@nuxt-laravelize/reliability` proporciona envelopes JSON-safe versionados, procesamiento outbox con leases y deduplicacion inbox. El preset incluye `@nuxt-laravelize/reliability-queue` para registrar handlers fiables y `ReliableMessageJob`, pero no liga stores volatiles en produccion. Cada aplicacion debe ligar stores Inbox y Outbox durables y compartidos; `reliability-drizzle` es opcional. Webhooks sigue siendo opt-in. La entrega es **at least once**: reintentos, expiracion del lease, crashes y ambiguedad del acknowledgement (el efecto se confirmo pero se perdio su confirmacion) pueden repetir mensajes, asi que cada handler debe ser idempotente.
 
+La gestion dead-letter es opt-in mediante `@nuxt-laravelize/dead-letter`; el preset no instala adaptadores administrativos. La aplicacion debe autorizar listar/ver/payload/reintentar/descartar y exigir un permiso reforzado para inbox. Payload y pista de tenant son opt-in y nunca autorizan. Reintentar inbox puede repetir efectos. Los recibos son metadatos acotados de idempotencia/auditoria, no historial completo. La evidencia activa se conserva por defecto. El fencing BullMQ es optimista; su adapter lista snapshots acotados de hasta 1000 jobs fallidos retenidos y rechaza fuentes mayores, que requieren una cola o retencion mas estrecha. No hay acciones masivas.
+
 ```bash
 pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
 # Adapter Drizzle durable opcional:
@@ -1249,6 +1251,7 @@ Combina `compiled` con una configuracion Nitro 3 standalone. El soporte real de 
 | `queue-bullmq` | `/runtime` | - |
 | `reliability` | raiz del paquete | `/testing` |
 | `reliability-drizzle` | raiz del paquete, `/postgres`, `/sqlite`, `/turso` | - |
+| `dead-letter` | raiz del paquete | `/testing` |
 | `reliability-queue` | raiz del paquete, `/runtime` | - |
 | `routes` | raiz del paquete, `/runtime`, `/kit` | - |
 | `events-queue` | `/runtime` | - |

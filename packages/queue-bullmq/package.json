@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@nuxt-laravelize/core": "workspace:^",
+    "@nuxt-laravelize/dead-letter": "workspace:^",
     "@nuxt-laravelize/queue": "workspace:^",
     "@nuxt/kit": "^4.4.5",
     "bullmq": "^5.77.3",

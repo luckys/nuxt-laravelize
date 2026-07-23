@@ -32,6 +32,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/rate-limiter` | Cache-backed fixed-window rate limiting and Nitro middleware |
 | `@nuxt-laravelize/reliability` | Framework-neutral at-least-once outbox and idempotent inbox primitives |
 | `@nuxt-laravelize/reliability-drizzle` | Optional durable PostgreSQL, SQLite, and Turso reliability stores |
+| `@nuxt-laravelize/dead-letter` | Portable source-qualified dead-letter management contracts |
 | `@nuxt-laravelize/reliability-queue` | Nuxt bridge from durable outbox/inbox messages to registered queue jobs |
 | `@nuxt-laravelize/routes` | Generated typed URL helpers from explicit route declarations |
 | `@nuxt-laravelize/events-queue` | Queued-listener integration between events and queues |
@@ -162,6 +163,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/queue-bullmq` | `/runtime` | - |
 | `@nuxt-laravelize/rate-limiter` | `/runtime` | - |
 | `@nuxt-laravelize/reliability` | Package root | `/testing` |
+| `@nuxt-laravelize/dead-letter` | Package root | `/testing` |
 | `@nuxt-laravelize/reliability-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso` | - |
 | `@nuxt-laravelize/reliability-queue` | Package root, `/runtime` | - |
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |

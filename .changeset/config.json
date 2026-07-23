@@ -19,6 +19,7 @@
       "@nuxt-laravelize/cache-redis",
       "@nuxt-laravelize/database",
       "@nuxt-laravelize/database-drizzle",
+      "@nuxt-laravelize/dead-letter",
       "@nuxt-laravelize/events",
       "@nuxt-laravelize/events-queue",
       "@nuxt-laravelize/encryption",

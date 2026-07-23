@@ -100,15 +100,17 @@ export abstract class DrizzleReliabilityStore implements OutboxStore, InboxStore
   }
 
   async dead(namespace: MessageNamespace, id: string, token: string, now: string, error: string) {
-    await this.transition(namespace, id, token, now, sql`state = 'dead', terminal_at = ${canonicalIso(now, 'now')}, last_error = ${sanitizeErrorSummary(error)}, lease_owner = null, lease_token = null, lease_until = null`)
+    await this.transition(namespace, id, token, now, sql`state = 'dead', terminal_at = ${canonicalIso(now, 'now')}, last_error = ${sanitizeErrorSummary(error)}, disposition = 'active', management_revision = management_revision + 1, lease_owner = null, lease_token = null, lease_until = null`)
   }
 
   async prune(options: ReliabilityPruneOptions): Promise<ReliabilityPruneResult> {
     const o = normalizeReliabilityPruneOptions(options)
     const states = sql`state in (${sql.join(o.states.map(state => sql`${state}`), sql`, `)})`
+    const deadEvidence = o.states.includes('dead') && !o.allowActiveDeadEvidenceDeletion ? sql`and (state != 'dead' or disposition = 'discarded')` : sql``
     const types = o.types ? sql`and message_type in (${sql.join(o.types.map(type => sql`${type}`), sql`, `)})` : sql``
-    const deleted = rows(await this.database.execute(sql`delete from reliability_messages where kind = ${o.namespace} and id in (select id from reliability_messages where kind = ${o.namespace} and ${states} and terminal_at < ${o.completedBefore} ${types} order by terminal_at, id limit ${o.limit}) returning id`)).length
-    const remaining = rows(await this.database.execute(sql`select id from reliability_messages where kind = ${o.namespace} and ${states} and terminal_at < ${o.completedBefore} ${types} limit 1`)).length > 0
+    const noPendingManagement = sql`and not exists (select 1 from reliability_dead_letter_operations operation where operation.status = 'pending' and operation.source = 'reliability' and ((operation.message_kind = reliability_messages.kind and operation.message_id = reliability_messages.id) or operation.operation_id = reliability_messages.management_operation_id))`
+    const deleted = rows(await this.database.execute(sql`delete from reliability_messages where kind = ${o.namespace} and id in (select id from reliability_messages where kind = ${o.namespace} and ${states} ${deadEvidence} and terminal_at < ${o.completedBefore} ${types} ${noPendingManagement} order by terminal_at, id limit ${o.limit}) returning id`)).length
+    const remaining = rows(await this.database.execute(sql`select id from reliability_messages where kind = ${o.namespace} and ${states} ${deadEvidence} and terminal_at < ${o.completedBefore} ${types} ${noPendingManagement} limit 1`)).length > 0
     return { deleted, hasMore: remaining }
   }
 

@@ -152,6 +152,7 @@ export class InMemoryReliabilityStore implements OutboxStore, InboxStore, Prunab
 
   async prune(options: ReliabilityPruneOptions): Promise<ReliabilityPruneResult> {
     const normalized = normalizeReliabilityPruneOptions(options)
+    if (normalized.states.includes('dead') && !normalized.allowActiveDeadEvidenceDeletion) throw new TypeError('Volatile stores cannot prove discard disposition; allowActiveDeadEvidenceDeletion is required')
     const candidates = [...this.records.entries()]
       .filter(([key, row]) => key.startsWith(`${normalized.namespace}:`)
         && !!row.terminalAt
