@@ -45,6 +45,7 @@ export default defineNuxtModule({
     '@nuxt-laravelize/http': {},
     '@nuxt-laravelize/hashing': {},
     '@nuxt-laravelize/notifications': {},
+    '@nuxt-laravelize/observability': {},
     '@nuxt-laravelize/pennant': {},
     '@nuxt-laravelize/scout': {},
     '@nuxt-laravelize/validation': {},

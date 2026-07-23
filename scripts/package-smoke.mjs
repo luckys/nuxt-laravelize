@@ -32,6 +32,9 @@ const packageNames = [
   'hashing',
   'mail',
   'notifications',
+  'observability',
+  'observability-otel',
+  'observability-queue',
   'pennant',
   'scout',
   'scout-drizzle',
@@ -153,6 +156,12 @@ runFixture('features', {
   '@nuxt-laravelize/mail/testing',
   '@nuxt-laravelize/notifications/runtime',
   '@nuxt-laravelize/notifications/testing',
+  '@nuxt-laravelize/observability/runtime',
+  '@nuxt-laravelize/observability/runtime/server',
+  '@nuxt-laravelize/observability/testing',
+  '@nuxt-laravelize/observability-otel',
+  '@nuxt-laravelize/observability-otel/runtime/server',
+  '@nuxt-laravelize/observability-queue',
   '@nuxt-laravelize/pennant/runtime',
   '@nuxt-laravelize/scout/runtime',
   '@nuxt-laravelize/scout-drizzle',
@@ -231,6 +240,10 @@ runFixture('features', {
     '@nuxt-laravelize/routes/kit': ['addRoutesDeclaration'],
     '@nuxt-laravelize/mail/runtime': ['mailerToken'],
     '@nuxt-laravelize/notifications/runtime': ['notificationManagerToken'],
+    '@nuxt-laravelize/observability/runtime': ['noopObservability', 'observe', 'observabilityToken'],
+    '@nuxt-laravelize/observability/testing': ['ObservabilityFake'],
+    '@nuxt-laravelize/observability-otel': ['OtelObservability'],
+    '@nuxt-laravelize/observability-queue': ['installQueueObservability'],
     '@nuxt-laravelize/pennant/runtime': ['FeatureManager', 'InMemoryFeatureStore', 'featureManagerToken'],
     '@nuxt-laravelize/scout/runtime': ['ScoutManager', 'InMemorySearchEngine', 'scoutManagerToken'],
     '@nuxt-laravelize/scout-drizzle': ['DrizzlePostgresSearchEngine', 'registerDrizzlePostgresDriver', 'scoutDocuments'],
@@ -298,6 +311,7 @@ runFixture('scheduler-nitro3', {
 }, ['@nuxt-laravelize/scheduler/nitro3'])
 
 function runFixture(name, fixtureDependencies, overrides, imports, absentPackages = [], options = {}) {
+  if (name.startsWith('preset-')) absentPackages = [...absentPackages, '@nuxt-laravelize/observability-otel', '@nuxt-laravelize/observability-queue']
   const fixture = mkdtempSync(join(tmpdir(), `nuxt-laravelize-${name}-`))
   try {
     writeFileSync(join(fixture, 'package.json'), JSON.stringify({
@@ -400,6 +414,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  queue: Boolean(useQueue(event)),',
         '  mailer: Boolean(useMailer(event)),',
         '  notifications: Boolean(useNotifications(event)),',
+        '  observability: Boolean(useObservability(event)),',
         '  scout: Boolean(useScout(event)),',
         '  urlSigner: Boolean(useUrlSigner(event)),',
         '  validator: Boolean(useValidator(event)),',
@@ -449,7 +464,7 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  }',
         '  if (!response?.ok) throw new Error(`Nuxt server did not become ready. ${diagnostics}`)',
         '  const health = await response.json()',
-        '  for (const service of [\'audit\', \'authorization\', \'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'broadcasting\', \'broadcastChannels\', \'encrypter\', \'executionContext\', \'filesystem\', \'hasher\', \'queue\', \'mailer\', \'notifications\', \'scout\', \'urlSigner\', \'rateLimiter\', \'validator\', \'reliableHandlers\', \'reliableJobRegistered\']) {',
+        '  for (const service of [\'audit\', \'authorization\', \'container\', \'cache\', \'cacheLock\', \'dispatcher\', \'broadcasting\', \'broadcastChannels\', \'encrypter\', \'executionContext\', \'filesystem\', \'hasher\', \'queue\', \'mailer\', \'notifications\', \'observability\', \'scout\', \'urlSigner\', \'rateLimiter\', \'validator\', \'reliableHandlers\', \'reliableJobRegistered\']) {',
         '    if (health[service] !== true) throw new Error(`Missing runtime service: ${service}`)',
         '  }',
         '  if (!response.headers.get(\'x-correlation-id\')) throw new Error(\'Missing correlation response header\')',

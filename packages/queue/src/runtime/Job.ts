@@ -1,5 +1,7 @@
 import type { Resolver } from '@nuxt-laravelize/core/runtime'
 
+const RESERVED_METADATA_KEYS = new Set(['__proto__', 'prototype', 'constructor'])
+
 export interface SerializedJobV1 {
   readonly version: 1
   readonly name: string
@@ -32,10 +34,19 @@ export abstract class Job<TPayload extends Record<string, unknown> = Record<stri
 
 export type JobMetadataContributor = (job: Job, resolver?: Resolver) => Readonly<Record<string, unknown>> | undefined
 export class JobMetadataContributorRegistry {
-  readonly #contributors: JobMetadataContributor[] = []
-  contribute(contributor: JobMetadataContributor): void { this.#contributors.push(contributor) }
+  readonly #contributors: Array<{ readonly id?: string, readonly contributor: JobMetadataContributor }> = []
+  contribute(contributor: JobMetadataContributor): void
+  contribute(id: string, contributor: JobMetadataContributor): void
+  contribute(idOrContributor: string | JobMetadataContributor, contributor?: JobMetadataContributor): void {
+    const id = typeof idOrContributor === 'string' ? idOrContributor : undefined
+    const value = typeof idOrContributor === 'string' ? contributor : idOrContributor
+    if (!value || (id !== undefined && (!id || this.#contributors.some(item => item.id === id)))) throw new TypeError(`Duplicate or invalid job metadata contributor id: ${id ?? ''}`)
+    this.#contributors.push({ ...(id ? { id } : {}), contributor: value })
+  }
+
+  has(id: string): boolean { return this.#contributors.some(item => item.id === id) }
   contributions(job: Job, resolver?: Resolver): Readonly<Record<string, unknown>>[] {
-    return this.#contributors.map(contributor => contributor(job, resolver) ?? {})
+    return this.#contributors.map(({ contributor }) => contributor(job, resolver) ?? {})
   }
 }
 export class JobSerializer {
@@ -47,7 +58,15 @@ export class JobSerializer {
   contribute(contributor: JobMetadataContributor): void { this.contributors.contribute(contributor) }
 
   serialize(job: Job): SerializedJob {
-    const metadata = Object.assign({}, ...this.contributors.contributions(job, this.resolver)) as Record<string, unknown>
+    const metadata: Record<string, unknown> = {}
+    for (const contribution of this.contributors.contributions(job, this.resolver)) {
+      if (Object.getPrototypeOf(contribution) !== Object.prototype) throw new TypeError('Job metadata contribution must be a plain object')
+      for (const [key, value] of Object.entries(contribution)) {
+        if (RESERVED_METADATA_KEYS.has(key)) throw new TypeError(`Reserved job metadata key: ${key}`)
+        if (Object.prototype.hasOwnProperty.call(metadata, key)) throw new TypeError(`Duplicate job metadata key: ${key}`)
+        Object.defineProperty(metadata, key, { value, enumerable: true, configurable: true, writable: true })
+      }
+    }
     const constructor = job.constructor as typeof Job
     const name = constructor.jobName ?? constructor.name
     return Object.keys(metadata).length ? { version: 2, name, payload: job.payload, metadata } : job.serialize()

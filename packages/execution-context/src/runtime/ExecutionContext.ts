@@ -66,4 +66,5 @@ export class ExecutionContext {
   }
 
   enrich(input: Pick<ExecutionContextInput, 'actor' | 'tenantId'>): ExecutionContext { return ExecutionContext.create({ ...this.#value, ...input }) }
+  withTrace(traceId: string, spanId: string): ExecutionContext { return ExecutionContext.create({ ...this.#value, traceId, spanId }) }
 }

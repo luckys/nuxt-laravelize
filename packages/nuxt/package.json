@@ -40,6 +40,7 @@
     "@nuxt-laravelize/hashing": "workspace:^",
     "@nuxt-laravelize/mail": "workspace:^",
     "@nuxt-laravelize/notifications": "workspace:^",
+    "@nuxt-laravelize/observability": "workspace:^",
     "@nuxt-laravelize/pennant": "workspace:^",
     "@nuxt-laravelize/scout": "workspace:^",
     "@nuxt-laravelize/queue": "workspace:^",

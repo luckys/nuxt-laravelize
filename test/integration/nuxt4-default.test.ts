@@ -51,6 +51,16 @@ describe('Nuxt 4 default profile', async () => {
     const result = await $fetch<{ responseCorrelationId: string, emittedCorrelationId: string }>('/api/queue-context')
     expect(result.emittedCorrelationId).toBe(result.responseCorrelationId)
   })
+  it('binds handler observability to isolated HTTP server spans', async () => {
+    type Result = { serverCarrier: { traceparent: string }, childCarrier: { traceparent: string }, childTraceId: string, childSpanId: string }
+    const [first, second] = await Promise.all([$fetch<Result>('/api/observability?delay=10'), $fetch<Result>('/api/observability?delay=1')])
+    for (const value of [first, second]) {
+      expect(value.serverCarrier.traceparent).toContain(value.childTraceId)
+      expect(value.serverCarrier.traceparent).not.toContain(`-${value.childSpanId}-`)
+      expect(value.childCarrier.traceparent).toContain(`-${value.childSpanId}-`)
+    }
+    expect(first.childTraceId).not.toBe(second.childTraceId)
+  })
 
   it('keeps delayed concurrent requests isolated and does not leak failed requests', async () => {
     const [first, second] = await Promise.all([

@@ -86,14 +86,19 @@ export class InMemoryQueue implements Queue {
     if (!this.#removePending(entry)) return
     entry.attempt += 1
     try {
-      await this.runner.run(entry.serialized)
+      await this.runner.run(entry.serialized, { queue: entry.options.queue, attempt: entry.attempt, maxAttempts: entry.options.tries })
     }
     catch (error) {
       if (entry.attempt < entry.options.tries) {
         this.#enqueue(entry, resolveBackoff(entry.options.backoff, entry.attempt))
         return
       }
-      await this.runner.failed(entry.serialized, error)
+      try {
+        await this.runner.failed(entry.serialized, error, { queue: entry.options.queue, attempt: entry.attempt, maxAttempts: entry.options.tries })
+      }
+      catch {
+        // A job failure callback is an isolated observer of the original failure.
+      }
       for (const callback of this.#failedCallbacks) {
         try {
           await callback({ job: entry.original, queue: entry.options.queue, error, attempts: entry.attempt })

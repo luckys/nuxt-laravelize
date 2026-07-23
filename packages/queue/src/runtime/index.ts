@@ -1,6 +1,6 @@
 export { Job, JobMetadataContributorRegistry, JobSerializer, type JobMetadataContributor, type SerializedJob, type SerializedJobV1, type SerializedJobV2 } from './Job'
 export { InMemoryJobRegistry, JobNotRegisteredError, JobRegistrationCollisionError, type JobConstructor } from './JobRegistry'
-export { JobRunner, type JobExecutionMiddleware, type JobScopeContributor } from './JobRunner'
+export { JobRunner, type JobExecutionDescriptor, type JobExecutionMiddleware, type JobScopeContributor } from './JobRunner'
 export type { FailedJobCallback, FailedJobInfo, JobHandle, PushOptions, Queue } from './Queue'
 export { InMemoryQueue } from './InMemoryQueue'
 export { jobMetadataContributorsToken, jobRegistryToken, jobRunnerToken, jobSerializerToken, queueToken } from './tokens'

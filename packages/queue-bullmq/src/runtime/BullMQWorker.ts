@@ -13,7 +13,7 @@ export class BullMQWorker {
   ) {}
 
   async work(queue = 'default', concurrency = 1): Promise<void> {
-    const worker = new Worker(queue, async job => this.runner.run(job.data as SerializedJob), {
+    const worker = new Worker(queue, async job => this.runner.run(job.data as SerializedJob, { queue, attempt: job.attemptsMade + 1, maxAttempts: job.opts.attempts ?? 1 }), {
       connection: this.connection.client,
       concurrency,
     })
@@ -31,7 +31,17 @@ export class BullMQWorker {
   async #reportTerminalFailure(job: BullJob | undefined, error: Error, queue: string): Promise<void> {
     if (!job || job.attemptsMade < (job.opts.attempts ?? 1)) return
     const serialized = job.data as SerializedJob
-    await this.runner.failed(serialized, error)
-    await this.failures.report({ job: this.registry.rehydrate(serialized), queue, error, attempts: job.attemptsMade })
+    try {
+      await this.runner.failed(serialized, error, { queue, attempt: job.attemptsMade, maxAttempts: job.opts.attempts ?? 1 })
+    }
+    catch {
+      // Preserve the worker's original failure.
+    }
+    try {
+      await this.failures.report({ job: this.registry.rehydrate(serialized), queue, error, attempts: job.attemptsMade })
+    }
+    catch {
+      // Failure observers must not reject an event-emitter callback.
+    }
   }
 }

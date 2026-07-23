@@ -37,6 +37,9 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/events-queue` | Queued-listener integration between events and queues |
 | `@nuxt-laravelize/mail` | Mailables, mail manager, and transports |
 | `@nuxt-laravelize/notifications` | Notification channels and on-demand routing |
+| `@nuxt-laravelize/observability` | Vendor-neutral no-op foundation, safe HTTP spans, metrics, and testing fake |
+| `@nuxt-laravelize/observability-otel` | Optional OpenTelemetry API adapter; application-owned SDK/exporters |
+| `@nuxt-laravelize/observability-queue` | Optional bounded W3C queue propagation and semantic job telemetry |
 | `@nuxt-laravelize/pennant` | Scoped feature flags with lazy definitions, rich values, and portable stores |
 | `@nuxt-laravelize/scout` | Portable search contracts, named engines, fluent queries, and bulk indexing |
 | `@nuxt-laravelize/scout-drizzle` | Scout engines for PostgreSQL, SQLite, and Turso/libSQL through Drizzle-compatible clients |
@@ -164,6 +167,9 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |
 | `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
 | `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |
+| `@nuxt-laravelize/observability` | `/runtime`, `/runtime/server` | `/testing` |
+| `@nuxt-laravelize/observability-otel` | Package root, `/runtime/server` | - |
+| `@nuxt-laravelize/observability-queue` | Package root | - |
 | `@nuxt-laravelize/pennant` | `/runtime` | - |
 | `@nuxt-laravelize/scout` | `/runtime` | - |
 | `@nuxt-laravelize/scout-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |

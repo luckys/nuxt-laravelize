@@ -37,6 +37,9 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/events-queue` | Integracion de listeners encolados entre eventos y colas |
 | `@nuxt-laravelize/mail` | Mailables, mail manager y transports |
 | `@nuxt-laravelize/notifications` | Canales de notificacion y routing bajo demanda |
+| `@nuxt-laravelize/observability` | Base no-op neutral, spans HTTP seguros, metricas y fake de testing |
+| `@nuxt-laravelize/observability-otel` | Adapter OpenTelemetry API opcional; SDK/exporters pertenecen a la aplicacion |
+| `@nuxt-laravelize/observability-queue` | Propagacion W3C acotada y telemetria semantica para jobs |
 | `@nuxt-laravelize/pennant` | Feature flags por scope con definiciones lazy, valores ricos y stores portables |
 | `@nuxt-laravelize/scout` | Contratos de busqueda portables, motores nombrados, queries fluidas e indexacion por lotes |
 | `@nuxt-laravelize/scout-drizzle` | Motores Scout para PostgreSQL, SQLite y Turso/libSQL mediante clientes compatibles con Drizzle |
@@ -164,6 +167,9 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |
 | `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
 | `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |
+| `@nuxt-laravelize/observability` | `/runtime`, `/runtime/server` | `/testing` |
+| `@nuxt-laravelize/observability-otel` | Raiz, `/runtime/server` | - |
+| `@nuxt-laravelize/observability-queue` | Raiz | - |
 | `@nuxt-laravelize/pennant` | `/runtime` | - |
 | `@nuxt-laravelize/scout` | `/runtime` | - |
 | `@nuxt-laravelize/scout-drizzle` | Raiz del paquete, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
