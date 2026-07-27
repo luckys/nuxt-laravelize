@@ -135,7 +135,7 @@ El escaneo antivirus y las transformaciones siguen siendo responsabilidad de que
 
 ### Mejoras de factories
 
-Las factories independientes del ORM podrian añadir states, sequences, relationships, composicion `has`/`for`, recycling, seeds deterministas de Faker, adapters de persistencia async y hooks before/after. Esto mejoraria testing sin crear un clon de Eloquent.
+Entregado en `@nuxt-laravelize/database/runtime`: states/sequences indexados, composicion explicita y anidada `has`/`for`, recycling local determinista, Faker con seed y reloj fijo, adapters tipados sync/async, compatibilidad con callbacks y hooks before/after secuenciales. La composicion sigue siendo explicita e independiente del ORM; deliberadamente no se incluyen metadata ORM, foreign keys implicitas, pools globales, persistencia/transacciones bulk ni un clon de Eloquent.
 
 ### Billing estilo Cashier
 

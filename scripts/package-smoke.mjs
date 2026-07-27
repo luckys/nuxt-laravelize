@@ -246,7 +246,7 @@ runFixture('features', {
     '@nuxt-laravelize/console/node': ['runNodeConsole'],
     '@nuxt-laravelize/console/testing': ['FakeProcess', 'FakePrompt', 'FakeTerminal'],
     '@nuxt-laravelize/core/runtime': ['createContainer', 'loggerFor'],
-    '@nuxt-laravelize/database/runtime': ['transactionManagerToken', 'createTransactionManagerToken'],
+    '@nuxt-laravelize/database/runtime': ['Factory', 'DefaultFactoryRegistry', 'builtInFaker', 'recycle', 'transactionManagerToken', 'createTransactionManagerToken'],
     '@nuxt-laravelize/database-drizzle': ['DrizzleTransactionManager', 'DrizzleSyncTransactionManager'],
     '@nuxt-laravelize/dead-letter': ['DeadLetterManager', 'DeadLetterAdapterRegistry', 'DEAD_LETTER_ABILITIES'],
     '@nuxt-laravelize/dead-letter/testing': ['MemoryDeadLetterAdapter', 'MemoryDeadLetterOperationStore'],

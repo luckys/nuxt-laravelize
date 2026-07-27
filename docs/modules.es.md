@@ -1039,18 +1039,18 @@ await gate.authorize('update-invoice', currentUser, invoice)
 
 ## Database
 
-`@nuxt-laravelize/database` proporciona factories, seeders y contratos explicitos de transaccion/unit of work independientes del ORM. Tu aplicacion proporciona los callbacks de persistencia.
+`@nuxt-laravelize/database` proporciona factories, seeders y contratos explicitos de transaccion/unit of work independientes del ORM. Tu aplicacion proporciona callbacks o adapters de persistencia; las relaciones se componen explicitamente sin metadata ORM.
 
 ```bash
 pnpm add @nuxt-laravelize/database
 ```
 
 ```ts
-import { Factory } from '@nuxt-laravelize/database/runtime'
+import { Factory, builtInFaker, recycle } from '@nuxt-laravelize/database/runtime'
 
-interface UserDraft { name: string, email: string, active: boolean }
+interface UserDraft { name: string, email: string, active: boolean, teamId?: string }
 
-class UserFactory extends Factory<UserDraft> {
+class UserFactory extends Factory<UserDraft, number> {
   protected definition(): UserDraft {
     return {
       name: this.faker.string.word(),
@@ -1060,29 +1060,43 @@ class UserFactory extends Factory<UserDraft> {
   }
 }
 
-const drafts = new UserFactory()
+const teams = recycle([{ id: 'team-a' }, { id: 'team-b' }])
+const ids = await new UserFactory(builtInFaker({ seed: 42, now: Date.UTC(2025, 0, 1) }))
   .count(3)
   .state({ active: false })
-  .sequence([{ name: 'Ada' }, { name: 'Grace' }])
-  .make()
+  .sequence([(_draft, index) => ({ name: `User ${index}` })])
+  .for(teams, (_user, team) => ({ teamId: team.id }))
+  .beforeCreate(validateUser)
+  .afterCreate(id => auditCreatedUser(id))
+  .create({ persist: draft => userRepository.insert(draft) })
 
-await new UserFactory().create(async (draft) => {
+// La persistencia por callback existente sigue devolviendo drafts.
+const draft = await new (class extends Factory<UserDraft> {
+  protected definition(): UserDraft { return { name: 'Ada', email: 'ada@example.com', active: true } }
+})().create(async (draft) => {
   await db.insert(users).values(draft)
 })
 ```
 
 | API | Proposito |
 |---|---|
-| `Factory.count()` | Define la cantidad devuelta por `make()` o `create()`. |
-| `state()` | Aplica un valor parcial o mutator a cada item. |
-| `sequence()` | Alterna estados especificos por item. |
+| `Factory<TDraft, TPersisted = TDraft>.count()` | Define y tipa la cardinalidad escalar (`1`) o array (`>1`). |
+| `state()` | Aplica un valor parcial o mutator indexado a cada item. |
+| `sequence()` | Alterna estados indexados especificos por item. |
+| `for(factoryOrRecycle, composer)` | Compone un parent/valor reciclado explicito en cada raiz. |
+| `has(factory, composer)` | Compone el escalar o array de la factory relacionada en cada raiz. |
+| `recycle(values)` | Crea un pool local no vacio y congelado que rota por indice raiz. |
 | `make(overrides?)` | Construye valores sin persistir. |
-| `create(persister, overrides?)` | Construye valores y espera el callback de persistencia. |
-| `builtInFaker()` | Devuelve el `FakerShim` ligero incluido. |
+| `create(callback, overrides?)` | Persiste secuencialmente y devuelve drafts por compatibilidad. |
+| `create(adapter, overrides?)` | Devuelve secuencialmente records o IDs tipados desde `FactoryPersistenceAdapter`. |
+| `beforeCreate()` / `afterCreate()` | Registra hooks ordenados async-capable alrededor de cada persistencia. |
+| `builtInFaker(seedOrOptions?)` | Devuelve `FakerShim`; `{ seed, now }` fija random y fechas. |
 | `DefaultFactoryRegistry` | Proporciona `register`, `list`, `has` y `resolve`. |
 | `DefaultSeederRegistry` | Proporciona las mismas operaciones para factories async de seeders. |
 | `Seeder.call(name)` | Ejecuta otro seeder registrado en el mismo registry. |
 | `discoverSeedersByConvention(rootDir)` | Encuentra archivos de seeders para adapters. |
+
+La composicion siempre ejecuta definition -> states -> sequence -> `for` -> `has` -> overrides de llamada. Para cada item creado ejecuta draft -> todos los hooks before -> persistencia -> todos los hooks after, de forma secuencial y fail-fast. `make()` es sincrono y deliberadamente no ejecuta hooks lifecycle. Una factory relacionada reutilizada conserva count/state y reinicia su indice de sequence local para cada raiz mientras su stream Faker avanza normalmente; no existe un pool recycle oculto. Una factory de `for()` debe producir exactamente un item, mientras `has()` conserva su forma escalar/array. Los composers deben devolver un objeto raiz completo o parcial.
 
 ```ts
 import { DefaultSeederRegistry, Seeder } from '@nuxt-laravelize/database/runtime'

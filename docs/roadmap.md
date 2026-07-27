@@ -135,7 +135,7 @@ Virus scanning and transformation remain application queue/workflow responsibili
 
 ### Database factory improvements
 
-ORM-neutral factories could add states, sequences, relationships, `has`/`for` composition, recycling, deterministic Faker seeds, async persistence adapters, and before/after hooks. This should improve tests without introducing an Eloquent clone.
+Delivered in `@nuxt-laravelize/database/runtime`: indexed states/sequences, explicit nested `has`/`for` composition, local deterministic recycling, seeded Faker with a fixed clock, typed sync/async persistence adapters, callback compatibility, and sequential before/after hooks. Composition remains ORM-neutral and explicit; ORM metadata, implicit foreign keys, global recycle pools, bulk persistence/transactions, and an Eloquent clone are intentionally not provided.
 
 ### Cashier-style billing
 

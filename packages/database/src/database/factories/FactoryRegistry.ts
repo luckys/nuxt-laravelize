@@ -1,18 +1,25 @@
 import type { Factory } from './Factory'
 
-export type FactoryFactory = () => Factory<unknown>
+export type FactoryFactory<T = unknown, TPersisted = T, Count extends number = 1>
+  = () => Factory<T, TPersisted, Count>
 
 export interface FactoryRegistry {
-  register(name: string, factory: FactoryFactory): void
+  register<T, TPersisted, Count extends number>(
+    name: string,
+    factory: FactoryFactory<T, TPersisted, Count>,
+  ): void
   list(): readonly string[]
   resolve(name: string): Factory<unknown>
   has(name: string): boolean
 }
 
 export class DefaultFactoryRegistry implements FactoryRegistry {
-  readonly #factories = new Map<string, FactoryFactory>()
+  readonly #factories = new Map<string, () => unknown>()
 
-  register(name: string, factory: FactoryFactory): void {
+  register<T, TPersisted, Count extends number>(
+    name: string,
+    factory: FactoryFactory<T, TPersisted, Count>,
+  ): void {
     this.#factories.set(name, factory)
   }
 
@@ -27,7 +34,7 @@ export class DefaultFactoryRegistry implements FactoryRegistry {
   resolve(name: string): Factory<unknown> {
     const f = this.#factories.get(name)
     if (f === undefined) throw new UnknownFactory(name)
-    return f()
+    return f() as Factory<unknown>
   }
 }
 
