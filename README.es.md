@@ -228,6 +228,7 @@ Consulta [Migracion a paquetes modulares](./docs/migration-to-modular-packages.e
 - [Guia de modulos y API](./docs/modules.es.md): instalacion, APIs publicas y ejemplos para cada paquete.
 - [Guia de modulos y API en ingles](./docs/modules.md): la misma referencia en ingles.
 - [Guia de migracion](./docs/migration-to-modular-packages.es.md): reemplazos para la facade legacy eliminada.
+- [Roadmap de candidatas](./docs/roadmap.es.md): capacidades inspiradas en Laravel, prioridades, limites y criterios de graduacion.
 
 ## Licencia
 

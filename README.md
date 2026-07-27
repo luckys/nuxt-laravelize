@@ -228,6 +228,7 @@ See [Migrating to modular packages](./docs/migration-to-modular-packages.md) whe
 - [Module and API guide](./docs/modules.md): installation, public APIs and code examples for every package.
 - [Spanish module and API guide](./docs/modules.es.md): the same reference in Spanish.
 - [Migration guide](./docs/migration-to-modular-packages.md): replacements for the removed legacy facade.
+- [Candidate roadmap](./docs/roadmap.md): prioritized Laravel-inspired capabilities, constraints, and graduation criteria.
 
 ## License
 
