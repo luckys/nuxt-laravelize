@@ -1,1 +1,17 @@
-export { defineSchedule, InvalidCronExpressionError, PendingSchedule, Schedule, type ScheduledTask } from './Schedule'
+export {
+  defineSchedule,
+  DuplicateScheduledTaskError,
+  InvalidCronExpressionError,
+  InvalidTimezoneError,
+  isScheduledTaskDue,
+  normalizeScheduledTask,
+  PendingSchedule,
+  Schedule,
+  type MaintenanceBehavior,
+  type NormalizedScheduledTask,
+  type OperationDescriptor,
+  type QueueDispatchDescriptor,
+  type ScheduleDescriptor,
+  type ScheduledTimestamp,
+  type ScheduledTask,
+} from './Schedule'

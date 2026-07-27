@@ -15,6 +15,7 @@ const packageNames = [
   'broadcasting-pusher',
   'cache',
   'cache-redis',
+  'console',
   'core',
   'database',
   'database-drizzle',
@@ -33,6 +34,8 @@ const packageNames = [
   'idempotency-drizzle',
   'hashing',
   'mail',
+  'migrations',
+  'migrations-drizzle',
   'notifications',
   'observability',
   'observability-otel',
@@ -49,6 +52,7 @@ const packageNames = [
   'reliability-queue',
   'routes',
   'scheduler',
+  'scheduler-nuxt',
   'testing',
   'validation',
   'webhooks',
@@ -76,7 +80,7 @@ const dependencies = Object.fromEntries(packageNames.map((name) => {
   return [`@nuxt-laravelize/${name}`, `file:${join(tarballDirectory, tarball)}`]
 }))
 
-const featureDependencies = Object.fromEntries(Object.entries(dependencies).filter(([name]) => name !== '@nuxt-laravelize/scheduler'))
+const featureDependencies = Object.fromEntries(Object.entries(dependencies).filter(([name]) => name !== '@nuxt-laravelize/scheduler' && name !== '@nuxt-laravelize/scheduler-nuxt'))
 
 verifyTarballBin('reliability', 'dist/bin/outbox-work.mjs')
 verifyTarballBin('webhooks', 'dist/bin/webhook-work.mjs')
@@ -110,6 +114,7 @@ runFixture('features', {
   '@nuxt-laravelize/audit-drizzle/postgres',
   '@nuxt-laravelize/audit-drizzle/sqlite',
   '@nuxt-laravelize/audit-drizzle/turso',
+  '@nuxt-laravelize/audit-drizzle/migrations',
   '@nuxt-laravelize/ai-sdk',
   '@nuxt-laravelize/ai-sdk/runtime',
   '@nuxt-laravelize/ai-sdk/runtime/server',
@@ -122,6 +127,9 @@ runFixture('features', {
   '@nuxt-laravelize/cache/runtime',
   '@nuxt-laravelize/cache/testing',
   '@nuxt-laravelize/cache-redis',
+  '@nuxt-laravelize/console',
+  '@nuxt-laravelize/console/node',
+  '@nuxt-laravelize/console/testing',
   '@nuxt-laravelize/core/runtime',
   '@nuxt-laravelize/core/kit',
   '@nuxt-laravelize/core/testing',
@@ -148,6 +156,7 @@ runFixture('features', {
   '@nuxt-laravelize/reliability-drizzle/postgres',
   '@nuxt-laravelize/reliability-drizzle/sqlite',
   '@nuxt-laravelize/reliability-drizzle/turso',
+  '@nuxt-laravelize/reliability-drizzle/migrations',
   '@nuxt-laravelize/reliability-queue',
   '@nuxt-laravelize/reliability-queue/runtime',
   '@nuxt-laravelize/routes',
@@ -176,6 +185,7 @@ runFixture('features', {
   '@nuxt-laravelize/scout-drizzle/postgres',
   '@nuxt-laravelize/scout-drizzle/sqlite',
   '@nuxt-laravelize/scout-drizzle/turso',
+  '@nuxt-laravelize/scout-drizzle/migrations',
   '@nuxt-laravelize/http/runtime',
   '@nuxt-laravelize/idempotency',
   '@nuxt-laravelize/idempotency/runtime',
@@ -183,6 +193,15 @@ runFixture('features', {
   '@nuxt-laravelize/idempotency-drizzle/postgres',
   '@nuxt-laravelize/idempotency-drizzle/sqlite',
   '@nuxt-laravelize/idempotency-drizzle/turso',
+  '@nuxt-laravelize/idempotency-drizzle/migrations',
+  '@nuxt-laravelize/migrations',
+  '@nuxt-laravelize/migrations/console',
+  '@nuxt-laravelize/migrations/testing',
+  '@nuxt-laravelize/migrations-drizzle',
+  '@nuxt-laravelize/migrations-drizzle/postgres',
+  '@nuxt-laravelize/migrations-drizzle/sqlite',
+  '@nuxt-laravelize/migrations-drizzle/sources',
+  '@nuxt-laravelize/migrations-drizzle/testing',
   '@nuxt-laravelize/hashing/runtime',
   '@nuxt-laravelize/database/runtime',
   '@nuxt-laravelize/testing',
@@ -195,6 +214,7 @@ runFixture('features', {
   '@nuxt-laravelize/workflows-drizzle/postgres',
   '@nuxt-laravelize/workflows-drizzle/sqlite',
   '@nuxt-laravelize/workflows-drizzle/turso',
+  '@nuxt-laravelize/workflows-drizzle/migrations',
   '@nuxt-laravelize/workflows-reliability',
   '@nuxt-laravelize/workflows-queue',
   '@nuxt-laravelize/workflows-queue/runtime',
@@ -212,6 +232,7 @@ runFixture('features', {
     '@nuxt-laravelize/audit/runtime/server': ['useAudit'],
     '@nuxt-laravelize/audit/testing': ['AuditFake'],
     '@nuxt-laravelize/audit-drizzle': ['DrizzlePostgresAuditStore', 'DrizzleSQLiteAuditStore', 'TursoAuditStore'],
+    '@nuxt-laravelize/audit-drizzle/migrations': ['migrationSourceFor'],
     '@nuxt-laravelize/ai-sdk/runtime': ['AiConnectionRegistry', 'AiSdkClient', 'aiClientToken', 'aiConnectionsToken', 'defineAgent'],
     '@nuxt-laravelize/ai-sdk/runtime/server': ['useAi'],
     '@nuxt-laravelize/ai-sdk/testing': ['AiFake'],
@@ -221,6 +242,9 @@ runFixture('features', {
     '@nuxt-laravelize/testing': ['BroadcastFake'],
     '@nuxt-laravelize/cache/runtime': ['CacheLock', 'InMemoryCache', 'LockTimeoutError', 'cacheToken'],
     '@nuxt-laravelize/cache-redis': ['RedisCache', 'JsonCacheSerializer', 'CacheCorruptionError'],
+    '@nuxt-laravelize/console': ['CommandRegistry', 'ConsoleRunner', 'defineCommand'],
+    '@nuxt-laravelize/console/node': ['runNodeConsole'],
+    '@nuxt-laravelize/console/testing': ['FakeProcess', 'FakePrompt', 'FakeTerminal'],
     '@nuxt-laravelize/core/runtime': ['createContainer', 'loggerFor'],
     '@nuxt-laravelize/database/runtime': ['transactionManagerToken', 'createTransactionManagerToken'],
     '@nuxt-laravelize/database-drizzle': ['DrizzleTransactionManager', 'DrizzleSyncTransactionManager'],
@@ -247,6 +271,7 @@ runFixture('features', {
     '@nuxt-laravelize/reliability-drizzle/postgres': ['DrizzlePostgresReliabilityStore'],
     '@nuxt-laravelize/reliability-drizzle/sqlite': ['DrizzleSQLiteReliabilityStore'],
     '@nuxt-laravelize/reliability-drizzle/turso': ['TursoReliabilityStore'],
+    '@nuxt-laravelize/reliability-drizzle/migrations': ['migrationSourceFor'],
     '@nuxt-laravelize/reliability-queue/runtime': ['ReliableHandlerRegistry', 'ReliableMessageJob', 'createQueueOutboxDelivery'],
     '@nuxt-laravelize/routes': ['default'],
     '@nuxt-laravelize/routes/runtime': ['defineRoutes', 'route'],
@@ -263,15 +288,23 @@ runFixture('features', {
     '@nuxt-laravelize/scout-drizzle/postgres': ['DrizzlePostgresSearchEngine', 'registerDrizzlePostgresDriver'],
     '@nuxt-laravelize/scout-drizzle/sqlite': ['DrizzleSQLiteSearchEngine', 'registerDrizzleSQLiteDriver', 'sqliteScoutDocuments'],
     '@nuxt-laravelize/scout-drizzle/turso': ['TursoLibSQLSearchEngine', 'registerTursoDriver'],
+    '@nuxt-laravelize/scout-drizzle/migrations': ['migrationSourceFor'],
     '@nuxt-laravelize/http/runtime': ['Policy', 'DefaultPolicyRegistry', 'policyRegistryToken', 'discoverPoliciesByConvention', 'HmacUrlSigner', 'ValidateSignature', 'urlSignerToken'],
     '@nuxt-laravelize/idempotency/runtime': ['IdempotencyMiddleware', 'InMemoryIdempotencyStore', 'createIdempotencyMiddleware', 'idempotencyStoreToken'],
     '@nuxt-laravelize/idempotency-drizzle': ['DrizzlePostgresIdempotencyStore', 'DrizzleSQLiteIdempotencyStore', 'TursoIdempotencyStore'],
+    '@nuxt-laravelize/idempotency-drizzle/migrations': ['migrationSourceFor'],
+    '@nuxt-laravelize/migrations': ['MigrationRunner', 'defineMigration', 'discoverApplicationMigrations'],
+    '@nuxt-laravelize/migrations/console': ['createMigrationConsole'],
+    '@nuxt-laravelize/migrations/testing': ['InMemoryMigrationBackend'],
+    '@nuxt-laravelize/migrations-drizzle': ['PostgresMigrationBackend', 'SQLiteMigrationBackend', 'migrationSourcesFor'],
+    '@nuxt-laravelize/migrations-drizzle/sources': ['aggregateMigrationSourcesFor'],
     '@nuxt-laravelize/hashing/runtime': ['Pbkdf2Hasher', 'hasherToken'],
     '@nuxt-laravelize/validation/runtime': ['ErrorBag', 'ValidationError', 'Validator', 'validatorToken'],
     '@nuxt-laravelize/webhooks': ['OutgoingWebhookProcessor', 'WebhookInboxReceiver', 'assertSafeWebhookUrl', 'signWebhook', 'verifyWebhook'],
     '@nuxt-laravelize/webhooks/testing': ['WebhookTransportFake'],
     '@nuxt-laravelize/workflows': ['WorkflowManager', 'WorkflowRegistry', 'InMemoryWorkflowStore', 'WorkflowExecutionAbortedError', 'WorkflowLeaseLostError', 'WorkflowDefinitionNotFoundError', 'DuplicateWorkflowDefinitionError', 'InvalidWorkflowVersionError', 'UnsupportedWorkflowSnapshotFormatError', 'WorkflowIdentityConflictError', 'WorkflowResolverContractError', 'assertWorkflowVersion', 'normalizeWorkflowSnapshot', 'resolveWorkflowDefinitionExact', 'defineWorkflow', 'defineStep', 'isRecoverableWorkflowStore'],
     '@nuxt-laravelize/workflows-drizzle': ['DrizzlePostgresWorkflowStore', 'DrizzleSQLiteWorkflowStore', 'TursoWorkflowStore'],
+    '@nuxt-laravelize/workflows-drizzle/migrations': ['migrationSourceFor'],
     '@nuxt-laravelize/workflows-reliability': ['TransactionalWorkflowStore', 'WorkflowWakeReconciler', 'WorkflowWakeReconciliationWorker', 'createWorkflowWakeHandler', 'registerWorkflowWakeHandler', 'workflowWakeMessageType'],
     '@nuxt-laravelize/workflows-reliability/cli': ['parseWorkflowWakeReconciliationArgs', 'runWorkflowWakeReconciliationCli', 'WORKFLOW_WAKE_RECONCILIATION_HELP'],
     '@nuxt-laravelize/workflows-queue/runtime': ['WorkflowCoordinator', 'WorkflowJob', 'workflowCoordinatorToken', 'workflowRegistryToken', 'workflowStoreToken'],
@@ -323,6 +356,32 @@ runFixture('scheduler-nitro3', {
 }, {
   '@nuxt-laravelize/scheduler': dependencies['@nuxt-laravelize/scheduler'],
 }, ['@nuxt-laravelize/scheduler/nitro3'])
+
+runFixture('scheduler-nuxt', {
+  '@nuxt-laravelize/cache': dependencies['@nuxt-laravelize/cache'],
+  '@nuxt-laravelize/scheduler': dependencies['@nuxt-laravelize/scheduler'],
+  '@nuxt-laravelize/scheduler-nuxt': dependencies['@nuxt-laravelize/scheduler-nuxt'],
+  'nuxt': nuxtVersion,
+}, {
+  '@nuxt-laravelize/cache': dependencies['@nuxt-laravelize/cache'],
+  '@nuxt-laravelize/core': dependencies['@nuxt-laravelize/core'],
+  '@nuxt-laravelize/scheduler': dependencies['@nuxt-laravelize/scheduler'],
+  '@nuxt-laravelize/scheduler-nuxt': dependencies['@nuxt-laravelize/scheduler-nuxt'],
+}, [
+  '@nuxt-laravelize/scheduler-nuxt',
+  '@nuxt-laravelize/scheduler-nuxt/runtime',
+  '@nuxt-laravelize/scheduler-nuxt/adapters',
+  '@nuxt-laravelize/scheduler-nuxt/compiler',
+  '@nuxt-laravelize/scheduler-nuxt/cache-lock',
+], [], {
+  requiredExports: {
+    '@nuxt-laravelize/scheduler-nuxt': ['default'],
+    '@nuxt-laravelize/scheduler-nuxt/runtime': ['createSchedulerRunner', 'ProcessLocalLockProvider'],
+    '@nuxt-laravelize/scheduler-nuxt/adapters': ['createCloudflareScheduledHandler', 'createVercelCronHandler'],
+    '@nuxt-laravelize/scheduler-nuxt/cache-lock': ['CacheLockSchedulerLockProvider'],
+  },
+  buildSchedulerNuxt: true,
+})
 
 function runFixture(name, fixtureDependencies, overrides, imports, absentPackages = [], options = {}) {
   if (name.startsWith('preset-')) absentPackages = [...absentPackages, '@nuxt-laravelize/observability-otel', '@nuxt-laravelize/observability-queue']
@@ -517,6 +576,38 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       ].join('\n'))
     }
 
+    if (options.buildSchedulerNuxt) {
+      writeFileSync(join(fixture, 'nuxt.config.ts'), [
+        'import SchedulerNuxt from \'@nuxt-laravelize/scheduler-nuxt\'',
+        '',
+        'export default {',
+        '  compatibilityDate: \'2026-07-01\',',
+        '  modules: [[SchedulerNuxt, {',
+        '    enabled: true,',
+        '    schedules: [\'./schedule.ts\'],',
+        '    tasks: { \'smoke:tick\': { handler: \'./runtime-provider.ts\' } },',
+        '  }]],',
+        '}',
+        '',
+      ].join('\n'))
+      writeFileSync(join(fixture, 'schedule.ts'), [
+        'import { defineSchedule } from \'@nuxt-laravelize/scheduler\'',
+        '',
+        'export default defineSchedule(schedule => schedule.task(\'smoke:tick\').everyMinute())',
+        '',
+      ].join('\n'))
+      writeFileSync(join(fixture, 'runtime-provider.ts'), [
+        'export default {',
+        '  createScope() {',
+        '    return { runner: { run: async () => ({ status: \'completed\' }) } }',
+        '  },',
+        '}',
+        '',
+      ].join('\n'))
+      mkdirSync(join(fixture, 'app'), { recursive: true })
+      writeFileSync(join(fixture, 'app', 'app.vue'), '<template><main>Scheduler smoke</main></template>\n')
+    }
+
     execFileSync('pnpm', ['install'], { cwd: fixture, stdio: 'inherit' })
     for (const packageName of absentPackages) {
       if (existsSync(join(fixture, 'node_modules', ...packageName.split('/')))) {
@@ -550,6 +641,13 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       execFileSync('pnpm', ['exec', 'nuxt', 'typecheck'], { cwd: fixture, stdio: 'inherit' })
       execFileSync('pnpm', ['exec', 'nuxt', 'build'], { cwd: fixture, stdio: 'inherit' })
       execFileSync(process.execPath, ['runtime-smoke.mjs'], { cwd: fixture, stdio: 'inherit' })
+    }
+    if (options.buildSchedulerNuxt) {
+      execFileSync('pnpm', ['exec', 'nuxt', 'build'], { cwd: fixture, stdio: 'inherit' })
+      const generatedTask = join(fixture, '.nuxt', 'laravelize', 'scheduler', `${Buffer.from('smoke:tick').toString('base64url')}.mjs`)
+      if (!existsSync(generatedTask) || !readFileSync(generatedTask, 'utf8').includes('createGeneratedSchedulerTask(task, runtimeProvider)')) {
+        throw new Error('Packed scheduler-nuxt module did not generate its SchedulerRunner wrapper')
+      }
     }
   }
   finally {

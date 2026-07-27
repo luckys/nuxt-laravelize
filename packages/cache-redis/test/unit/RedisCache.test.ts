@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
+import { isDistributedCache, type DistributedCache } from '@nuxt-laravelize/cache/runtime'
 import { RedisCache, type RedisCacheClient } from '../../src/index'
 
 function client(overrides: Partial<RedisCacheClient> = {}): RedisCacheClient {
@@ -14,6 +15,12 @@ function client(overrides: Partial<RedisCacheClient> = {}): RedisCacheClient {
 }
 
 describe('RedisCache', () => {
+  it('advertises distributed owner-atomic lock operations', () => {
+    const cache = new RedisCache(client())
+
+    expect(isDistributedCache(cache)).toBe(true)
+    expectTypeOf(cache).toMatchTypeOf<DistributedCache>()
+  })
   it.each(['tenant', 'tenant:1'])('rejects a prefix without a trailing colon: %s', (prefix) => {
     expect(() => new RedisCache(client(), { prefix })).toThrow('must end with a colon')
   })

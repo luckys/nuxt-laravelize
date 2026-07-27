@@ -55,17 +55,23 @@ Soportarian sesiones firmadas o server-side, regeneracion de ID, flash data, loc
 
 Paquete candidato: `@nuxt-laravelize/console`.
 
+Estado: implementado como runtime portable opt-in con adapters Node y de testing.
+
 El runtime proporcionaria registro tipado de comandos, argumentos, opciones, help, exit codes, prompts, inyeccion de dependencias, execution context por comando, logs, trazas y testing aislado. Los ejecutables actuales de workers, reconciliacion, pruning, seeding, indexacion y migracion podrian compartirlo sin convertirse en un clon monolitico de Artisan.
 
 ### Migraciones unificadas
 
 Paquetes candidatos: `@nuxt-laravelize/migrations` y `@nuxt-laravelize/migrations-drizzle`.
 
+Estado: implementado con backends transaccionales PostgreSQL/SQLite, discovery explicito de aplicacion, comandos console y fuentes agregadas de paquetes.
+
 El runner descubriria migraciones de aplicacion y paquetes, guardaria IDs y checksums, bloquearia deploys concurrentes y ofreceria status/up/rollback/reset/fresh/pretend. Tambien seleccionaria un dialecto explicito y soportaria schemas de test. Agregaria las migraciones existentes de audit, idempotency, reliability, Scout y workflows sin introducir un ORM.
 
 ### Scheduler para Nuxt 4
 
 Paquete candidato: `@nuxt-laravelize/scheduler-nuxt`.
+
+Estado: implementado como modulo opt-in Nuxt 4/Nitro 2 con triggers timezone-aware y locks Redis/Valkey.
 
 Las definiciones actuales necesitan una capa de ejecucion compatible con Nuxt 4. El adapter deberia soportar helpers cron, timezones, dispatch de jobs, `withoutOverlapping`, `onOneServer`, mantenimiento, hooks de resultado, listado de schedules, locks distribuidos Redis/Valkey y triggers para Node cron, Cloudflare y Vercel. Debe ejecutar reconciliacion, pruning, retencion, informes e indexacion sin reemplazar la version Nitro de Nuxt.
 

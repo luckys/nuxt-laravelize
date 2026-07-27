@@ -1210,24 +1210,57 @@ await app.cache.assertHas('feature:user_1')
 
 `mountLaravelize()` devuelve `container`, `cache`, `encrypter`, `events`, `features`, `filesystem`, `hasher`, `queue`, `mail`, `notifications`, `rateLimiter` y `validator`. El paquete tambien reexporta `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` y `NotificationFake` para tests enfocados.
 
+## Console
+
+`@nuxt-laravelize/console` registra comandos tipados sin una facade global. `CommandRegistry` rechaza nombres duplicados; los schemas de argumentos y opciones controlan parsing, defaults, aliases, validacion y help. `ConsoleRunner` crea un scope Laravelize por invocacion, liga un contexto `cli`, propaga abort, registra logs/spans acotados, normaliza exit codes y siempre libera el scope. El entrypoint portable no lee globals de process. Usa `/node` para adapters TTY/process y `/testing` para fakes deterministas. Los prompts fallan de forma cerrada sin un adapter interactivo.
+
+```ts
+const registry = new CommandRegistry().register(defineCommand({
+  name: 'reports:send',
+  arguments: { report: argument.string() },
+  options: { queue: option.string({ short: 'q' }) },
+  handler: sendReportHandlerToken,
+}))
+
+const exitCode = await new ConsoleRunner({ application, registry, terminal, process }).run()
+```
+
+## Migraciones
+
+`@nuxt-laravelize/migrations` es neutral al ORM. Las fuentes son explicitas y los IDs usan `namespace:name`; no se escanean dependencias. Antes de mutar, el runner valida dialectos, dependencias, ciclos, IDs duplicados, historial aplicado y checksums. `up`, `rollback`, `reset` y `fresh` seleccionan trabajo bajo el lock del backend, y cada statement junto con su historial comparte una transaccion. Las migraciones irreversibles rechazan rollback. `fresh` exige un allowlist exacto de ownership y nunca inspecciona objetos ajenos.
+
+`@nuxt-laravelize/migrations-drizzle` aporta backends PostgreSQL y SQLite. PostgreSQL exige una conexion fijada para que advisory lock, SQL e historial compartan sesion y transaccion. SQLite usa transacciones immediate locales al callback. `migrationSourcesFor(dialect)` agrega explicitamente fuentes de audit, idempotency, reliability, Scout y workflows. `discoverApplicationMigrations()` carga fuentes de aplicacion desde paths entregados por el caller.
+
+```ts
+const runner = new MigrationRunner({
+  dialect: 'postgresql',
+  backend: new PostgresMigrationBackend(connectionProvider),
+  sources: [...migrationSourcesFor('postgresql'), appMigrations],
+})
+
+await runner.up()
+```
+
+El entrypoint `/console` aporta `migrate:status`, `migrate:up`, `migrate:rollback`, `migrate:reset`, `migrate:fresh` y `migrate:pretend`. Los comandos destructivos exigen confirmacion interactiva afirmativa.
+
 ## Scheduler
 
-`@nuxt-laravelize/scheduler` define schedules independientes del framework. No forma parte del preset Nuxt. El adapter experimental `/nitro3` requiere exactamente `nitro@3.0.260610-beta` y no debe reemplazar Nitro de Nuxt 4.
+`@nuxt-laravelize/scheduler` define schedules inmutables e independientes del framework. No forma parte del preset Nuxt. `@nuxt-laravelize/scheduler-nuxt` es el adapter opt-in para Nuxt 4 y compila declaraciones explicitas como tasks del Nitro 2 gestionado por Nuxt; nunca instala ni reemplaza Nitro.
 
 ```ts
 import { defineSchedule } from '@nuxt-laravelize/scheduler'
 
 const schedule = defineSchedule((schedule) => {
-  schedule.task('reports:hourly').hourly()
-  schedule.task('cleanup:daily').daily()
-  schedule.task('reports:daily').dailyAt('02:30')
+  schedule.operation('reports:hourly').hourly().withoutOverlapping(30)
+  schedule.dispatch('search:sync', { job: 'search:sync', queue: 'maintenance' }).everyFiveMinutes().onOneServer()
+  schedule.task('reports:daily').timezone('America/New_York').dailyAt('02:30')
   schedule.task('billing:weekdays').cron('0 8 * * 1-5')
 })
 
 console.log(schedule.all())
 ```
 
-`Schedule.task()` devuelve un `PendingSchedule`. Terminalo con `cron()`, `hourly()`, `daily()` o `dailyAt()`. Expresiones cron de cinco campos invalidas lanzan `InvalidCronExpressionError`.
+Los schedules soportan helpers cron, zonas IANA, dispatch a queue, `withoutOverlapping`, `onOneServer`, comportamiento en maintenance y hooks nombrados. En providers que solo aceptan cron UTC, las zonas usan un trigger por minuto y un guard DST-safe. Los wrappers Nuxt ejecutan mediante `SchedulerRunner` y un scope runtime aportado por la aplicacion. `/cache-lock` adapta un cache Redis/Valkey verificado, con acquire, renovacion, deteccion de perdida y release por owner; los locks locales se rechazan para `onOneServer`.
 
 ```ts
 import { defineSchedule } from '@nuxt-laravelize/scheduler'
@@ -1269,8 +1302,12 @@ Combina `compiled` con una configuracion Nitro 3 standalone. El soporte real de 
 | `notifications` | `/runtime` | `/testing` |
 | `http` | `/runtime` | - |
 | `database` | `/runtime` | - |
+| `console` | raiz del paquete, `/node` | `/testing` |
+| `migrations` | raiz del paquete, `/console` | `/testing` |
+| `migrations-drizzle` | raiz, `/postgres`, `/sqlite`, `/sources` | `/testing` |
 | `testing` | raiz del paquete | raiz del paquete |
 | `scheduler` | raiz del paquete, `/nitro3` | - |
+| `scheduler-nuxt` | raiz, `/runtime`, `/adapters`, `/compiler`, `/cache-lock` | - |
 | `webhooks` | raiz del paquete | `/testing` |
 | `workflows` | raiz del paquete | - |
 | `workflows-drizzle` | raiz del paquete, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |

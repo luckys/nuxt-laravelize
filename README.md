@@ -19,6 +19,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/broadcasting-pusher` | Optional server-side Pusher Channels adapter |
 | `@nuxt-laravelize/cache` | Portable cache contract, TTL operations, atomic locks, counters, memoization, and in-memory driver |
 | `@nuxt-laravelize/cache-redis` | Optional Node-only Redis/Valkey cache adapter (not included in the preset) |
+| `@nuxt-laravelize/console` | Typed, dependency-injected commands with scoped execution and test fakes |
 | `@nuxt-laravelize/core` | Container, tokens, providers, lifecycle, and logging |
 | `@nuxt-laravelize/execution-context` | Immutable request/work identity, trusted correlation, and contextual logging |
 | `@nuxt-laravelize/execution-context-queue` | Transparent execution context propagation through queues |
@@ -38,6 +39,8 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/routes` | Generated typed URL helpers from explicit route declarations |
 | `@nuxt-laravelize/events-queue` | Queued-listener integration between events and queues |
 | `@nuxt-laravelize/mail` | Mailables, mail manager, and transports |
+| `@nuxt-laravelize/migrations` | ORM-neutral transactional migration runner, checksums, and console commands |
+| `@nuxt-laravelize/migrations-drizzle` | PostgreSQL/SQLite backends and aggregate package migration sources |
 | `@nuxt-laravelize/notifications` | Notification channels and on-demand routing |
 | `@nuxt-laravelize/observability` | Vendor-neutral no-op foundation, safe HTTP spans, metrics, and testing fake |
 | `@nuxt-laravelize/observability-otel` | Optional OpenTelemetry API adapter; application-owned SDK/exporters |
@@ -54,6 +57,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/testing` | Aggregate test harness and fakes |
 | `@nuxt-laravelize/validation` | Standard Schema validation, typed results, and error bags |
 | `@nuxt-laravelize/scheduler` | Framework-neutral schedules and an explicit Nitro 3 adapter |
+| `@nuxt-laravelize/scheduler-nuxt` | Opt-in Nuxt 4/Nitro 2 scheduler with policy-aware provider triggers |
 | `@nuxt-laravelize/webhooks` | Node-only signed outgoing and idempotent incoming webhooks |
 | `@nuxt-laravelize/workflows` | Persisted linear workflows with exact string-version resolution, format safety, recovery, and saga compensation |
 | `@nuxt-laravelize/workflows-drizzle` | Durable PostgreSQL, SQLite, and Turso workflow stores |
@@ -152,6 +156,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/workflows-queue` | `/runtime` | - |
 | `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/cache-redis` | package root | — |
+| `@nuxt-laravelize/console` | Package root, `/node` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |
 | `@nuxt-laravelize/execution-context-queue` | `/runtime` | - |
@@ -170,6 +175,8 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/reliability-queue` | Package root, `/runtime` | - |
 | `@nuxt-laravelize/events-queue` | `/runtime` | - |
 | `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
+| `@nuxt-laravelize/migrations` | Package root, `/console` | `/testing` |
+| `@nuxt-laravelize/migrations-drizzle` | Package root, `/postgres`, `/sqlite`, `/sources` | `/testing` |
 | `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |
 | `@nuxt-laravelize/observability` | `/runtime`, `/runtime/server` | `/testing` |
 | `@nuxt-laravelize/observability-otel` | Package root, `/runtime/server` | - |
@@ -183,6 +190,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/testing` | Package root | Package root |
 | `@nuxt-laravelize/validation` | `/runtime` | - |
 | `@nuxt-laravelize/scheduler` | Package root, `/nitro3` | - |
+| `@nuxt-laravelize/scheduler-nuxt` | Nuxt module, `/runtime`, `/adapters`, `/compiler`, `/cache-lock` | - |
 | `@nuxt-laravelize/webhooks` | Package root | `/testing` |
 | `@nuxt-laravelize/nuxt` | Package root | - |
 
@@ -196,9 +204,9 @@ import { NodemailerMailer } from '@nuxt-laravelize/mail/node'
 
 ## Scheduler Boundary
 
-`@nuxt-laravelize/scheduler` is framework-neutral and is not part of `@nuxt-laravelize/nuxt`. Its `/nitro3` adapter targets exactly `nitro@3.0.260610-beta`.
+`@nuxt-laravelize/scheduler` is framework-neutral and is not part of `@nuxt-laravelize/nuxt`. Use the opt-in `@nuxt-laravelize/scheduler-nuxt` module for Nuxt 4; it compiles explicit declarations into Nuxt-owned Nitro 2 tasks without replacing Nitro. Generated wrappers execute maintenance, overlap, one-server, queue, and lifecycle policies through an application-provided runtime scope. Redis/Valkey locks are available through `/cache-lock`.
 
-Nuxt 4 currently owns its Nitro 2 dependency. Do not install Nitro 3 into a Nuxt 4 application or use the scheduler adapter to replace Nuxt's internal Nitro version. Use the `/nitro3` adapter only in an explicit Nitro 3 application that satisfies its peer version.
+The separate `/nitro3` adapter targets exactly `nitro@3.0.260610-beta`. Do not install Nitro 3 into a Nuxt 4 application. Use `/nitro3` only in an explicit Nitro 3 application that satisfies its peer version.
 
 ## Development
 

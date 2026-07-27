@@ -15,12 +15,13 @@
     "./turso": { "types": "./dist/turso.d.mts", "import": "./dist/turso.mjs" },
     "./schema": { "types": "./dist/schema.d.mts", "import": "./dist/schema.mjs" },
     "./sqlite-schema": { "types": "./dist/sqlite-schema.d.mts", "import": "./dist/sqlite-schema.mjs" },
+    "./migrations": { "types": "./dist/migrations.d.mts", "import": "./dist/migrations.mjs" },
     "./migrations/postgres.sql": "./migrations/0000_workflows_postgres.sql",
     "./migrations/sqlite.sql": "./migrations/0001_workflows_sqlite.sql",
     "./package.json": "./package.json"
   },
   "scripts": { "build": "unbuild", "typecheck": "tsc --noEmit", "test": "vitest run", "prepack": "pnpm run build", "pack:test": "pnpm pack --pack-destination ../../.pack" },
-  "dependencies": { "@nuxt-laravelize/workflows": "workspace:^" },
+  "dependencies": { "@nuxt-laravelize/migrations": "workspace:^", "@nuxt-laravelize/workflows": "workspace:^" },
   "peerDependencies": { "drizzle-orm": ">=0.44.0" },
   "devDependencies": { "@types/node": "latest", "drizzle-orm": "^0.44.7", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5" }
 }

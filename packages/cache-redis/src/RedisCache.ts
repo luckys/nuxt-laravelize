@@ -1,4 +1,4 @@
-import type { Cache, CacheTtl } from '@nuxt-laravelize/cache/runtime'
+import { distributedCacheCapability, distributedOwnerAtomicCacheCapabilities, type CacheTtl, type DistributedCache } from '@nuxt-laravelize/cache/runtime'
 import { CacheCorruptionError, defaultCacheSerializer, type JsonCacheValue, numericPayloadPrefix } from './JsonCacheSerializer'
 
 /* eslint-disable @stylistic/max-statements-per-line -- compact command adapter methods keep Redis operations auditable */
@@ -23,7 +23,8 @@ const COMPARE_DELETE = `if redis.call('GET',KEYS[1])==ARGV[1] then return redis.
 const COMPARE_EXPIRE = `if redis.call('GET',KEYS[1])~=ARGV[1] then return 0 end; local ttl=tonumber(ARGV[2]); if ttl<=0 then redis.call('DEL',KEYS[1]) else redis.call('PEXPIRE',KEYS[1],ttl) end; return 1`
 const COUNTER = `local raw=redis.call('GET',KEYS[1]); local ttl=-2; local current=0; if raw then ttl=redis.call('PTTL',KEYS[1]); if ttl==-1 or ttl>0 then if string.sub(raw,1,string.len(ARGV[1]))~=ARGV[1] then return redis.error_reply('CACHE_NOT_NUMERIC') end; current=tonumber(string.sub(raw,string.len(ARGV[1])+1)); if not current then return redis.error_reply('CACHE_CORRUPT') end; else raw=false end; end; local amount=tonumber(ARGV[2]); local result=current+amount; if result~=result or result==math.huge or result==-math.huge then return redis.error_reply('CACHE_NONFINITE') end; local serialized=string.format('%.17g',result); if tonumber(serialized)~=result then return redis.error_reply('CACHE_CORRUPT') end; local encoded=ARGV[1]..serialized; if raw and ttl==-1 then redis.call('SET',KEYS[1],encoded); elseif raw and ttl>0 then redis.call('SET',KEYS[1],encoded,'PX',ttl); elseif ARGV[3]=='0' then redis.call('SET',KEYS[1],encoded); elseif tonumber(ARGV[4])>0 then redis.call('SET',KEYS[1],encoded,'PX',ARGV[4]); end; return encoded`
 
-export class RedisCache implements Cache {
+export class RedisCache implements DistributedCache {
+  readonly [distributedCacheCapability] = distributedOwnerAtomicCacheCapabilities
   readonly #prefix: string
   readonly #scanCount: number
   readonly #pending = new Map<string, Promise<unknown>>()

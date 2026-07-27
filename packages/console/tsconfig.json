@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@nuxt-laravelize/core/runtime": ["../core/src/public-runtime.ts"],
+      "@nuxt-laravelize/execution-context/runtime": ["../execution-context/src/public-runtime.ts"],
+      "@nuxt-laravelize/observability/runtime": ["../observability/src/public-runtime.ts"],
+      "@nuxt-laravelize/observability/testing": ["../observability/src/public-testing.ts"]
+    }
+  },
+  "include": ["src", "test"]
+}

@@ -1,8 +1,15 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
+import { isDistributedCache, type DistributedCache } from '../../src/runtime/Cache'
 import { InMemoryCache } from '../../src/runtime/InMemoryCache'
 
 describe('InMemoryCache', () => {
+  it('does not advertise distributed owner-atomic operations', () => {
+    const cache = new InMemoryCache()
+
+    expect(isDistributedCache(cache)).toBe(false)
+    expectTypeOf(cache).not.toMatchTypeOf<DistributedCache>()
+  })
   it('stores permanent and expiring values', async () => {
     let now = 1_000
     const cache = new InMemoryCache(() => now)

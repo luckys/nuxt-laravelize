@@ -1,0 +1,47 @@
+{
+  "name": "@nuxt-laravelize/console",
+  "version": "0.2.0",
+  "description": "Typed, dependency-injected console command runtime for Nuxt Laravelize",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./node": {
+      "types": "./dist/node.d.mts",
+      "import": "./dist/node.mjs"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.mts",
+      "import": "./dist/testing.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "dependencies": {
+    "@nuxt-laravelize/core": "workspace:^",
+    "@nuxt-laravelize/execution-context": "workspace:^",
+    "@nuxt-laravelize/observability": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5",
+    "vue-tsc": "^3.2.8"
+  }
+}

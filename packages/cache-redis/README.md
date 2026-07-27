@@ -27,6 +27,7 @@ Values use a strict, versioned JSON-safe serializer. It accepts only null, boole
 Counters use Redis Lua's IEEE-754 double arithmetic and serialize results with enough significant digits to round-trip as a JavaScript `Number`. Fractional calculations therefore have normal binary floating-point semantics; arbitrary decimal exactness is not guaranteed.
 
 Locks use renewable owner leases without fencing tokens. Redis/Valkey failover or replication lag can violate mutual exclusion; use a fenced coordination system when stale holders could cause unsafe writes.
+`RedisCache` advertises the `DistributedCache` owner-atomic capability used by scheduler integrations; local cache drivers do not advertise it.
 
 ## Release verification
 

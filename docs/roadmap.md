@@ -55,17 +55,23 @@ These packages would support signed or server-side sessions, ID regeneration, fl
 
 Candidate package: `@nuxt-laravelize/console`.
 
+Status: implemented as an opt-in portable runtime with Node and testing adapters.
+
 The console runtime would provide typed command registration, arguments, options, help, exit codes, prompts, dependency injection, command-scoped execution context, logs, traces, and isolated testing. Existing worker, reconciliation, pruning, seeding, indexing, and migration executables could share this runtime without becoming one monolithic Artisan clone.
 
 ### Unified migrations
 
 Candidate packages: `@nuxt-laravelize/migrations` and `@nuxt-laravelize/migrations-drizzle`.
 
+Status: implemented with transactional PostgreSQL/SQLite backends, explicit application discovery, console commands, and aggregate package sources.
+
 The runner would discover application and package migrations, track IDs and checksums, lock concurrent deployments, expose status/up/rollback/reset/fresh/pretend commands, select one explicit dialect, and support test schemas. It would aggregate existing audit, idempotency, reliability, Scout, and workflow migrations while remaining ORM-neutral.
 
 ### Nuxt 4 scheduler
 
 Candidate package: `@nuxt-laravelize/scheduler-nuxt`.
+
+Status: implemented as an opt-in Nuxt 4/Nitro 2 module with timezone-aware provider triggers and Redis/Valkey locks.
 
 The existing framework-neutral schedule definitions need a Nuxt 4-compatible execution layer. The adapter should support cron helpers, timezones, queue dispatch, `withoutOverlapping`, `onOneServer`, maintenance behavior, success/failure hooks, schedule listing, distributed Redis/Valkey locks, and provider triggers for Node cron, Cloudflare, and Vercel. It should run reconciliation, pruning, retention, reports, and indexing without replacing Nuxt's Nitro version.
 

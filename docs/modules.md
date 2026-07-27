@@ -1221,24 +1221,57 @@ await app.cache.assertHas('feature:user_1')
 
 `mountLaravelize()` returns `container`, `cache`, `encrypter`, `events`, `features`, `filesystem`, `hasher`, `queue`, `mail`, `notifications`, `rateLimiter` and `validator`. The package also re-exports `CacheFake`, `EventFake`, `FakeLogger`, `FilesystemFake`, `QueueFake`, `MailFake` and `NotificationFake` for focused tests.
 
+## Console
+
+`@nuxt-laravelize/console` registers typed commands without a global command facade. `CommandRegistry` rejects duplicate names; argument and option schemas own parsing, defaults, aliases, validation, and help. `ConsoleRunner` creates one Laravelize application scope per invocation, binds a `cli` execution context, propagates abort signals, records bounded logs/spans, normalizes exit codes, and always disposes the scope. The portable entrypoint never reads process globals. Use `/node` for TTY/process adapters and `/testing` for deterministic terminal, prompt, and process fakes. Prompts fail closed unless an interactive adapter is installed.
+
+```ts
+const registry = new CommandRegistry().register(defineCommand({
+  name: 'reports:send',
+  arguments: { report: argument.string() },
+  options: { queue: option.string({ short: 'q' }) },
+  handler: sendReportHandlerToken,
+}))
+
+const exitCode = await new ConsoleRunner({ application, registry, terminal, process }).run()
+```
+
+## Migrations
+
+`@nuxt-laravelize/migrations` is ORM-neutral. Sources are explicit and IDs are namespaced as `namespace:name`; no dependency scanning occurs. Before mutation the runner validates dialects, dependencies, cycles, duplicate IDs, applied history, and checksums. `up`, `rollback`, `reset`, and `fresh` select work while holding the backend lock, and each migration statement plus its history update runs in the same transaction. Irreversible migrations refuse rollback. `fresh` requires an exact ownership allowlist and never introspects unrelated objects.
+
+`@nuxt-laravelize/migrations-drizzle` provides PostgreSQL and SQLite backends. PostgreSQL requires a pinned connection provider so advisory locking, SQL, and history share one session and transaction. SQLite uses callback-local immediate transactions. `migrationSourcesFor(dialect)` explicitly aggregates audit, idempotency, reliability, Scout, and workflow sources. Application sources can be loaded from caller-supplied paths with `discoverApplicationMigrations()`.
+
+```ts
+const runner = new MigrationRunner({
+  dialect: 'postgresql',
+  backend: new PostgresMigrationBackend(connectionProvider),
+  sources: [...migrationSourcesFor('postgresql'), appMigrations],
+})
+
+await runner.up()
+```
+
+The `/console` entrypoint supplies `migrate:status`, `migrate:up`, `migrate:rollback`, `migrate:reset`, `migrate:fresh`, and `migrate:pretend`. Destructive commands require an affirmative interactive prompt.
+
 ## Scheduler
 
-`@nuxt-laravelize/scheduler` defines framework-neutral schedules. It is not part of the Nuxt preset. The experimental `/nitro3` adapter requires exactly `nitro@3.0.260610-beta` and must not replace Nuxt 4's Nitro dependency.
+`@nuxt-laravelize/scheduler` defines immutable framework-neutral schedules. It is not part of the Nuxt preset. `@nuxt-laravelize/scheduler-nuxt` is the opt-in Nuxt 4 adapter and compiles explicit declarations into Nuxt-owned Nitro 2 tasks; it never installs or replaces Nitro.
 
 ```ts
 import { defineSchedule } from '@nuxt-laravelize/scheduler'
 
 const schedule = defineSchedule((schedule) => {
-  schedule.task('reports:hourly').hourly()
-  schedule.task('cleanup:daily').daily()
-  schedule.task('reports:daily').dailyAt('02:30')
+  schedule.operation('reports:hourly').hourly().withoutOverlapping(30)
+  schedule.dispatch('search:sync', { job: 'search:sync', queue: 'maintenance' }).everyFiveMinutes().onOneServer()
+  schedule.task('reports:daily').timezone('America/New_York').dailyAt('02:30')
   schedule.task('billing:weekdays').cron('0 8 * * 1-5')
 })
 
 console.log(schedule.all())
 ```
 
-`Schedule.task()` returns a `PendingSchedule`. Finish it with `cron()`, `hourly()`, `daily()` or `dailyAt()`. Invalid five-field cron expressions throw `InvalidCronExpressionError`.
+Schedules support common cron helpers, IANA timezones, queue dispatch, `withoutOverlapping`, `onOneServer`, maintenance behavior, and named success/failure hooks. Timezone tasks use a minute trigger plus a DST-safe due-time guard on providers that only accept UTC cron. Nuxt-generated wrappers execute through `SchedulerRunner` and an application-provided runtime scope. `/cache-lock` adapts a capability-verified Redis/Valkey cache with owner-checked acquisition, renewal, loss detection, and release; process-local locks are rejected for `onOneServer`.
 
 ```ts
 import { defineSchedule } from '@nuxt-laravelize/scheduler'
@@ -1280,8 +1313,12 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 | `notifications` | `/runtime` | `/testing` |
 | `http` | `/runtime` | - |
 | `database` | `/runtime` | - |
+| `console` | package root, `/node` | `/testing` |
+| `migrations` | package root, `/console` | `/testing` |
+| `migrations-drizzle` | package root, `/postgres`, `/sqlite`, `/sources` | `/testing` |
 | `testing` | package root | package root |
 | `scheduler` | package root, `/nitro3` | - |
+| `scheduler-nuxt` | package root, `/runtime`, `/adapters`, `/compiler`, `/cache-lock` | - |
 | `webhooks` | package root | `/testing` |
 | `workflows` | package root | - |
 | `workflows-drizzle` | package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
