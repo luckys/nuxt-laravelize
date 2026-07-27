@@ -28,6 +28,20 @@ export default defineNuxtConfig({
 
 Use `$t()` in templates or `useI18n().$t()` in scripts. Set `i18n: false` to disable the integration.
 
+Nitro handlers use the same generated `nuxt-i18n-micro` dictionaries, fallback configuration, and plural function through the server-only API:
+
+```ts
+export default defineEventHandler(async (event) => {
+  const i18n = await useServerLocalization(event)
+  return { message: i18n.t('welcome', { name: 'Ada' }), count: i18n.tc('apples', 2) }
+})
+
+import { createServerLocalization } from '@nuxt-laravelize/nuxt/runtime/server'
+const i18n = await createServerLocalization(context.snapshot().locale ?? 'en')
+```
+
+`createServerLocalization()` supports jobs, mail preparation, notifications, CLI, and scheduler code without an H3 event. `ServerLocalization` exposes canonical `locale`, exact configured `localeCode`, `defaultLocale`, `fallbackLocale`, `fallbackLocales`, `availableLocales`, `t`, `tc`, `tn`, `td`, and `tdr`. Request resolution follows configured path/query, locale cookie, `Accept-Language`, and default behavior; configured code, ISO, and language aliases participate in automatic detection. Public locale values and Intl formatting use canonical BCP 47 tags, while dictionaries and custom plural rules use the exact configured code (for example, `en_US` exposes `en-US` but plural receives `en_US`). Explicit and detected locales match only configured aliases and malformed or unsupported values never become asset paths. A selected locale's configured fallback chain runs before global/default fallback, with duplicate and cyclic references bounded; every reference must resolve to an enabled locale. Both `source` and premerged translation payload modes are supported. Missing global/index payloads safely behave as empty dictionaries, so page-only locale layouts remain route-specific. Each localization object is request-local. The public server entry can be imported in plain Node, and `createServerLocalization(locale, source)` accepts an injectable eventless source. Localization APIs and Nitro integration are not registered when i18n is false, missing, or has no usable locales.
+
 ## Authorization
 
 `@nuxt-laravelize/authorization` is included in the preset. Its core is H3-independent: resolve `authorizationToken` in HTTP, queues, workflows or CLI scopes, and use the auto-imported `useAuthorization(event)` only at the HTTP boundary. Register global abilities and resource policies once through the singleton `authorizationRegistryToken`; resource types are explicit stable keys and duplicate registrations fail immediately.
@@ -524,7 +538,7 @@ await useAudit(event).record({
 
 The recorder generates the ID/time and enriches actor, tenant, execution, correlation, causation, source, and trace fields from trusted scoped execution context. Callers cannot override them. Actions/references use bounded safe identifiers. Changes and metadata must be bounded plain JSON; functions, symbols, cycles, custom prototypes, and excessive depth, keys, arrays, or bytes are rejected. Common credential keys and configured redaction keys become `[REDACTED]`.
 
-The preset defaults to bounded, non-evicting memory in development and disabled persistence in production; both warn, and disabled recording fails closed. Configure `laravelizeAudit.driver: 'memory'` explicitly only when volatility is acceptable, or override `auditStoreToken` with durable storage. Set `requireTenantId: true` for tenant-scoped systems. Optional `@nuxt-laravelize/audit-drizzle` provides append-only-by-interface PostgreSQL, SQLite, and Turso/libSQL stores; database immutability still requires least-privilege credentials and retention controls. `occurredAt` is application time, not authoritative ingestion order. `AuditFake` provides defensive assertions.
+The preset defaults to bounded, non-evicting memory in development and disabled persistence in production; both warn, and disabled recording fails closed. Configure `laravelizeAudit.driver: 'memory'` explicitly only when volatility is acceptable, or override `auditStoreToken` with durable storage. Set `requireTenantId: true` for tenant-scoped systems. Optional `@nuxt-laravelize/audit-drizzle` provides append-only-by-interface PostgreSQL, SQLite, and Turso/libSQL stores; apply `0002_add_audit_locale.sql` or `0003_add_audit_locale_sqlite.sql` when upgrading so the trusted execution-context locale remains a first-class column. Database immutability still requires least-privilege credentials and retention controls. `occurredAt` is application time, not authoritative ingestion order. `AuditFake` provides defensive assertions.
 
 Audit is neither logging nor domain-event serialization. Do not pass request/response bodies or arbitrary models. Automatic policy/HTTP auditing is deferred to a future neutral `audit-http` bridge.
 
@@ -865,6 +879,14 @@ if (!result.success) {
 | `validatorToken` | Replaces or resolves the shared validator. |
 
 Nested object and array paths become stable dot notation such as `body.users.0.email`; multiple issues for one field preserve schema order. `FormRequest` uses this same validator internally, so standalone validation and HTTP `422` responses share path and message semantics.
+
+Build localized Standard Schema messages when constructing the schema; do not translate vendor issue codes or arbitrary issue strings after validation:
+
+```ts
+const i18n = await useServerLocalization(event)
+const schema = z.object({ email: z.email({ error: i18n.t('validation.email') }) })
+const result = await useValidator(event).safeValidate(schema, input)
+```
 
 ## HTTP
 
@@ -1371,10 +1393,10 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 | `workflows-drizzle` | package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
 | `workflows-reliability` | package root | - |
 | `workflows-queue` | package root, `/runtime` | - |
-| `nuxt` | package root | - |
+| `nuxt` | package root, `/runtime/server` | - |
 ## Execution Context
 
-`@nuxt-laravelize/execution-context` gives every Nitro request an immutable, validated, JSON-safe context. `useExecutionContext(event)` returns the request-scoped value. Incoming correlation IDs are accepted only when `trustIncomingCorrelationHeader` is explicitly enabled and valid; actor and tenant headers are never trusted. Attributes are limited to 16 string entries of 256 characters.
+`@nuxt-laravelize/execution-context` gives every Nitro request an immutable, validated, JSON-safe context. `useExecutionContext(event)` returns the request-scoped value. Incoming correlation IDs are accepted only when `trustIncomingCorrelationHeader` is explicitly enabled and valid; actor and tenant headers are never trusted. Attributes are limited to 16 string entries of 256 characters. The optional canonical BCP 47 `locale` is bounded to 35 characters, resolved by server localization for HTTP requests, preserved by `create`, `derive`, `enrich`, and queue propagation, and recorded as a first-class audit field.
 
 Use `snapshot()` for transport, `derive()` for child work, authenticated `enrich()` for actor/tenant, and `withExecutionContext()` for sanitized logs. A transported snapshot is correlation provenance and **MUST NOT** be used to authorize its actor or tenant. HTTP handlers pass their request context explicitly when dispatching: `runWithExecutionContext(useExecutionContext(event), () => queue.push(job))`. The queue bridge preserves correlation, creates a worker execution ID, and sets causation to the producer execution ID; the same registered `JobSerializer` must be passed to persistent queue adapters.
 ## Observability and OpenTelemetry

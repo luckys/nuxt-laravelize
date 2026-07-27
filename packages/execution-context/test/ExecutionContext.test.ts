@@ -3,9 +3,9 @@ import { ExecutionContext } from '../src/runtime/ExecutionContext'
 
 describe('ExecutionContext', () => {
   it('validates and derives an immutable child preserving correlation', () => {
-    const parent = ExecutionContext.create({ executionId: 'parent', correlationId: 'correlation', source: { type: 'http' }, startedAt: '2020-01-01T00:00:00.000Z', attributes: { safe: 'yes' } })
+    const parent = ExecutionContext.create({ executionId: 'parent', correlationId: 'correlation', locale: 'es-ES', source: { type: 'http' }, startedAt: '2020-01-01T00:00:00.000Z', attributes: { safe: 'yes' } })
     const child = parent.derive({ source: { type: 'queue', name: 'EmailJob' } }, () => 'child')
-    expect(child.snapshot()).toMatchObject({ version: 1, executionId: 'child', correlationId: 'correlation', causationId: 'parent', source: { type: 'queue', name: 'EmailJob' } })
+    expect(child.snapshot()).toMatchObject({ version: 1, executionId: 'child', correlationId: 'correlation', causationId: 'parent', locale: 'es-ES', source: { type: 'queue', name: 'EmailJob' } })
     expect(() => (child.snapshot().source as { type: string }).type = 'http').not.toThrow()
     expect(child.snapshot().source.type).toBe('queue')
   })
@@ -14,5 +14,12 @@ describe('ExecutionContext', () => {
     expect(() => ExecutionContext.create({ source: { type: 'test' }, attributes: Object.create(null) })).toThrow('attributes')
     expect(() => ExecutionContext.create({ source: { type: 'test' }, attributes: { safe: 'x'.repeat(257) } })).toThrow('attribute')
     expect(() => ExecutionContext.create({ source: { type: 'test' }, tenantId: 'contains space' })).toThrow('tenantId')
+    expect(() => ExecutionContext.create({ source: { type: 'test' }, locale: '../es' })).toThrow('locale')
+    expect(() => ExecutionContext.create({ source: { type: 'test' }, locale: 'x'.repeat(36) })).toThrow('locale')
+  })
+
+  it('preserves and can enrich the optional locale without changing snapshot version', () => {
+    const context = ExecutionContext.create({ source: { type: 'test' } }, () => 'id').enrich({ locale: 'es' })
+    expect(context.snapshot()).toMatchObject({ version: 1, locale: 'es' })
   })
 })

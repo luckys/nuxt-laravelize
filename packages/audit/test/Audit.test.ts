@@ -7,17 +7,18 @@ import { DefaultAuditRecorder, InMemoryAuditStore, type AuditStore } from '../sr
 const silent: Logger = { debug() {}, info() {}, warn() {}, error() {}, critical() {} }
 function recorder(store: AuditStore = new InMemoryAuditStore(), options = {}, logger = silent) {
   const container = createContainer()
-  container.instance(executionContextToken, ExecutionContext.create({ executionId: 'exec-1', correlationId: 'corr-1', actor: { type: 'user', id: 'trusted-user' }, tenantId: 'trusted-tenant', source: { type: 'test' } }))
+  container.instance(executionContextToken, ExecutionContext.create({ executionId: 'exec-1', correlationId: 'corr-1', actor: { type: 'user', id: 'trusted-user' }, tenantId: 'trusted-tenant', locale: 'es', source: { type: 'test' } }))
   return { store, value: new DefaultAuditRecorder(store, new ExecutionContextAccessor(container), logger, options, () => 'audit-1', () => new Date('2026-01-02T03:04:05.000Z')) }
 }
 describe('DefaultAuditRecorder', () => {
   it('enriches trusted context and appends exactly once without accepting spoofed fields', async () => {
     const { store, value } = recorder()
     const entry = await value.record({ action: 'patient.viewed', outcome: 'success', target: { type: 'patient', id: 'p-1' } })
-    expect(entry).toMatchObject({ id: 'audit-1', occurredAt: '2026-01-02T03:04:05.000Z', actor: { id: 'trusted-user' }, tenantId: 'trusted-tenant', executionId: 'exec-1' })
+    expect(entry).toMatchObject({ id: 'audit-1', occurredAt: '2026-01-02T03:04:05.000Z', actor: { id: 'trusted-user' }, tenantId: 'trusted-tenant', locale: 'es', executionId: 'exec-1' })
+    expect(entry.metadata).toBeUndefined()
     expect((store as InMemoryAuditStore).all()).toHaveLength(1)
   })
-  it.each(['actor', 'tenantId', 'executionId', 'id', 'timestamp', 'source', 'unknown'])('rejects reserved or unknown input key %s', async (key) => {
+  it.each(['actor', 'tenantId', 'locale', 'executionId', 'id', 'timestamp', 'source', 'unknown'])('rejects reserved or unknown input key %s', async (key) => {
     await expect(recorder().value.record({ action: 'x.done', outcome: 'success', [key]: 'spoof' } as never)).rejects.toThrow('input key')
   })
   it('rejects enumerable symbol input keys', async () => {

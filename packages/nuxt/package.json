@@ -14,16 +14,21 @@
       "types": "./dist/types.d.mts",
       "import": "./dist/module.mjs"
     },
+    "./runtime/server": {
+      "types": "./dist/public-server.d.mts",
+      "import": "./dist/public-server.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "nuxt-module-build build",
+    "build": "nuxt-module-build build && unbuild --config public.build.config.ts",
     "typecheck": "nuxt-module-build prepare && vue-tsc --noEmit",
     "test": "nuxt-module-build prepare && vitest run --passWithNoTests",
     "prepack": "pnpm run build",
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
+    "@i18n-micro/core": "1.3.4",
     "@nuxt-laravelize/authorization": "workspace:^",
     "@nuxt-laravelize/audit": "workspace:^",
     "@nuxt-laravelize/broadcasting": "workspace:^",
@@ -61,6 +66,7 @@
     "@types/node": "latest",
     "nuxt": "^4.4.5",
     "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
     "vitest": "^4.1.5",
     "vue-tsc": "^3.2.8"
   }

@@ -1,0 +1,4 @@
+{
+  "fallback": { "only": "Source fallback" },
+  "items": "One item | {count} items"
+}

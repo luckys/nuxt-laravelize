@@ -149,7 +149,7 @@ Sanctum-style personal tokens and external OIDC adapters should come before a Pa
 
 ### Server localization
 
-The existing Nuxt i18n integration could expand to validation messages, locale-aware pluralization and formatting, request locale resolution, fallback locales, and locale propagation through jobs, notifications, mail, and audit metadata.
+Implemented: server-only `ServerLocalization`, request and eventless factories, generated dictionary/fallback/plural reuse, locale-aware Intl formatting, strict configured-locale validation, request resolution, execution-context and queue propagation, and first-class audit persistence. Validation documentation shows localized Standard Schema construction. Follow-ups remain for recipient preference storage, notification/mail rendering and queued-delivery adapters, and vendor-specific validation adapters.
 
 ### Maintenance mode
 

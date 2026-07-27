@@ -18,6 +18,7 @@ export interface AuditEntry {
   readonly metadata?: Readonly<Record<string, AuditValue>>
   readonly actor?: ExecutionContextSnapshot['actor']
   readonly tenantId?: string
+  readonly locale?: string
   readonly executionId: string
   readonly correlationId: string
   readonly causationId?: string
@@ -123,7 +124,7 @@ export class DefaultAuditRecorder {
     const clean = sanitizer(this.#options)
     const changes = input.changes === undefined ? undefined : clean(this.#validateChanges(input.changes), true) as Readonly<Record<string, AuditChange>>
     const metadata = input.metadata === undefined ? undefined : clean(input.metadata) as Readonly<Record<string, AuditValue>>
-    const entry: AuditEntry = Object.freeze({ schemaVersion: 1, id: safeText(this.idFactory(), 'id', 128), occurredAt: this.now().toISOString(), action: safeText(input.action, 'action', 128), outcome: outcome(input.outcome), ...(reference(input.subject, 'subject') ? { subject: reference(input.subject, 'subject') } : {}), ...(reference(input.target, 'target') ? { target: reference(input.target, 'target') } : {}), ...(changes ? { changes } : {}), ...(metadata ? { metadata } : {}), ...(context.actor ? { actor: context.actor } : {}), ...(context.tenantId ? { tenantId: context.tenantId } : {}), executionId: context.executionId, correlationId: context.correlationId, ...(context.causationId ? { causationId: context.causationId } : {}), source: context.source, ...(context.traceId ? { traceId: context.traceId } : {}), ...(context.spanId ? { spanId: context.spanId } : {}) })
+    const entry: AuditEntry = Object.freeze({ schemaVersion: 1, id: safeText(this.idFactory(), 'id', 128), occurredAt: this.now().toISOString(), action: safeText(input.action, 'action', 128), outcome: outcome(input.outcome), ...(reference(input.subject, 'subject') ? { subject: reference(input.subject, 'subject') } : {}), ...(reference(input.target, 'target') ? { target: reference(input.target, 'target') } : {}), ...(changes ? { changes } : {}), ...(metadata ? { metadata } : {}), ...(context.actor ? { actor: context.actor } : {}), ...(context.tenantId ? { tenantId: context.tenantId } : {}), ...(context.locale ? { locale: context.locale } : {}), executionId: context.executionId, correlationId: context.correlationId, ...(context.causationId ? { causationId: context.causationId } : {}), source: context.source, ...(context.traceId ? { traceId: context.traceId } : {}), ...(context.spanId ? { spanId: context.spanId } : {}) })
     try {
       await this.store.append(structuredClone(entry))
     }

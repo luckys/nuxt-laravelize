@@ -53,4 +53,25 @@ describe('Nuxt 4 compatibilityVersion 5 profile', async () => {
   it('translates through nuxt-i18n-micro during SSR', async () => {
     expect(await $fetch<string>('/')).toContain('Translated with $t for Laravelize')
   })
+
+  it('localizes Nitro handlers and propagates the resolved locale into execution context', async () => {
+    const value = await $fetch<Record<string, string>>('/api/localization?locale=es')
+    expect(value).toMatchObject({ locale: 'es-ES', contextLocale: 'es-ES', greeting: 'Hola, Ada', fallback: 'English fallback', plural: '2 manzanas', number: '1234,50', date: '02/01/2026', eventless: 'Hola, Job' })
+  })
+
+  it('uses Accept-Language, falls back on unsupported request locales, and rejects explicit invalid locales', async () => {
+    expect(await $fetch<{ locale: string }>('/api/localization', { headers: { 'accept-language': 'es-ES,es;q=0.9' } })).toMatchObject({ locale: 'es-ES' })
+    expect(await $fetch<{ locale: string }>('/api/localization?locale=fr')).toMatchObject({ locale: 'en-US' })
+    expect(await $fetch<{ locale: string }>('/api/localization?explicit=es-ES')).toMatchObject({ locale: 'es-ES' })
+    await expect($fetch('/api/localization?explicit=../es')).rejects.toThrow()
+  })
+
+  it('isolates concurrent server-localization requests', async () => {
+    const [spanish, english] = await Promise.all([
+      $fetch<{ locale: string, greeting: string, contextLocale: string }>('/api/localization?locale=es&delay=20'),
+      $fetch<{ locale: string, greeting: string, contextLocale: string }>('/api/localization?locale=en&delay=1'),
+    ])
+    expect(spanish).toMatchObject({ locale: 'es-ES', contextLocale: 'es-ES', greeting: 'Hola, Ada' })
+    expect(english).toMatchObject({ locale: 'en-US', contextLocale: 'en-US', greeting: 'Hello, Ada' })
+  })
 })

@@ -48,14 +48,14 @@ describe('queue propagation', () => {
   it('captures context from the producer resolver without ambient HTTP state', () => {
     const container = createContainer()
     const scope = container.createScope()
-    scope.override(executionContextToken, fakeExecutionContext({ correlationId: 'http-correlation', executionId: 'http-execution' }))
+    scope.override(executionContextToken, fakeExecutionContext({ correlationId: 'http-correlation', executionId: 'http-execution', locale: 'es' }))
     const contributors = new JobMetadataContributorRegistry()
     const runner = new JobRunner(container, new InMemoryJobRegistry())
     installExecutionContextQueuePropagation(contributors, runner, currentExecutionContextOptional)
     const serialized = new JobSerializer(contributors, scope).serialize(new ProbeJob())
     expect(currentExecutionContextOptional()).toBeUndefined()
     expect(serialized.version).toBe(2)
-    if (serialized.version === 2) expect(serialized.metadata[EXECUTION_CONTEXT_METADATA_KEY]).toMatchObject({ correlationId: 'http-correlation', executionId: 'http-execution' })
+    if (serialized.version === 2) expect(serialized.metadata[EXECUTION_CONTEXT_METADATA_KEY]).toMatchObject({ correlationId: 'http-correlation', executionId: 'http-execution', locale: 'es' })
   })
   it('creates a worker context while preserving correlation and parent causation', async () => {
     const container = createContainer()
@@ -64,9 +64,9 @@ describe('queue propagation', () => {
     const runner = new JobRunner(container, registry)
     const contributors = new JobMetadataContributorRegistry()
     const serializer = new JobSerializer(contributors)
-    installExecutionContextQueuePropagation(contributors, runner, () => currentExecutionContextOptional() ?? fakeExecutionContext(), () => 'worker-execution')
+    installExecutionContextQueuePropagation(contributors, runner, () => currentExecutionContextOptional() ?? fakeExecutionContext({ locale: 'es' }), () => 'worker-execution')
     await runner.run(serializer.serialize(new ProbeJob()))
-    expect(ProbeJob.seen).toMatchObject({ executionId: 'worker-execution', correlationId: 'test-correlation', causationId: 'test-execution', source: { type: 'queue', name: 'ProbeJob' } })
+    expect(ProbeJob.seen).toMatchObject({ executionId: 'worker-execution', correlationId: 'test-correlation', causationId: 'test-execution', locale: 'es', source: { type: 'queue', name: 'ProbeJob' } })
   })
   it('continues to decode stored version 1 jobs', async () => {
     const container = createContainer()
@@ -83,11 +83,11 @@ describe('queue propagation', () => {
     const contributors = new JobMetadataContributorRegistry()
     container.scoped(jobSerializerToken, resolver => new JobSerializer(contributors, resolver))
     const serializer = new JobSerializer(contributors)
-    installExecutionContextQueuePropagation(contributors, runner, () => currentExecutionContextOptional() ?? fakeExecutionContext(), () => 'worker-execution')
+    installExecutionContextQueuePropagation(contributors, runner, () => currentExecutionContextOptional() ?? fakeExecutionContext({ locale: 'es' }), () => 'worker-execution')
     await runner.run(serializer.serialize(new NestedJob()))
     const nested = NestedJob.serialized
     expect(nested.version).toBe(2)
-    if (nested.version === 2) expect(nested.metadata['laravelize.execution-context.v1']).toMatchObject({ correlationId: 'test-correlation', causationId: 'test-execution', executionId: 'worker-execution' })
+    if (nested.version === 2) expect(nested.metadata['laravelize.execution-context.v1']).toMatchObject({ correlationId: 'test-correlation', causationId: 'test-execution', executionId: 'worker-execution', locale: 'es' })
   })
   it('runs terminal failed hooks in the derived ambient context', async () => {
     const container = createContainer()

@@ -17,6 +17,7 @@ const namespaces = [
 const expectedNames = {
   postgresql: [
     '0000_create_audit_entries',
+    '0002_add_audit_locale',
     '0000_idempotency_postgres',
     '0000_reliability_postgres',
     '0002_reliability_append_availability_postgres',
@@ -28,6 +29,7 @@ const expectedNames = {
   ],
   sqlite: [
     '0001_create_audit_entries_sqlite',
+    '0003_add_audit_locale_sqlite',
     '0001_idempotency_sqlite',
     '0001_reliability_sqlite',
     '0003_reliability_append_availability_sqlite',
@@ -54,12 +56,12 @@ describe('aggregate migration sources', () => {
     const backend = new InMemoryMigrationBackend(dialect)
     const plan = await new MigrationRunner<typeof dialect>({ dialect, sources, backend }).plan()
 
-    expect(plan).toHaveLength(9)
+    expect(plan).toHaveLength(10)
     expect(plan.every(item => item.state === 'pending')).toBe(true)
     expect(new Set(plan.map(item => item.id)).size).toBe(plan.length)
     const namesBySourceOrder = (await Promise.all(sources.map(source => source.migrations()))).flat().map(migration => migration.name)
     expect(namesBySourceOrder).toEqual(expectedNames[dialect])
-    const migrationCounts = [1, 1, 5, 1, 1]
+    const migrationCounts = [2, 1, 5, 1, 1]
     let offset = 0
     const expectedIds = sources.flatMap((source, index) => {
       const names = expectedNames[dialect].slice(offset, offset + migrationCounts[index]!)
@@ -98,8 +100,8 @@ describe('aggregate migration sources', () => {
 
     const result = await new MigrationRunner({ dialect: 'sqlite', sources: sqliteMigrationSources, backend }).up()
 
-    expect(result.executed).toHaveLength(9)
-    expect(result.statements).toHaveLength(31)
+    expect(result.executed).toHaveLength(10)
+    expect(result.statements).toHaveLength(32)
     expect(executed.filter(sql => !sql.includes('laravelize_migration'))).toEqual(result.statements.map(statement => statement.sql))
     const objects = database.prepare('SELECT name FROM sqlite_master WHERE type IN (\'table\', \'index\')').all().map(row => String(row.name))
     expect(objects).toEqual(expect.arrayContaining([

@@ -17,10 +17,12 @@ async function loadMigration<D extends MigrationDialect>(dialect: D, name: strin
 
 export const postgresMigrationSource: MigrationSource<'postgresql'> = defineSource(namespace, async () => [
   await loadMigration('postgresql', '0000_create_audit_entries', '0000_create_audit_entries.sql'),
+  await loadMigration('postgresql', '0002_add_audit_locale', '0002_add_audit_locale.sql'),
 ])
 
 export const sqliteMigrationSource: MigrationSource<'sqlite'> = defineSource(namespace, async () => [
   await loadMigration('sqlite', '0001_create_audit_entries_sqlite', '0001_create_audit_entries_sqlite.sql'),
+  await loadMigration('sqlite', '0003_add_audit_locale_sqlite', '0003_add_audit_locale_sqlite.sql'),
 ])
 
 export function migrationSourceFor(dialect: 'postgresql'): MigrationSource<'postgresql'>

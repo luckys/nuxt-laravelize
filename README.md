@@ -86,7 +86,7 @@ export default defineNuxtConfig({
 })
 ```
 
-The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, the reliability queue bridge, and `nuxt-i18n-micro`. It binds no volatile Inbox or Outbox store in production: the application must provide durable stores. Translations use its Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`. Webhooks remain an opt-in; the preset also does not install BullMQ, `reliability-drizzle`, cloud filesystem adapters, Scout database adapters, or the scheduler.
+The preset activates cache, core, database, encryption, events, feature flags, filesystem disks, hashing, queued listeners, HTTP, mail, notifications, rate limiting, Scout with its memory driver, validation, the portable queue, and the reliability queue bridge. It activates `nuxt-i18n-micro` only when usable locales are configured. It binds no volatile Inbox or Outbox store in production: the application must provide durable stores. Translations use the Nuxt-native `$t()` API and JSON dictionaries instead of Laravel-style `__()`; Nitro code uses `useServerLocalization(event)` or the eventless `createServerLocalization(locale)`. Webhooks remain an opt-in; the preset also does not install BullMQ, `reliability-drizzle`, cloud filesystem adapters, Scout database adapters, or the scheduler.
 
 Generated typed routes from explicit declarations are also included in the preset.
 

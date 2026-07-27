@@ -86,6 +86,7 @@ verifyTarballBin('reliability', 'dist/bin/outbox-work.mjs')
 verifyTarballBin('webhooks', 'dist/bin/webhook-work.mjs')
 verifyTarballBin('queue-bullmq', 'dist/bin/queue-work.mjs')
 verifyTarballBin('workflows-reliability', 'dist/bin/workflow-wake-reconcile.mjs')
+verifyTarballEntry('nuxt', 'dist/public-server.mjs', ['ServerLocalization', 'createServerLocalization', 'useServerLocalization'])
 
 runFixture('features', {
   ...featureDependencies,
@@ -326,9 +327,10 @@ runFixture('preset-default', {
   'nuxt': nuxtVersion,
   'typescript': typescriptVersion,
   'vue-tsc': vueTscVersion,
-}, featureDependencies, ['@nuxt-laravelize/nuxt'], ['@nuxt-laravelize/dead-letter-operations', '@nuxt-laravelize/cache-redis', '@nuxt-laravelize/agent-sdk', '@nuxt-laravelize/agents-cloudflare', '@nuxt-laravelize/agents-flue', '@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/database-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/idempotency', '@nuxt-laravelize/idempotency-drizzle', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', '@nuxt-laravelize/workflows', '@nuxt-laravelize/workflows-drizzle', '@nuxt-laravelize/workflows-queue', 'agents', '@flue/runtime', '@flue/sdk', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
-  requiredExports: { '@nuxt-laravelize/nuxt': ['default'] },
+}, featureDependencies, ['@nuxt-laravelize/nuxt', '@nuxt-laravelize/nuxt/runtime/server'], ['@nuxt-laravelize/dead-letter-operations', '@nuxt-laravelize/cache-redis', '@nuxt-laravelize/agent-sdk', '@nuxt-laravelize/agents-cloudflare', '@nuxt-laravelize/agents-flue', '@nuxt-laravelize/ai-sdk', '@nuxt-laravelize/audit-drizzle', '@nuxt-laravelize/broadcasting-pusher', '@nuxt-laravelize/database-drizzle', '@nuxt-laravelize/filesystem-aws', '@nuxt-laravelize/filesystem-cloudflare', '@nuxt-laravelize/idempotency', '@nuxt-laravelize/idempotency-drizzle', '@nuxt-laravelize/reliability-drizzle', '@nuxt-laravelize/queue-bullmq', '@nuxt-laravelize/scheduler', '@nuxt-laravelize/webhooks', '@nuxt-laravelize/workflows', '@nuxt-laravelize/workflows-drizzle', '@nuxt-laravelize/workflows-queue', 'agents', '@flue/runtime', '@flue/sdk', 'ai', 'bullmq', 'drizzle-orm', 'nitro'], {
+  requiredExports: { '@nuxt-laravelize/nuxt': ['default'], '@nuxt-laravelize/nuxt/runtime/server': ['createServerLocalization', 'ServerLocalization'] },
   buildNuxt: true,
+  serverLocalizationSmoke: true,
 })
 
 runFixture('preset-compat5', {
@@ -418,6 +420,34 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       '',
     ].join('\n'))
 
+    if (options.serverLocalizationSmoke) {
+      writeFileSync(join(fixture, 'smoke.mjs'), [
+        readFileSync(join(fixture, 'smoke.mjs'), 'utf8'),
+        'const { createServerLocalization } = await import(\'@nuxt-laravelize/nuxt/runtime/server\')',
+        'const loadedCodes = []',
+        'const localization = await createServerLocalization(\'en-US\', {',
+        '  locales: [{ code: \'en_US\', locale: \'en-US\' }],',
+        '  defaultLocale: \'en_US\',',
+        '  plural(key, count, params, locale, getter) {',
+        '    if (locale !== \'en_US\') throw new Error(`Packed plural received ${locale} instead of en_US`)',
+        '    const choices = String(getter(key, params)).split(\'|\')',
+        '    return (choices[count === 1 ? 0 : 1] ?? choices.at(-1) ?? \'\').trim().replace(\'{count}\', String(count))',
+        '  },',
+        '  async loadDictionary(code) {',
+        '    loadedCodes.push(code)',
+        '    return { greeting: \'Hello, {name}\', items: \'One item | {count} items\' }',
+        '  },',
+        '})',
+        'if (localization.locale !== \'en-US\' || localization.localeCode !== \'en_US\' || localization.t(\'greeting\', { name: \'Ada\' }) !== \'Hello, Ada\') throw new Error(\'Packed injected localization translation failed\')',
+        'if (localization.tc(\'items\', 2) !== \'2 items\') throw new Error(\'Packed injected localization plural failed\')',
+        'if (localization.tn(1234.5, { useGrouping: false, minimumFractionDigits: 2 }) !== \'1234.50\') throw new Error(\'Packed injected localization number format failed\')',
+        'if (localization.td(\'2026-01-02T00:00:00.000Z\', { timeZone: \'UTC\', year: \'numeric\', month: \'2-digit\', day: \'2-digit\' }) !== \'01/02/2026\') throw new Error(\'Packed injected localization date format failed\')',
+        'if (localization.tdr(-2, \'day\', { numeric: \'always\' }) !== \'2 days ago\') throw new Error(\'Packed injected localization relative format failed\')',
+        'if (loadedCodes.join(\',\') !== \'en_US\') throw new Error(\'Packed injected localization did not load the configured dictionary code\')',
+        '',
+      ].join('\n'))
+    }
+
     if (options.workflowTypes) {
       writeFileSync(join(fixture, 'tsconfig.json'), JSON.stringify({ compilerOptions: { strict: true, noEmit: true, module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022' }, include: ['workflow-types.ts'] }, null, 2))
       writeFileSync(join(fixture, 'workflow-types.ts'), [
@@ -446,12 +476,13 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  laravelizeBroadcasting: { driver: \'memory\', memoryCapacity: 10 },',
         '  laravelizeRoutes: { baseURL: \'/api\' },',
         '  i18n: {',
-        '    locales: [{ code: \'en\', iso: \'en-US\', dir: \'ltr\' }],',
+        '    locales: [{ code: \'en\', iso: \'en-US\', dir: \'ltr\' }, { code: \'es\', iso: \'es-ES\', dir: \'ltr\' }],',
         '    defaultLocale: \'en\',',
         '    strategy: \'no_prefix\',',
         '    translationDir: \'locales\',',
         '    disablePageLocales: true,',
-        '    autoDetectLanguage: false,',
+        '    fallbackLocale: \'en\',',
+        '    autoDetectLanguage: true,',
         '    redirects: false,',
         '  },',
         ...(options.compatibilityVersion ? [`  future: { compatibilityVersion: ${options.compatibilityVersion} },`] : []),
@@ -479,7 +510,9 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       mkdirSync(join(fixture, 'locales'), { recursive: true })
       writeFileSync(join(fixture, 'locales', 'en.json'), JSON.stringify({
         welcome: 'Translated with $t for {name}',
+        server: { welcome: 'Server hello, {name}', fallback: 'English fallback' },
       }, null, 2))
+      writeFileSync(join(fixture, 'locales', 'es.json'), JSON.stringify({ server: { welcome: 'Servidor hola, {name}' } }, null, 2))
       mkdirSync(join(fixture, 'server', 'api'), { recursive: true })
       writeFileSync(join(fixture, 'server', 'api', 'health.get.ts'), [
         'import { jobRegistryToken } from \'@nuxt-laravelize/queue/runtime\'',
@@ -515,6 +548,14 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
       ].join('\n'))
       writeFileSync(join(fixture, 'server', 'api', 'http-client.get.ts'), [
         'export default defineEventHandler(() => ({ message: \'Fetched with useHttp\' }))',
+        '',
+      ].join('\n'))
+      writeFileSync(join(fixture, 'server', 'api', 'localization.get.ts'), [
+        'export default defineEventHandler(async (event) => {',
+        '  const i18n = await useServerLocalization(event)',
+        '  const jobI18n = await createServerLocalization(useExecutionContext(event).snapshot().locale ?? i18n.defaultLocale)',
+        '  return { locale: i18n.locale, contextLocale: useExecutionContext(event).snapshot().locale, message: i18n.t(\'server.welcome\', { name: \'Ada\' }), fallback: jobI18n.t(\'server.fallback\') }',
+        '})',
         '',
       ].join('\n'))
       writeFileSync(join(fixture, 'server', 'api', 'signed-target.get.ts'), [
@@ -568,6 +609,8 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
         '  const html = await fetch(`http://127.0.0.1:${port}/`).then(result => result.text())',
         '  if (!html.includes(\'Fetched with useHttp\')) throw new Error(\'useHttp SSR response was not rendered\')',
         '  if (!html.includes(\'Translated with $t for Laravelize\')) throw new Error(\'nuxt-i18n-micro SSR translation was not rendered\')',
+        '  const localized = await fetch(`http://127.0.0.1:${port}/api/localization?locale=es`).then(result => result.json())',
+        '  if (localized.locale !== \'es-ES\' || localized.contextLocale !== \'es-ES\' || localized.message !== \'Servidor hola, Ada\' || localized.fallback !== \'English fallback\') throw new Error(\'Packed server localization did not use generated locale assets\')',
         '} finally {',
         '  server.kill()',
         '  if (server.exitCode === null) await once(server, \'exit\')',
@@ -667,4 +710,14 @@ function verifyTarballBin(packageName, binPath) {
   if (!listing.includes(entry)) throw new Error(`${packageName} tarball is missing ${entry}`)
   const contents = execFileSync('tar', ['-xOf', tarball, entry], { encoding: 'utf8' })
   if (!contents.startsWith('#!/usr/bin/env node\n')) throw new Error(`${entry} is missing its Node shebang`)
+}
+
+function verifyTarballEntry(packageName, entryPath, expectedContents = []) {
+  const { version } = JSON.parse(readFileSync(resolve('packages', packageName, 'package.json'), 'utf8'))
+  const tarball = resolve(tarballDirectory, `nuxt-laravelize-${packageName}-${version}.tgz`)
+  const entry = `package/${entryPath}`
+  const listing = execFileSync('tar', ['-tf', tarball], { encoding: 'utf8' }).split('\n')
+  if (!listing.includes(entry)) throw new Error(`${packageName} tarball is missing ${entry}`)
+  const contents = execFileSync('tar', ['-xOf', tarball, entry], { encoding: 'utf8' })
+  for (const expected of expectedContents) if (!contents.includes(expected)) throw new Error(`${entry} is missing ${expected}`)
 }

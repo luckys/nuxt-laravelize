@@ -1,0 +1,5 @@
+{
+  "welcome": "Traducido con $t para {name}",
+  "server": { "greeting": "Hola, {name}" },
+  "apples": "Una manzana | {count} manzanas"
+}

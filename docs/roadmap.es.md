@@ -149,7 +149,7 @@ Los personal tokens estilo Sanctum y adapters OIDC externos deben preceder a un 
 
 ### Localizacion server
 
-La integracion i18n podria ampliarse con mensajes de validacion, pluralizacion y formato por locale, resolucion desde request, fallback y propagacion de locale por jobs, notifications, mail y metadata audit.
+Implementado: `ServerLocalization` solo-server, factories con request y sin event, reutilizacion de diccionarios/fallback/plural generados, formato Intl por locale, validacion estricta contra locales configurados, resolucion de request, propagacion por execution context y queue, y persistencia audit de primera clase. La documentacion de validation muestra como construir Standard Schema localizado. Quedan pendientes preferencias de destinatario, adapters de rendering y entrega encolada para notifications/mail, y adapters de validation especificos de vendors.
 
 ### Maintenance mode
 

@@ -7,6 +7,7 @@ export interface ExecutionContextSnapshot {
   readonly causationId?: string
   readonly actor?: Actor
   readonly tenantId?: string
+  readonly locale?: string
   readonly source: ExecutionSource
   readonly startedAt: string
   readonly traceId?: string
@@ -18,6 +19,7 @@ export type ExecutionContextInput = Omit<ExecutionContextSnapshot, 'version' | '
 const ID = /^\w[\w.:-]{0,127}$/
 const MAX_ATTRIBUTES = 16
 const MAX_ATTRIBUTE_LENGTH = 256
+const MAX_LOCALE_LENGTH = 35
 const uuid: IdFactory = () => globalThis.crypto.randomUUID()
 
 function text(value: unknown, field: string, max = 128): string {
@@ -26,6 +28,16 @@ function text(value: unknown, field: string, max = 128): string {
 }
 function optionalText(value: unknown, field: string): string | undefined {
   return value === undefined ? undefined : text(value, field)
+}
+function optionalLocale(value: unknown): string | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string' || value.length < 2 || value.length > MAX_LOCALE_LENGTH) throw new TypeError('Invalid execution context locale')
+  try {
+    return Intl.getCanonicalLocales(value)[0]
+  }
+  catch {
+    throw new TypeError('Invalid execution context locale')
+  }
 }
 
 export class ExecutionContext {
@@ -45,10 +57,11 @@ export class ExecutionContext {
     const source = Object.freeze({ type: input.source.type, ...(input.source.name ? { name: text(input.source.name, 'source.name') } : {}) })
     const actor = input.actor && Object.freeze({ type: input.actor.type, id: text(input.actor.id, 'actor.id') })
     if (actor && !['user', 'service', 'system'].includes(actor.type)) throw new TypeError('Invalid execution context actor.type')
+    const locale = optionalLocale(input.locale)
     const value: ExecutionContextSnapshot = {
       version: 1, executionId: text(input.executionId ?? idFactory(), 'executionId'), correlationId: text(input.correlationId ?? idFactory(), 'correlationId'),
       ...(optionalText(input.causationId, 'causationId') ? { causationId: input.causationId } : {}), ...(actor ? { actor } : {}),
-      ...(optionalText(input.tenantId, 'tenantId') ? { tenantId: input.tenantId } : {}), source, startedAt,
+      ...(optionalText(input.tenantId, 'tenantId') ? { tenantId: input.tenantId } : {}), ...(locale ? { locale } : {}), source, startedAt,
       ...(optionalText(input.traceId, 'traceId') ? { traceId: input.traceId } : {}), ...(optionalText(input.spanId, 'spanId') ? { spanId: input.spanId } : {}),
       ...(safeAttributes ? { attributes: Object.freeze(safeAttributes) } : {}),
     }
@@ -61,10 +74,10 @@ export class ExecutionContext {
   }
 
   snapshot(): ExecutionContextSnapshot { return structuredClone(this.#value) }
-  derive(input: Partial<Pick<ExecutionContextInput, 'actor' | 'tenantId' | 'source' | 'traceId' | 'spanId' | 'attributes'>> = {}, idFactory: IdFactory = uuid): ExecutionContext {
+  derive(input: Partial<Pick<ExecutionContextInput, 'actor' | 'tenantId' | 'locale' | 'source' | 'traceId' | 'spanId' | 'attributes'>> = {}, idFactory: IdFactory = uuid): ExecutionContext {
     return ExecutionContext.create({ ...this.#value, ...input, executionId: idFactory(), correlationId: this.#value.correlationId, causationId: this.#value.executionId, startedAt: undefined }, idFactory)
   }
 
-  enrich(input: Pick<ExecutionContextInput, 'actor' | 'tenantId'>): ExecutionContext { return ExecutionContext.create({ ...this.#value, ...input }) }
+  enrich(input: Partial<Pick<ExecutionContextInput, 'actor' | 'tenantId' | 'locale'>>): ExecutionContext { return ExecutionContext.create({ ...this.#value, ...input }) }
   withTrace(traceId: string, spanId: string): ExecutionContext { return ExecutionContext.create({ ...this.#value, traceId, spanId }) }
 }

@@ -1,3 +1,5 @@
 {
-  "welcome": "Translated with $t for {name}"
+  "welcome": "Translated with $t for {name}",
+  "server": { "greeting": "Hello, {name}", "fallbackOnly": "English fallback" },
+  "apples": "One apple | {count} apples"
 }
