@@ -49,7 +49,7 @@ export default defineNuxtModule<ModuleOptions>({
     extendPages((pages) => { assertNoPageCollision(pages, 'laravelize-dead-letter-operations', options.pagePath); pages.push({ name: 'laravelize-dead-letter-operations', path: options.pagePath, file: pageFile }) })
     const item = `${options.apiPath}/:source/:namespace/:deadLetterId`
     const routes = [
-      [`${options.apiPath}/bootstrap`, 'get', 'bootstrap.get'], [`${options.apiPath}`, 'get', 'list.get'], [item, 'get', 'detail.get'], [`${item}/payload`, 'get', 'payload.get'], [`${item}/retry`, 'post', 'retry.post'], [`${item}/discard`, 'post', 'discard.post'],
+      [`${options.apiPath}/bootstrap`, 'GET', 'bootstrap.get'], [`${options.apiPath}`, 'GET', 'list.get'], [item, 'GET', 'detail.get'], [`${item}/payload`, 'GET', 'payload.get'], [`${item}/retry`, 'POST', 'retry.post'], [`${item}/discard`, 'POST', 'discard.post'],
     ] as const
     const ownedHandlers = new Set<string>()
     for (const [route, method, file] of routes) { assertNoServerHandlerCollision(nuxt.options.serverHandlers, route, method); const handler = resolver.resolve(`./runtime/server/api/${file}.ts`); ownedHandlers.add(handler); addServerHandler({ route, method, handler }) }
