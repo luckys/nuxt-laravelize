@@ -303,6 +303,39 @@ For R2 use endpoint `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, region `aut
 
 Cloud object moves are copy-then-delete, not atomic. The source is deleted only after a successful destination write/copy. A later delete failure can leave both objects; retry or reconcile that state in application workflows that require exactly one copy. Same-path moves verify existence and perform no mutation.
 
+### Advanced filesystem capabilities
+
+Advanced behavior is optional and discovered with guards such as `isTemporaryUrlFilesystem()`, `isDirectUploadFilesystem()`, `isUploadConfirmationFilesystem()`, `isStreamFilesystem()`, and `isMultipartFilesystem()`. A false guard means unsupported; callers must not synthesize URLs or emulate security semantics.
+
+Create direct-upload authority with `createDirectUploadPolicy()`. Policies are frozen JSON values and require one normalized path inside `keyPrefix`, a positive `maxBytes`, MIME allowlist, actor, tenant, and an expiry no more than seven days away. Checksum remains optional in the portable contract for adapters with another immutable promotion mechanism, but S3 issuance requires exact SHA-256. S3 returns a presigned POST whose policy enforces `content-length-range` from zero through `maxBytes` plus exact key, selected MIME, actor/tenant metadata, and checksum conditions. Submit the returned form fields unchanged. After upload, call `confirmUpload(grant)` with the trusted server-held grant and continue only when provider size, selected MIME, metadata, and checksum match.
+
+```ts
+import { createDirectUploadPolicy, isDirectUploadFilesystem, isUploadConfirmationFilesystem } from '@nuxt-laravelize/filesystem/runtime'
+
+const policy = createDirectUploadPolicy({
+  path: `quarantine/${crypto.randomUUID()}`,
+  keyPrefix: 'quarantine',
+  maxBytes: bytes,
+  mimeTypes: ['application/pdf'],
+  checksum: { algorithm: 'sha256', value: sha256Hex },
+  actorId: user.id,
+  tenantId: tenant.id,
+  expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+})
+
+if (!isDirectUploadFilesystem(files) || !isUploadConfirmationFilesystem(files)) throw new Error('Direct upload is unsupported')
+const grant = await files.createDirectUpload({ policy, mimeType: 'application/pdf' })
+// Return the bearer grant only from an authenticated, authorized, rate-limited server endpoint.
+// Keep this trusted grant server-side; do not accept a serialized grant from the browser for confirmation.
+const confirmed = await files.confirmUpload(grant)
+```
+
+Actor and tenant form metadata are exact signed-policy correlation values, not authentication. Scoped wrappers bind issuance to the canonical scope audience and validate the exact returned prefix boundary. S3 confirmation atomically reserves the canonical record by random grant ID: concurrent attempts fail, provider and metadata/checksum failures release it for retry until expiry, and success atomically removes it, immediately releasing bounded capacity while replay remains rejected. The default store is process-local; a durable shared `S3UploadIssuanceStore` must implement atomic conditional `reserve`, `release`, and `complete` for restart-safe or multi-instance confirmation. The mandatory S3 checksum means a replayable POST can only replace the object with identical bytes and exact metadata. Confirmation is not content inspection, virus scanning, or authorization. Authenticate and authorize issuance independently, use unique private quarantine keys, scan/transform in an application queue or workflow, and release only the accepted object. Never log signed URLs or form fields. The R2 binding cannot sign and intentionally fails URL capability guards; use the S3-compatible adapter with server-only credentials.
+
+`scopedFilesystem(files, prefix)` applies confinement to both operands and every exposed optional capability. `readOnlyFilesystem(files)` rejects base mutations and omits optional mutation methods. `quarantineFilesystem()` provides explicit `disk`, `release()`, and `reject()` operations and performs no implicit scan. Mutable `ReadFallbackFilesystem(primary, fallback, tombstones)` requires an explicit async `FilesystemTombstoneStore`; production stores must be durable, shared, and namespaced to that logical disk pair. Tombstones are monotonic authoritative deletion history recorded before delete or move-source removal and are never automatically cleared. A present primary path is visible even when tombstoned; if that primary later disappears, stale fallback remains suppressed. Compaction is deliberately not a runtime API: administrators may compact only after verifying fallback deletion/retention, with explicit growth, retention, backup, and monitoring policy. `InMemoryFilesystemTombstoneStore` is process-local testing/development support, not a production default. Authorization, integrity, and other errors never trigger fallback.
+
+Streams pass native provider bodies when available. The R2 adapter converts async iterables to pull-based web streams without collecting the complete body. Multipart is an explicit `startMultipart` / `uploadPart` / `completeMultipart` / `abortMultipart` lifecycle and is currently implemented by S3. Keep upload IDs server-side and actor/tenant scoped, bound manifests and total bytes, always expose abort/recovery, and configure provider cleanup for abandoned parts.
+
 ## Core
 
 `@nuxt-laravelize/core` provides the dependency container, typed tokens, service providers, application lifecycle and logging. Feature modules install it automatically.

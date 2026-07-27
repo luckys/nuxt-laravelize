@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { LocalFilesystem } from '../../src/runtime/drivers/LocalFilesystem'
+import { isChecksumFilesystem, isStreamFilesystem, isVisibilityFilesystem } from '../../src/runtime/AdvancedFilesystem'
 
 const directories: string[] = []
 
@@ -41,5 +42,23 @@ describe('LocalFilesystem', () => {
     const filesystem = new LocalFilesystem(root)
 
     await expect(filesystem.write('linked/secret.txt', 'secret')).rejects.toThrow('symbolic links')
+  })
+
+  it('supports native streams, SHA-256 checksums and explicit visibility', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'laravelize-filesystem-'))
+    directories.push(root)
+    const filesystem = new LocalFilesystem(root)
+    expect(isStreamFilesystem(filesystem)).toBe(true)
+    expect(isChecksumFilesystem(filesystem)).toBe(true)
+    expect(isVisibilityFilesystem(filesystem)).toBe(true)
+    await filesystem.writeStream('a.txt', new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('alpha'))
+        controller.close()
+      },
+    }))
+    await expect(filesystem.checksum('a.txt')).resolves.toEqual({ algorithm: 'sha256', value: '8ed3f6ad685b959ead7022518e1af76cd816f8e8ec7ccdda1ed4018e8f2223f8' })
+    await filesystem.setVisibility('a.txt', 'private')
+    await expect(filesystem.visibility('a.txt')).resolves.toBe('private')
   })
 })

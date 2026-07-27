@@ -33,9 +33,15 @@ export class InMemoryFilesystem implements Filesystem {
   }
 
   async move(from: string, to: string): Promise<void> {
-    const contents = await this.read(from)
-    await this.write(to, contents)
-    await this.delete(from)
+    const source = normalizeStoragePath(from)
+    const target = normalizeStoragePath(to)
+    if (source === target) {
+      await this.read(source)
+      return
+    }
+    const contents = await this.read(source)
+    await this.write(target, contents)
+    await this.delete(source)
   }
 
   async list(prefix = ''): Promise<string[]> {

@@ -29,6 +29,15 @@ describe('InMemoryFilesystem', () => {
     await expect(filesystem.delete('archive/b.txt')).resolves.toBe(false)
   })
 
+  it('keeps an existing file when moving it to the same normalized path', async () => {
+    const filesystem = new InMemoryFilesystem()
+    await filesystem.write('reports/a.txt', 'alpha')
+
+    await filesystem.move('reports/a.txt', 'reports/a.txt')
+
+    await expect(filesystem.readText('reports/a.txt')).resolves.toBe('alpha')
+  })
+
   it('rejects traversal and reports missing files', async () => {
     const filesystem = new InMemoryFilesystem()
     await expect(filesystem.write('../secret', 'value')).rejects.toThrow('cannot traverse')

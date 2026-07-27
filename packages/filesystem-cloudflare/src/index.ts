@@ -1,13 +1,13 @@
-import type { FileContents, Filesystem } from '@nuxt-laravelize/filesystem/runtime'
+import type { FileContents, Filesystem, FilesystemStream } from '@nuxt-laravelize/filesystem/runtime'
 import { FileNotFoundError, normalizeStoragePath, toBytes } from '@nuxt-laravelize/filesystem/runtime'
 
-export interface R2ObjectBodyLike { arrayBuffer(): Promise<ArrayBuffer> }
+export interface R2ObjectBodyLike { arrayBuffer(): Promise<ArrayBuffer>, body?: ReadableStream<Uint8Array> }
 export interface R2ObjectLike { size: number }
 export interface R2ObjectsLike { objects: Array<R2ObjectLike & { key: string }>, truncated: boolean, cursor?: string }
 export interface R2BucketLike {
   get(key: string): Promise<R2ObjectBodyLike | null>
   head(key: string): Promise<R2ObjectLike | null>
-  put(key: string, value: Uint8Array): Promise<unknown>
+  put(key: string, value: Uint8Array | ReadableStream<Uint8Array>): Promise<unknown>
   delete(key: string): Promise<unknown>
   list(options?: { prefix?: string, cursor?: string, limit?: number }): Promise<R2ObjectsLike>
 }
@@ -80,6 +80,38 @@ export class CloudflareR2Filesystem implements Filesystem {
     return object.size
   }
 
+  async readStream(path: string): Promise<ReadableStream<Uint8Array>> {
+    const normalized = strictPath(path)
+    const object = await this.bucket.get(this.#key(normalized))
+    if (!object) throw new FileNotFoundError(normalized)
+    if (object.body) return object.body
+    const bytes = new Uint8Array(await object.arrayBuffer())
+    return new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes)
+        controller.close()
+      },
+    })
+  }
+
+  async writeStream(path: string, contents: FilesystemStream): Promise<void> {
+    const adapted = !(contents instanceof ReadableStream)
+    const adaptation = adapted ? adaptAsyncIterable(contents) : undefined
+    const stream = adaptation?.stream ?? contents as ReadableStream<Uint8Array>
+    try {
+      await this.bucket.put(this.#key(path), stream)
+    }
+    catch (error) {
+      if (adapted) {
+        try {
+          await adaptation!.finalize()
+        }
+        catch { /* preserve the provider error */ }
+      }
+      throw error
+    }
+  }
+
   #key(path: string, allowEmpty = false): string {
     const value = strictPath(path, allowEmpty)
     return this.#prefix ? (value ? `${this.#prefix}/${value}` : `${this.#prefix}/`) : value
@@ -100,4 +132,38 @@ function strictPath(path: string, allowEmpty = false): string {
 function positiveInteger(value: number, name: string): number {
   if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer.`)
   return value
+}
+
+function adaptAsyncIterable(contents: AsyncIterable<Uint8Array>): { stream: ReadableStream<Uint8Array>, finalize(): Promise<void> } {
+  const iterator = contents[Symbol.asyncIterator]()
+  let finalized = false
+  const finalize = async () => {
+    if (finalized) return
+    finalized = true
+    await iterator.return?.()
+  }
+  const stream = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const result = await iterator.next()
+        if (result.done) {
+          finalized = true
+          controller.close()
+        }
+        else if (result.value instanceof Uint8Array) controller.enqueue(result.value)
+        else throw new TypeError('Filesystem streams must yield Uint8Array chunks.')
+      }
+      catch (error) {
+        try {
+          await finalize()
+        }
+        catch { /* preserve the source error */ }
+        controller.error(error)
+      }
+    },
+    async cancel() {
+      await finalize()
+    },
+  })
+  return { stream, finalize }
 }

@@ -129,7 +129,9 @@ La capa browser proporcionaria composables Vue SSR-safe para canales publicos, p
 
 ### Filesystem avanzado
 
-Los adapters podrian añadir URLs temporales, uploads directos restringidos, visibility, checksums, streams, multipart, discos scoped/read-only, cuarentena y failover. Las politicas de upload deben ligar tamaño, MIME, checksum, prefijo, actor, tenant y expiracion. Queue o workflows pueden escanear y transformar tras confirmar el upload.
+Entregado en los contratos portables y adapters opt-in: guards de capacidades fail-closed, politicas inmutables de upload restringido y confirmacion, discos scoped/read-only, release/reject explicito de cuarentena, fallback de lectura con escrituras solo al primario y contratos de streams/multipart. El adapter S3 proporciona URLs SigV4 GET temporales y uploads POST prefirmados con rangos reales de tamaño y condiciones exactas de MIME/metadata/checksum, confirmacion de metadata, visibility, checksums SHA-256, bodies nativos y lifecycle multipart explicito. El adapter local proporciona streams, checksums y visibility; el binding R2 proporciona streams pero no declara signing ni capacidades que no pueda garantizar.
+
+El escaneo antivirus y las transformaciones siguen siendo responsabilidad de queues/workflows de la aplicacion tras confirmar; no se declara ningun scanner. El estado durable de emision, la proteccion de carreras mediante versiones inmutables, la configuracion lifecycle del provider y la verificacion de replicas siguen siendo infraestructura de aplicacion/provider, no semantica portable simulada.
 
 ### Mejoras de factories
 

@@ -129,7 +129,9 @@ The browser layer would provide SSR-safe Vue composables for public, private, an
 
 ### Advanced filesystem capabilities
 
-Filesystem adapters could add temporary download URLs, constrained direct-upload URLs, visibility, checksums, streams, multipart uploads, scoped/read-only disks, quarantine flows, and failover. Upload policies must bind size, MIME type, checksum, key prefix, actor, tenant, and expiry. Queue or workflow processing can perform scanning and transformation after upload confirmation.
+Delivered in the portable filesystem contracts and opt-in adapters: fail-closed capability guards, immutable constrained upload policies and confirmation, scoped/read-only disks, explicit quarantine release/reject, primary-write/read-fallback behavior, and stream/multipart contracts. The S3 adapter provides SigV4 temporary GET URLs and constrained presigned POST uploads with real content-length ranges, exact MIME/metadata/checksum conditions, metadata confirmation, visibility, SHA-256 checksums, native bodies, and explicit multipart lifecycle. The local adapter provides streams, checksums, and visibility; the R2 binding adapter provides streams but intentionally does not claim signing or other unsupported capabilities.
+
+Virus scanning and transformation remain application queue/workflow responsibilities after confirmation; no scanner is claimed. Durable upload issuance/state, immutable-version race protection, provider lifecycle configuration, and replica verification remain provider/application infrastructure rather than fabricated portable behavior.
 
 ### Database factory improvements
 
