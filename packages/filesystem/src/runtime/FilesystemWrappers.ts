@@ -124,7 +124,10 @@ export class ReadFallbackFilesystem implements Filesystem {
   async exists(path: string): Promise<boolean> {
     const normalized = normalizeStoragePath(path)
     if (await this.#primary.exists(normalized)) return true
-    return !await this.#tombstones.has(normalized) && await this.#fallback.exists(normalized)
+    if (await this.#tombstones.has(normalized)) return false
+    const exists = await this.#fallback.exists(normalized)
+    if (await this.#primary.exists(normalized)) return true
+    return exists && !await this.#tombstones.has(normalized)
   }
 
   async delete(path: string): Promise<boolean> {
@@ -145,8 +148,13 @@ export class ReadFallbackFilesystem implements Filesystem {
   async move(from: string, to: string): Promise<void> {
     const source = normalizeStoragePath(from)
     const target = normalizeStoragePath(to)
-    if (source !== target) await this.#tombstones.record(source)
-    await this.#primary.move(source, target)
+    if (source === target) {
+      await this.#primary.move(source, target)
+      return
+    }
+    await this.#primary.copy(source, target)
+    await this.#tombstones.record(source)
+    await this.#primary.delete(source)
   }
 
   async list(prefix?: string): Promise<string[]> {
@@ -171,7 +179,16 @@ export class ReadFallbackFilesystem implements Filesystem {
     catch (error) {
       if (!(error instanceof FileNotFoundError)) throw error
       if (await this.#tombstones.has(path)) throw error
-      return await operation(this.#fallback)
+      const result = await operation(this.#fallback)
+      if (await this.#tombstones.has(path)) throw error
+      try {
+        return await operation(this.#primary)
+      }
+      catch (replacementError) {
+        if (!(replacementError instanceof FileNotFoundError)) throw replacementError
+        if (await this.#tombstones.has(path)) throw error
+        return result
+      }
     }
   }
 }
@@ -198,23 +215,54 @@ export class InMemoryFilesystemTombstoneStore implements FilesystemTombstoneStor
 
 export interface Quarantine {
   readonly disk: Filesystem
-  release(path: string, destination: Filesystem, destinationPath?: string): Promise<void>
+  release(evidence: QuarantineReleaseEvidence, destination: Filesystem, destinationPath?: string): Promise<void>
   reject(path: string): Promise<boolean>
+}
+
+export interface QuarantineReleaseEvidence {
+  readonly accepted: true
+  readonly path: string
+  readonly checksum: {
+    readonly algorithm: 'sha256'
+    readonly value: string
+  }
 }
 
 export function quarantineFilesystem(base: Filesystem, prefix = 'quarantine'): Quarantine {
   const disk = scopedFilesystem(base, prefix)
   return Object.freeze({
     disk,
-    async release(path: string, destination: Filesystem, destinationPath = path) {
-      const source = strictPath(path)
-      const target = strictPath(destinationPath)
-      if (isStreamFilesystem(disk) && isStreamFilesystem(destination)) await destination.writeStream(target, await disk.readStream(source))
-      else await destination.write(target, await disk.read(source))
-      await disk.delete(source)
+    async release(evidence: QuarantineReleaseEvidence, destination: Filesystem, destinationPath?: string) {
+      if (!evidence || evidence.accepted !== true) throw new Error('Quarantine release requires accepted scan evidence.')
+      const source = strictPath(evidence.path)
+      const target = strictPath(destinationPath ?? source)
+      const expected = decodeSha256(evidence.checksum)
+      const snapshot = Uint8Array.from(await disk.read(source))
+      const actual = await sha256(snapshot)
+      if (!constantTimeEqual(actual, expected)) throw new Error('Quarantine release checksum does not match the accepted scan evidence.')
+      await destination.write(target, snapshot)
     },
     reject: (path: string) => disk.delete(strictPath(path)),
   })
+}
+
+async function sha256(contents: Uint8Array): Promise<Uint8Array> {
+  if (!globalThis.crypto?.subtle) throw new Error('SHA-256 is unavailable.')
+  return new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', Uint8Array.from(contents).buffer))
+}
+
+function decodeSha256(checksum: QuarantineReleaseEvidence['checksum'] | undefined): Uint8Array {
+  if (!checksum || checksum.algorithm !== 'sha256' || !/^[a-f\d]{64}$/i.test(checksum.value)) {
+    throw new Error('Quarantine release evidence requires an exact SHA-256 hex digest.')
+  }
+  return Uint8Array.from(checksum.value.match(/.{2}/g)!, pair => Number.parseInt(pair, 16))
+}
+
+function constantTimeEqual(actual: Uint8Array, expected: Uint8Array): boolean {
+  let difference = actual.byteLength ^ expected.byteLength
+  const length = Math.max(actual.byteLength, expected.byteLength)
+  for (let index = 0; index < length; index++) difference |= (actual[index] ?? 0) ^ (expected[index] ?? 0)
+  return difference === 0
 }
 
 function scopePolicy(policy: DirectUploadPolicy, scope: string): DirectUploadPolicy {

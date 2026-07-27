@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   FilesystemCapabilityError,
+  FileNotFoundError,
   InMemoryFilesystemTombstoneStore,
   createDirectUploadPolicy,
   isDirectUploadFilesystem,
@@ -14,6 +15,25 @@ import {
   scopedFilesystem,
 } from '../../src/runtime'
 import { InMemoryFilesystem } from '../../src/runtime/InMemoryFilesystem'
+
+function deferred() {
+  let resolve!: () => void
+  const promise = new Promise<void>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function invokeInMemoryRead(method: 'read' | 'readText' | 'size', disk: InMemoryFilesystem, path: string) {
+  if (method === 'read') return InMemoryFilesystem.prototype.read.call(disk, path)
+  if (method === 'readText') return InMemoryFilesystem.prototype.readText.call(disk, path)
+  return InMemoryFilesystem.prototype.size.call(disk, path)
+}
 
 describe('advanced filesystem contracts', () => {
   it('creates an immutable, serializable and fully bound direct-upload policy', () => {
@@ -131,6 +151,117 @@ describe('advanced filesystem contracts', () => {
     await expect(disk.readText('copy.txt')).resolves.toBe('fresh copy')
   })
 
+  it.each([
+    ['read', (disk: ReadFallbackFilesystem) => disk.read('legacy.txt')],
+    ['readText', (disk: ReadFallbackFilesystem) => disk.readText('legacy.txt')],
+    ['size', (disk: ReadFallbackFilesystem) => disk.size('legacy.txt')],
+  ] as const)('rejects a fallback %s result when deletion commits while fallback is blocked', async (method, invoke) => {
+    const primaryError = new FileNotFoundError('legacy.txt')
+    const primary = Object.assign(new InMemoryFilesystem(), {
+      [method]: async () => { throw primaryError },
+    })
+    const storedFallback = new InMemoryFilesystem()
+    await storedFallback.write('legacy.txt', 'legacy')
+    const fallbackStarted = deferred()
+    const finishFallback = deferred()
+    const fallback = Object.assign(storedFallback, {
+      [method]: async (path: string) => {
+        fallbackStarted.resolve()
+        await finishFallback.promise
+        return await invokeInMemoryRead(method, storedFallback, path)
+      },
+    })
+    const tombstones = new InMemoryFilesystemTombstoneStore()
+    const reading = new ReadFallbackFilesystem(primary, fallback, tombstones)
+    const deleting = new ReadFallbackFilesystem(primary, fallback, tombstones)
+
+    const result = invoke(reading)
+    await fallbackStarted.promise
+    await deleting.delete('legacy.txt')
+    finishFallback.resolve()
+
+    await expect(result).rejects.toBe(primaryError)
+  })
+
+  it('returns false when deletion commits while fallback exists is blocked', async () => {
+    const primary = new InMemoryFilesystem()
+    const storedFallback = new InMemoryFilesystem()
+    await storedFallback.write('legacy.txt', 'legacy')
+    const fallbackStarted = deferred()
+    const finishFallback = deferred()
+    let existsCalls = 0
+    const fallback = Object.assign(storedFallback, {
+      async exists(path: string) {
+        existsCalls++
+        if (existsCalls === 1) {
+          fallbackStarted.resolve()
+          await finishFallback.promise
+        }
+        return await InMemoryFilesystem.prototype.exists.call(storedFallback, path)
+      },
+    })
+    const tombstones = new InMemoryFilesystemTombstoneStore()
+    const reading = new ReadFallbackFilesystem(primary, fallback, tombstones)
+    const deleting = new ReadFallbackFilesystem(primary, fallback, tombstones)
+
+    const result = reading.exists('legacy.txt')
+    await fallbackStarted.promise
+    await deleting.delete('legacy.txt')
+    finishFallback.resolve()
+
+    await expect(result).resolves.toBe(false)
+  })
+
+  it.each(['read', 'readText', 'size'] as const)('prefers a primary replacement created while fallback %s is blocked', async (method) => {
+    const primary = new InMemoryFilesystem()
+    const storedFallback = new InMemoryFilesystem()
+    await storedFallback.write('legacy.txt', 'old')
+    const fallbackStarted = deferred()
+    const finishFallback = deferred()
+    const fallback = Object.assign(storedFallback, {
+      [method]: async (path: string) => {
+        fallbackStarted.resolve()
+        await finishFallback.promise
+        return await invokeInMemoryRead(method, storedFallback, path)
+      },
+    })
+    const disk = new ReadFallbackFilesystem(primary, fallback, new InMemoryFilesystemTombstoneStore())
+
+    const result = method === 'read'
+      ? disk.read('legacy.txt')
+      : method === 'readText'
+        ? disk.readText('legacy.txt')
+        : disk.size('legacy.txt')
+    await fallbackStarted.promise
+    await primary.write('legacy.txt', 'replacement')
+    finishFallback.resolve()
+
+    const value = await result
+    expect(value instanceof Uint8Array ? new TextDecoder().decode(value) : value).toBe(method === 'size' ? 11 : 'replacement')
+  })
+
+  it('observes a primary replacement created while fallback exists is blocked', async () => {
+    const primary = new InMemoryFilesystem()
+    const storedFallback = new InMemoryFilesystem()
+    const fallbackStarted = deferred()
+    const finishFallback = deferred()
+    const fallback = Object.assign(storedFallback, {
+      async exists(path: string) {
+        fallbackStarted.resolve()
+        await finishFallback.promise
+        return await InMemoryFilesystem.prototype.exists.call(storedFallback, path)
+      },
+    })
+    const disk = new ReadFallbackFilesystem(primary, fallback, new InMemoryFilesystemTombstoneStore())
+
+    const result = disk.exists('legacy.txt')
+    await fallbackStarted.promise
+    await primary.write('legacy.txt', 'replacement')
+    finishFallback.resolve()
+
+    await expect(result).resolves.toBe(true)
+  })
+
   it('tombstones move sources and preserves tombstones through scopes', async () => {
     const primary = new InMemoryFilesystem()
     const fallback = new InMemoryFilesystem()
@@ -147,16 +278,127 @@ describe('advanced filesystem contracts', () => {
     await expect(disk.list()).resolves.toEqual(['archive.txt'])
   })
 
-  it('keeps quarantine explicit and releases only after destination succeeds', async () => {
+  it('does not tombstone or mutate a fallback-only move source', async () => {
+    const primary = new InMemoryFilesystem()
+    const fallback = new InMemoryFilesystem()
+    const tombstones = new InMemoryFilesystemTombstoneStore()
+    await fallback.write('source.txt', 'legacy')
+    const disk = new ReadFallbackFilesystem(primary, fallback, tombstones)
+
+    await expect(disk.move('source.txt', 'destination.txt')).rejects.toMatchObject({ name: 'FileNotFoundError' })
+
+    await expect(tombstones.has('source.txt')).resolves.toBe(false)
+    await expect(disk.readText('source.txt')).resolves.toBe('legacy')
+    await expect(disk.exists('destination.txt')).resolves.toBe(false)
+  })
+
+  it('leaves a move source visible and untombstoned when destination creation fails', async () => {
+    const stored = new InMemoryFilesystem()
+    await stored.write('source.txt', 'current')
+    const primary = Object.assign(stored, {
+      async copy() {
+        throw new Error('destination unavailable')
+      },
+    })
+    const tombstones = new InMemoryFilesystemTombstoneStore()
+    const disk = new ReadFallbackFilesystem(primary, new InMemoryFilesystem(), tombstones)
+
+    await expect(disk.move('source.txt', 'destination.txt')).rejects.toThrow('destination unavailable')
+
+    await expect(tombstones.has('source.txt')).resolves.toBe(false)
+    await expect(disk.readText('source.txt')).resolves.toBe('current')
+    await expect(disk.exists('destination.txt')).resolves.toBe(false)
+  })
+
+  it('treats a same-path move as an existence check without recording a tombstone', async () => {
+    const primary = new InMemoryFilesystem()
+    const tombstones = new InMemoryFilesystemTombstoneStore()
+    await primary.write('source.txt', 'current')
+    const disk = new ReadFallbackFilesystem(primary, new InMemoryFilesystem(), tombstones)
+
+    await disk.move('source.txt', 'source.txt')
+
+    await expect(tombstones.has('source.txt')).resolves.toBe(false)
+    await expect(disk.readText('source.txt')).resolves.toBe('current')
+  })
+
+  it('releases only the exact accepted quarantine snapshot', async () => {
     const base = new InMemoryFilesystem()
     const quarantine = quarantineFilesystem(base)
     const destination = new InMemoryFilesystem()
     await quarantine.disk.write('upload.bin', 'safe')
 
-    await quarantine.release('upload.bin', destination, 'accepted/upload.bin')
+    await quarantine.release({
+      accepted: true,
+      path: 'upload.bin',
+      checksum: { algorithm: 'sha256', value: await sha256('safe') },
+    }, destination, 'accepted/upload.bin')
 
     await expect(destination.readText('accepted/upload.bin')).resolves.toBe('safe')
-    await expect(quarantine.disk.exists('upload.bin')).resolves.toBe(false)
+    await expect(quarantine.disk.readText('upload.bin')).resolves.toBe('safe')
+  })
+
+  it('rejects mismatched quarantine evidence and retains the source', async () => {
+    const quarantine = quarantineFilesystem(new InMemoryFilesystem())
+    const destination = new InMemoryFilesystem()
+    await quarantine.disk.write('upload.bin', 'unscanned')
+
+    await expect(quarantine.release({
+      accepted: true,
+      path: 'upload.bin',
+      checksum: { algorithm: 'sha256', value: await sha256('accepted') },
+    }, destination)).rejects.toThrow('checksum')
+
+    await expect(quarantine.disk.readText('upload.bin')).resolves.toBe('unscanned')
+    await expect(destination.exists('upload.bin')).resolves.toBe(false)
+  })
+
+  it('does not promote an unscanned replacement after reading the accepted snapshot', async () => {
+    const stored = new InMemoryFilesystem()
+    const readStarted = deferred()
+    const finishRead = deferred()
+    const base = Object.assign(stored, {
+      async read(path: string) {
+        const snapshot = await InMemoryFilesystem.prototype.read.call(stored, path)
+        readStarted.resolve()
+        await finishRead.promise
+        return snapshot
+      },
+    })
+    const quarantine = quarantineFilesystem(base)
+    const destination = new InMemoryFilesystem()
+    await quarantine.disk.write('upload.bin', 'accepted')
+
+    const release = quarantine.release({
+      accepted: true,
+      path: 'upload.bin',
+      checksum: { algorithm: 'sha256', value: await sha256('accepted') },
+    }, destination)
+    await readStarted.promise
+    await InMemoryFilesystem.prototype.write.call(stored, 'quarantine/upload.bin', 'unscanned replacement')
+    finishRead.resolve()
+    await release
+
+    await expect(destination.readText('upload.bin')).resolves.toBe('accepted')
+    await expect(quarantine.disk.readText('upload.bin')).resolves.toBe('unscanned replacement')
+  })
+
+  it('retains a verified quarantine source when the destination write fails', async () => {
+    const quarantine = quarantineFilesystem(new InMemoryFilesystem())
+    const destination = Object.assign(new InMemoryFilesystem(), {
+      async write() {
+        throw new Error('destination unavailable')
+      },
+    })
+    await quarantine.disk.write('upload.bin', 'accepted')
+
+    await expect(quarantine.release({
+      accepted: true,
+      path: 'upload.bin',
+      checksum: { algorithm: 'sha256', value: await sha256('accepted') },
+    }, destination)).rejects.toThrow('destination unavailable')
+
+    await expect(quarantine.disk.readText('upload.bin')).resolves.toBe('accepted')
   })
 
   it('shares durable-style tombstones across recreated fallback wrappers', async () => {
