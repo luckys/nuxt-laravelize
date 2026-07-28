@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { defineSchedule, type ScheduledTask } from '@nuxt-laravelize/scheduler'
-import { createGeneratedSchedulerTask, createSchedulerRunner, ProcessLocalLockProvider, SchedulerLockCapabilityError, SchedulerLockLostError, type SchedulerLockProvider } from '../src/runtime'
+import { createGeneratedSchedulerTask, createSchedulerRunner, ProcessLocalLockProvider, runScheduledTaskIfDue, ScheduledMinuteGuard, SchedulerLockCapabilityError, SchedulerLockLostError, type SchedulerLockProvider, type SchedulerRunner } from '../src/runtime'
 
 const taskFrom = (declare: Parameters<typeof defineSchedule>[0]): ScheduledTask => defineSchedule(declare).all()[0]!
 
@@ -65,13 +65,72 @@ describe('scheduler execution runner', () => {
     const pending = new Promise<void>((resolve) => {
       finish = resolve
     })
-    const runner = createSchedulerRunner({ operations: { slow: { execute: () => pending } }, locks })
+    const runner = createSchedulerRunner({ operations: { slow: { execute: () => pending } }, locks, namespace: 'tests' })
     const task = taskFrom(schedule => schedule.task('slow').hourly().withoutOverlapping(1))
     const first = runner.run(task)
     await expect(runner.run(task)).resolves.toEqual({ status: 'skipped', reason: 'locked' })
     finish()
     await first
     expect(release).toHaveBeenCalledOnce()
+  })
+
+  it('claims one-server work once per scheduled occurrence across sequential replicas', async () => {
+    const claims = new Set<string>()
+    const locks: SchedulerLockProvider = {
+      capabilities: { distributed: true },
+      acquire: vi.fn(),
+      claim: (key) => {
+        if (claims.has(key)) return null
+        claims.add(key)
+        let completed = false
+        return {
+          complete: () => { completed = true },
+          release: () => { if (!completed) claims.delete(key) },
+        }
+      },
+    }
+    const execute = vi.fn(async () => 'done')
+    const task = taskFrom(schedule => schedule.task('singleton').everyMinute().onOneServer())
+    const scheduledTime = Date.parse('2026-07-28T10:15:30Z')
+
+    await expect(createSchedulerRunner({ operations: { singleton: { execute } }, locks, namespace: 'tests' }).run(task, {}, { scheduledTime })).resolves.toEqual({ status: 'completed', result: 'done' })
+    await expect(createSchedulerRunner({ operations: { singleton: { execute } }, locks, namespace: 'tests' }).run(task, {}, { scheduledTime })).resolves.toEqual({ status: 'skipped', reason: 'locked' })
+    await expect(createSchedulerRunner({ operations: { singleton: { execute } }, locks, namespace: 'tests' }).run(task, {}, { scheduledTime: scheduledTime + 60_000 })).resolves.toEqual({ status: 'completed', result: 'done' })
+    expect(execute).toHaveBeenCalledTimes(2)
+    expect(locks.acquire).not.toHaveBeenCalled()
+  })
+
+  it('releases failed one-server claims for retry and retains successful claims', async () => {
+    const claims = new Set<string>()
+    const release = vi.fn((key: string) => claims.delete(key))
+    const locks: SchedulerLockProvider = {
+      capabilities: { distributed: true },
+      acquire: vi.fn(),
+      claim: (key) => {
+        if (claims.has(key)) return null
+        claims.add(key)
+        let completed = false
+        return {
+          complete: () => { completed = true },
+          release: () => { if (!completed) release(key) },
+        }
+      },
+    }
+    const execute = vi.fn().mockRejectedValueOnce(new Error('transient')).mockResolvedValueOnce('done')
+    const runner = createSchedulerRunner({ operations: { retryable: { execute } }, locks, namespace: 'app-production' })
+    const task = taskFrom(schedule => schedule.task('retryable').everyMinute().onOneServer())
+    const scheduledTime = Date.parse('2026-07-28T10:15:30Z')
+
+    await expect(runner.run(task, {}, { scheduledTime })).rejects.toThrow('transient')
+    await expect(runner.run(task, {}, { scheduledTime })).resolves.toEqual({ status: 'completed', result: 'done' })
+    await expect(runner.run(task, {}, { scheduledTime })).resolves.toEqual({ status: 'skipped', reason: 'locked' })
+    expect(release).toHaveBeenCalledOnce()
+  })
+
+  it('requires a stable namespace for every lock-backed task', async () => {
+    const locks: SchedulerLockProvider = { capabilities: { distributed: false }, acquire: () => ({ release: vi.fn() }) }
+    const task = taskFrom(schedule => schedule.task('locked').hourly().withoutOverlapping())
+    await expect(createSchedulerRunner({ operations: { locked: { execute: vi.fn() } }, locks }).run(task)).rejects.toThrow(/stable.*namespace/i)
   })
 
   it('expires process-local locks using an injectable clock without stale lease release', () => {
@@ -104,6 +163,61 @@ describe('scheduler execution runner', () => {
     await expect(generated.run({ name: 'zoned', payload: nitroPayload })).resolves.toEqual({ result: { status: 'completed', result: 'ran' } })
     expect(execute).toHaveBeenCalledTimes(2)
     expect(createScope).toHaveBeenCalledTimes(2)
+  })
+
+  it('allows same-minute retries after scope or handler failures', async () => {
+    const scheduledTime = Date.parse('2026-07-28T10:15:30Z')
+    const task = taskFrom(schedule => schedule.task('retryable').everyMinute())
+    const execute = vi.fn()
+      .mockRejectedValueOnce(new Error('handler failed'))
+      .mockResolvedValueOnce('done')
+    const createScope = vi.fn()
+      .mockRejectedValueOnce(new Error('scope failed'))
+      .mockResolvedValue({ runner: createSchedulerRunner({ operations: { retryable: { execute } } }) })
+    const generated = createGeneratedSchedulerTask(task, { createScope }, { clock: () => scheduledTime })
+
+    await expect(generated.run({ name: 'retryable' })).rejects.toThrow('scope failed')
+    await expect(generated.run({ name: 'retryable' })).rejects.toThrow('handler failed')
+    await expect(generated.run({ name: 'retryable' })).resolves.toEqual({ result: { status: 'completed', result: 'done' } })
+    await expect(generated.run({ name: 'retryable' })).resolves.toEqual({ result: { status: 'skipped', reason: 'duplicate-minute' } })
+  })
+
+  it('keeps lock skips retryable in generated and direct minute guards', async () => {
+    const scheduledTime = Date.parse('2026-07-28T10:15:30Z')
+    const task = taskFrom(schedule => schedule.task('contended').everyMinute())
+    const run = vi.fn()
+      .mockResolvedValueOnce({ status: 'skipped', reason: 'locked' })
+      .mockResolvedValueOnce({ status: 'completed', result: 'done' })
+    const runner: SchedulerRunner = { run }
+    const generated = createGeneratedSchedulerTask(task, { createScope: () => ({ runner }) }, { clock: () => scheduledTime })
+
+    await expect(generated.run({ name: 'contended' })).resolves.toEqual({ result: { status: 'skipped', reason: 'locked' } })
+    await expect(generated.run({ name: 'contended' })).resolves.toEqual({ result: { status: 'completed', result: 'done' } })
+
+    const directRun = vi.fn()
+      .mockResolvedValueOnce({ status: 'skipped', reason: 'locked' })
+      .mockResolvedValueOnce({ status: 'completed', result: 'done' })
+    const direct: SchedulerRunner = { run: directRun }
+    const guard = new ScheduledMinuteGuard()
+    await expect(runScheduledTaskIfDue(task, direct, scheduledTime, guard)).resolves.toEqual({ status: 'skipped', reason: 'locked' })
+    await expect(runScheduledTaskIfDue(task, direct, scheduledTime, guard)).resolves.toEqual({ status: 'completed', result: 'done' })
+  })
+
+  it('releases failed claims before overlap leases', async () => {
+    const cleanup: string[] = []
+    const task = taskFrom(schedule => schedule.task('ordered').hourly().onOneServer().withoutOverlapping())
+    const runner = createSchedulerRunner({
+      operations: { ordered: { execute: () => { throw new Error('failed') } } },
+      namespace: 'tests',
+      locks: {
+        capabilities: { distributed: true },
+        acquire: () => ({ release: () => { cleanup.push('overlap') } }),
+        claim: () => ({ complete: vi.fn(), release: () => { cleanup.push('claim') } }),
+      },
+    })
+
+    await expect(runner.run(task)).rejects.toThrow('failed')
+    expect(cleanup).toEqual(['claim', 'overlap'])
   })
 
   it('strips stale Nitro timing metadata while retaining deliberate application payload', async () => {
@@ -151,6 +265,7 @@ describe('scheduler execution runner', () => {
           release: () => { throw releaseError },
         }),
       },
+      namespace: 'tests',
     })
     const error: unknown = await runner.run(task).then(() => undefined, value => value)
     expect(error).toBeInstanceOf(AggregateError)

@@ -4,3 +4,4 @@ export { JobRunner, type JobExecutionDescriptor, type JobExecutionMiddleware, ty
 export type { FailedJobCallback, FailedJobInfo, JobHandle, PushOptions, Queue } from './Queue'
 export { InMemoryQueue } from './InMemoryQueue'
 export { jobMetadataContributorsToken, jobRegistryToken, jobRunnerToken, jobSerializerToken, queueToken } from './tokens'
+export { NonRetryableJobError, isNonRetryableJobError } from './NonRetryableJobError'

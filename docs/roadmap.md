@@ -105,9 +105,9 @@ The queue contract could add sequential chains, durable batches with progress/ca
 
 ### Notification delivery ecosystem
 
-Candidate packages include `notifications-mail`, `notifications-queue`, `notifications-database`, `notifications-broadcast`, `notifications-webhook`, and later SMS, push, and Slack/Teams adapters.
+Delivered: opt-in `notifications-mail` and `notifications-queue` bridges with bounded mail rendering, explicit payload codecs, opaque recipient references, worker-side recipient/preference/locale reload, trusted tenant checks, terminal malformed-version handling, and durable inbox deduplication.
 
-The implementation should support channel-specific rendering, queued delivery, per-channel delays, localization, user preferences, read/unread records, delivery/failure events, retries, dead letters, and testing assertions. Queued notification payloads require explicit serialization versions.
+Remaining candidates include `notifications-database`, `notifications-broadcast`, `notifications-webhook`, per-channel delays, read/unread records, delivery/failure events, richer assertions, and later SMS, push, and Slack/Teams adapters. Queue dead letters currently belong to the configured queue backend; delivery remains at-least-once at external provider boundaries.
 
 ### Precognition
 
@@ -131,7 +131,7 @@ The browser layer would provide SSR-safe Vue composables for public, private, an
 
 Delivered in the portable filesystem contracts and opt-in adapters: fail-closed capability guards, immutable constrained upload policies and confirmation, scoped/read-only disks, explicit quarantine release/reject, primary-write/read-fallback behavior, and stream/multipart contracts. The S3 adapter provides SigV4 temporary GET URLs and constrained presigned POST uploads with real content-length ranges, exact MIME/metadata/checksum conditions, metadata confirmation, visibility, SHA-256 checksums, native bodies, and explicit multipart lifecycle. The local adapter provides streams, checksums, and visibility; the R2 binding adapter provides streams but intentionally does not claim signing or other unsupported capabilities.
 
-Virus scanning and transformation remain application queue/workflow responsibilities after confirmation; no scanner is claimed. Durable upload issuance/state, immutable-version race protection, provider lifecycle configuration, and replica verification remain provider/application infrastructure rather than fabricated portable behavior.
+Virus scanning and transformation remain application queue/workflow responsibilities after confirmation; no scanner is claimed. A Redis/Valkey issuance adapter now provides atomic shared confirmation state, while failover durability, immutable-version race protection, provider lifecycle configuration, and replica verification remain provider/application infrastructure rather than fabricated portable behavior.
 
 ### Database factory improvements
 
@@ -172,7 +172,7 @@ The following smaller additions can provide value before the larger packages:
 1. A `doctor` command for configuration, adapter, migration, worker, and historical workflow checks.
 2. A privacy-bounded `audit-http` bridge for route, outcome, duration, and authorization decisions.
 3. Bounded bulk actions in dead-letter operations.
-4. Mail and queue notification bridges.
+4. Database/broadcast/webhook notification channels and delivery events; mail and queue bridges are delivered.
 5. `WithoutOverlapping` and `RateLimited` job middleware.
 6. Temporary URLs for S3 and R2.
 7. Maintenance mode backed by a shared store.

@@ -201,6 +201,23 @@ describe('AwsS3Filesystem', () => {
     expect(send).not.toHaveBeenCalled()
   })
 
+  it('fails confirmation when its reservation expires while HeadObject is pending', async () => {
+    const issuedAt = Date.now()
+    let now = issuedAt
+    const issuanceStore = new InMemoryS3UploadIssuanceStore(10, () => now)
+    const policy = createDirectUploadPolicy({ path: 'uploads/a', keyPrefix: 'uploads', maxBytes: 10, mimeTypes: ['text/plain'], checksum: { algorithm: 'sha256', value: 'ab'.repeat(32) }, actorId: 'a', tenantId: 't', expiresAt: new Date(issuedAt + 60_000).toISOString() })
+    const send = vi.fn(async () => {
+      now = issuedAt + 60_001
+      return { ContentLength: 10, ContentType: 'text/plain', ChecksumSHA256: 'q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s=', Metadata: { actorid: 'a', tenantid: 't' } }
+    })
+    const filesystem = new AwsS3Filesystem({ bucket: 'files', client: { send }, postSigner: { create: vi.fn(async () => ({ url: 'https://example.test', fields: {} })) }, issuanceStore })
+    if (!isDirectUploadFilesystem(filesystem)) throw new Error('Expected direct upload capability.')
+    const grant = await filesystem.createDirectUpload({ policy, mimeType: 'text/plain' })
+
+    await expect(filesystem.confirmUpload(grant)).rejects.toThrow('no longer active')
+    await expect(filesystem.confirmUpload(grant)).rejects.toThrow('expired')
+  })
+
   it('releases issuance capacity immediately after confirmation', async () => {
     const issuanceStore = new InMemoryS3UploadIssuanceStore(1)
     const metadata = { ContentLength: 10, ContentType: 'text/plain', ChecksumSHA256: 'q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s=', Metadata: { actorid: 'a', tenantid: 't' } }

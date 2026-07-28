@@ -13,7 +13,7 @@ export interface ModuleOptions {
 type Declaration = Schedule | readonly Schedule[] | ((schedule: Schedule) => void)
 
 export default defineNuxtModule<ModuleOptions>({
-  meta: { name: '@nuxt-laravelize/scheduler-nuxt', configKey: 'laravelizeScheduler', compatibility: { nuxt: '>=4.3.0 <5' } },
+  meta: { name: '@nuxt-laravelize/scheduler-nuxt', configKey: 'laravelizeScheduler', compatibility: { nuxt: '>=4.4.5 <5' } },
   defaults: { enabled: false, schedules: [], tasks: {} },
   async setup(options, nuxt) {
     if (!options.enabled) return
@@ -61,13 +61,17 @@ function isSchedule(value: unknown): value is Schedule {
   return value instanceof Schedule || Boolean(value && typeof value === 'object' && typeof (value as { all?: unknown }).all === 'function')
 }
 
-export function renderSchedulerTaskModule(task: NormalizedScheduledTask, provider: string, runtimeEntry = '@nuxt-laravelize/scheduler-nuxt/runtime'): string {
+export function renderSchedulerTaskModule(
+  task: NormalizedScheduledTask,
+  provider: string,
+  runtimeEntry = '@nuxt-laravelize/scheduler-nuxt/runtime',
+): string {
   let serialized: string
   try {
     serialized = JSON.stringify(task)
   }
   catch (error) { throw new Error(`Scheduled task "${task.name}" metadata must be serializable for Nitro runtime generation.`, { cause: error }) }
-  return `import runtimeProvider from ${JSON.stringify(provider)}\nimport { createGeneratedSchedulerTask } from ${JSON.stringify(runtimeEntry)}\nconst task = ${serialized}\nexport default createGeneratedSchedulerTask(task, runtimeProvider)\n`
+  return `import runtimeProvider from ${JSON.stringify(provider)}\nimport { createGeneratedSchedulerTask } from ${JSON.stringify(runtimeEntry)}\nconst task = ${serialized}\nexport default createGeneratedSchedulerTask(task, runtimeProvider, { timestampSource: "wall-clock" })\n`
 }
 
 function resolveProvider(handler: string, rootDir: string): string {

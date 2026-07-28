@@ -1,5 +1,11 @@
 export type ChannelName = 'log' | 'mail' | (string & {})
 
+export interface NotificationDeliveryContext {
+  readonly locale?: string
+  readonly idempotencyKey?: string
+  readonly signal?: AbortSignal
+}
+
 export interface Notifiable {
   routeNotificationFor(channel: ChannelName, notification?: Notification): unknown
 }
@@ -12,5 +18,5 @@ export abstract class Notification {
 }
 
 export interface NotificationChannel {
-  send(notifiable: Notifiable, notification: Notification): Promise<void>
+  send(notifiable: Notifiable, notification: Notification, context?: NotificationDeliveryContext): Promise<void>
 }

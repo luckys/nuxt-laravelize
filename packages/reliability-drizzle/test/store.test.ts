@@ -90,7 +90,7 @@ describe('drizzle reliability stores', () => {
   it('executes terminal retention against real SQLite', async () => {
     const sqlite = new DatabaseSync(':memory:')
     try {
-      for (const migration of ['0001_reliability_sqlite.sql', '0003_reliability_append_availability_sqlite.sql', '0005_reliability_terminal_at_sqlite.sql', '0007_reliability_dead_letter_management_sqlite.sql', '0009_reliability_dead_letter_operations_sqlite.sql'])
+      for (const migration of ['0001_reliability_sqlite.sql', '0003_reliability_append_availability_sqlite.sql', '0005_reliability_terminal_at_sqlite.sql', '0007_reliability_dead_letter_management_sqlite.sql', '0009_reliability_dead_letter_operations_sqlite.sql', '0011_generalize_dead_letter_operations_sqlite.sql'])
         sqlite.exec(readFileSync(new URL(`../migrations/${migration}`, import.meta.url), 'utf8'))
       const dialect = new SQLiteSyncDialect()
       const database = { execute(query: SQL) {
@@ -134,7 +134,7 @@ describe('drizzle reliability stores', () => {
   it('manages real SQLite dead letters with private pages and atomic CAS receipts', async () => {
     const sqlite = new DatabaseSync(':memory:')
     try {
-      for (const migration of ['0001_reliability_sqlite.sql', '0003_reliability_append_availability_sqlite.sql', '0005_reliability_terminal_at_sqlite.sql', '0007_reliability_dead_letter_management_sqlite.sql', '0009_reliability_dead_letter_operations_sqlite.sql']) sqlite.exec(readFileSync(new URL(`../migrations/${migration}`, import.meta.url), 'utf8'))
+      for (const migration of ['0001_reliability_sqlite.sql', '0003_reliability_append_availability_sqlite.sql', '0005_reliability_terminal_at_sqlite.sql', '0007_reliability_dead_letter_management_sqlite.sql', '0009_reliability_dead_letter_operations_sqlite.sql', '0011_generalize_dead_letter_operations_sqlite.sql']) sqlite.exec(readFileSync(new URL(`../migrations/${migration}`, import.meta.url), 'utf8'))
       const dialect = new SQLiteSyncDialect()
       const database = { execute(query: SQL) { const built = dialect.sqlToQuery(query); return { rows: sqlite.prepare(built.sql).all(...built.params as SQLInputValue[]) } } }
       const store = new DrizzleSQLiteReliabilityStore(database); const terminalAt = new Date(100).toISOString()

@@ -20,6 +20,6 @@ async function expectIncrementalMigrations<D extends MigrationDialect>(dialect: 
 }
 
 describe('reliability migration sources', () => {
-  it('selects ordered, incremental PostgreSQL migrations', () => expectIncrementalMigrations('postgresql', postgresMigrationSource, ['0000_reliability_postgres', '0002_reliability_append_availability_postgres', '0004_reliability_terminal_at_postgres', '0006_reliability_dead_letter_management_postgres', '0008_reliability_dead_letter_operations_postgres']))
-  it('selects ordered, incremental SQLite migrations', () => expectIncrementalMigrations('sqlite', sqliteMigrationSource, ['0001_reliability_sqlite', '0003_reliability_append_availability_sqlite', '0005_reliability_terminal_at_sqlite', '0007_reliability_dead_letter_management_sqlite', '0009_reliability_dead_letter_operations_sqlite']))
+  it('selects ordered, incremental PostgreSQL migrations', () => expectIncrementalMigrations('postgresql', postgresMigrationSource, ['0000_reliability_postgres', '0002_reliability_append_availability_postgres', '0004_reliability_terminal_at_postgres', '0006_reliability_dead_letter_management_postgres', '0008_reliability_dead_letter_operations_postgres', '0010_generalize_dead_letter_operations_postgres']))
+  it('selects ordered, incremental SQLite migrations', () => expectIncrementalMigrations('sqlite', sqliteMigrationSource, ['0001_reliability_sqlite', '0003_reliability_append_availability_sqlite', '0005_reliability_terminal_at_sqlite', '0007_reliability_dead_letter_management_sqlite', '0009_reliability_dead_letter_operations_sqlite', '0011_generalize_dead_letter_operations_sqlite']))
 })

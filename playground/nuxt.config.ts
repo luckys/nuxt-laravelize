@@ -1,3 +1,4 @@
+import type {} from './.nuxt/types/modules.d.ts'
 import { defineNuxtConfig } from 'nuxt/config'
 import Laravelize from '@nuxt-laravelize/nuxt'
 

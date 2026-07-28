@@ -1,14 +1,16 @@
 import type { Mailable } from '../Mailable'
-import type { Mailer } from '../Mailer'
+import type { Mailer, MailSendOptions } from '../Mailer'
 
 export interface ResendClient {
-  emails: { send(payload: { to: string[], from: string, subject: string, html?: string, text?: string, attachments?: ReadonlyArray<{ filename: string, content: string | Uint8Array }> }): Promise<unknown> }
+  emails: { send(payload: { to: string[], from: string, subject: string, html?: string, text?: string, attachments?: ReadonlyArray<{ filename: string, content: string | Uint8Array }> }, options?: { idempotencyKey?: string, signal?: AbortSignal }): Promise<unknown> }
 }
 
 export class ResendMailer implements Mailer {
   constructor(private readonly client: ResendClient, private readonly defaultFrom: string) {}
-  async send(mailable: Mailable): Promise<void> {
+  async send(mailable: Mailable, options: MailSendOptions = {}): Promise<void> {
+    options.signal?.throwIfAborted()
     const message = await mailable.toMessage()
+    options.signal?.throwIfAborted()
     await this.client.emails.send({
       to: [...message.to],
       from: message.from ?? this.defaultFrom,
@@ -16,6 +18,6 @@ export class ResendMailer implements Mailer {
       html: message.html,
       text: message.text,
       attachments: message.attachments.length ? message.attachments.map(({ filename, content }) => ({ filename, content })) : undefined,
-    })
+    }, { ...(options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}), ...(options.signal ? { signal: options.signal } : {}) })
   }
 }

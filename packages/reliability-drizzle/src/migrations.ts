@@ -23,6 +23,7 @@ const postgresFiles: readonly MigrationFile<'postgresql'>[] = [
   { dialect: 'postgresql', name: '0004_reliability_terminal_at_postgres', file: '0004_reliability_terminal_at_postgres.sql', dependsOn: '0002_reliability_append_availability_postgres' },
   { dialect: 'postgresql', name: '0006_reliability_dead_letter_management_postgres', file: '0006_reliability_dead_letter_management_postgres.sql', dependsOn: '0004_reliability_terminal_at_postgres' },
   { dialect: 'postgresql', name: '0008_reliability_dead_letter_operations_postgres', file: '0008_reliability_dead_letter_operations_postgres.sql', dependsOn: '0006_reliability_dead_letter_management_postgres' },
+  { dialect: 'postgresql', name: '0010_generalize_dead_letter_operations_postgres', file: '0010_generalize_dead_letter_operations_postgres.sql', dependsOn: '0008_reliability_dead_letter_operations_postgres' },
 ]
 
 const sqliteFiles: readonly MigrationFile<'sqlite'>[] = [
@@ -31,6 +32,7 @@ const sqliteFiles: readonly MigrationFile<'sqlite'>[] = [
   { dialect: 'sqlite', name: '0005_reliability_terminal_at_sqlite', file: '0005_reliability_terminal_at_sqlite.sql', dependsOn: '0003_reliability_append_availability_sqlite' },
   { dialect: 'sqlite', name: '0007_reliability_dead_letter_management_sqlite', file: '0007_reliability_dead_letter_management_sqlite.sql', dependsOn: '0005_reliability_terminal_at_sqlite' },
   { dialect: 'sqlite', name: '0009_reliability_dead_letter_operations_sqlite', file: '0009_reliability_dead_letter_operations_sqlite.sql', dependsOn: '0007_reliability_dead_letter_management_sqlite' },
+  { dialect: 'sqlite', name: '0011_generalize_dead_letter_operations_sqlite', file: '0011_generalize_dead_letter_operations_sqlite.sql', dependsOn: '0009_reliability_dead_letter_operations_sqlite' },
 ]
 
 export const postgresMigrationSource: MigrationSource<'postgresql'> = defineSource(namespace, () => Promise.all(postgresFiles.map(loadMigration)))

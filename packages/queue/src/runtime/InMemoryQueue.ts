@@ -1,6 +1,7 @@
 import { JobSerializer, type Job, type SerializedJob } from './Job'
 import type { JobRunner } from './JobRunner'
 import type { FailedJobCallback, JobHandle, PushOptions, Queue } from './Queue'
+import { isNonRetryableJobError } from './NonRetryableJobError'
 
 interface ResolvedOptions {
   readonly id?: string
@@ -89,7 +90,7 @@ export class InMemoryQueue implements Queue {
       await this.runner.run(entry.serialized, { queue: entry.options.queue, attempt: entry.attempt, maxAttempts: entry.options.tries })
     }
     catch (error) {
-      if (entry.attempt < entry.options.tries) {
+      if (!isNonRetryableJobError(error) && entry.attempt < entry.options.tries) {
         this.#enqueue(entry, resolveBackoff(entry.options.backoff, entry.attempt))
         return
       }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobRunner } from '../../src/runtime/index'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobRunner, NonRetryableJobError } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {
   static runs: number[] = []
@@ -21,6 +21,18 @@ class FailedJob extends Job {
 }
 class StableJob extends TestJob {
   static override readonly jobName = 'stable.test.v1'
+}
+class TerminalJob extends Job {
+  static runs = 0
+  static failures = 0
+  readonly payload = {}
+  constructor(_payload: Record<string, unknown>) { super() }
+  handle(): never {
+    TerminalJob.runs += 1
+    throw new NonRetryableJobError('INVALID_PAYLOAD', 'invalid')
+  }
+
+  override failed(): void { TerminalJob.failures += 1 }
 }
 
 describe('InMemoryQueue', () => {
@@ -74,5 +86,18 @@ describe('InMemoryQueue', () => {
     expect(FailedJob.didFail).toBe(true)
     expect(contribute).toHaveBeenCalledOnce()
     expect(dispose).toHaveBeenCalledOnce()
+  })
+
+  it('does not retry a non-retryable failure', async () => {
+    TerminalJob.runs = 0
+    TerminalJob.failures = 0
+    const registry = new InMemoryJobRegistry()
+    registry.register(TerminalJob.name, TerminalJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    await queue.push(new TerminalJob({}), { tries: 5 })
+    await vi.waitFor(() => expect(TerminalJob.failures).toBe(1))
+
+    expect(TerminalJob.runs).toBe(1)
   })
 })

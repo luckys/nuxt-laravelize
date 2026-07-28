@@ -54,11 +54,11 @@ function consumeLongOption(token: string, next: string | undefined, schema: Sche
   const separator = token.indexOf('=')
   const rawName = token.slice(2, separator === -1 ? undefined : separator)
   let name = rawName
-  let definition = schema[name]
+  let definition = Object.hasOwn(schema, name) ? schema[name] : undefined
   let negated = false
   if (!definition && rawName.startsWith('no-')) {
     name = rawName.slice(3)
-    definition = schema[name]
+    definition = Object.hasOwn(schema, name) ? schema[name] : undefined
     negated = true
   }
   if (!definition) throw new ConsoleInputError(`Unknown option "--${rawName}"`)

@@ -346,6 +346,10 @@ export class InMemoryS3UploadIssuanceStore implements S3UploadIssuanceStore {
   async complete(reservation: S3UploadReservation): Promise<void> {
     const entry = this.#matchingReservation(reservation)
     if (!entry) throw new Error('S3 upload reservation is no longer active.')
+    if (this.#expired(entry.issuance)) {
+      this.#issuances.delete(reservation.id)
+      throw new Error('S3 upload reservation is no longer active because it expired.')
+    }
     this.#issuances.delete(reservation.id)
   }
 

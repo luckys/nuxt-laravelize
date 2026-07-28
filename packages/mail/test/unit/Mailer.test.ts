@@ -13,8 +13,17 @@ class WelcomeMail extends Mailable {
 describe('ResendMailer', () => {
   it('sends the rendered message through a structural client', async () => {
     const send = vi.fn().mockResolvedValue(undefined)
-    await new ResendMailer({ emails: { send } }, 'from@example.com').send(new WelcomeMail())
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Welcome', from: 'from@example.com' }))
+    const signal = new AbortController().signal
+    await new ResendMailer({ emails: { send } }, 'from@example.com').send(new WelcomeMail(), { idempotencyKey: 'delivery-1', locale: 'es', signal })
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Welcome', from: 'from@example.com' }), { idempotencyKey: 'delivery-1', signal })
+  })
+
+  it('fails before invoking the transport when delivery was aborted', async () => {
+    const send = vi.fn().mockResolvedValue(undefined)
+    const controller = new AbortController()
+    controller.abort(new Error('stopped'))
+    await expect(new ResendMailer({ emails: { send } }, 'from@example.com').send(new WelcomeMail(), { signal: controller.signal })).rejects.toThrow('stopped')
+    expect(send).not.toHaveBeenCalled()
   })
 })
 

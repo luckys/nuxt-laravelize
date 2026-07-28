@@ -1,5 +1,5 @@
-export type { ChannelName, Notifiable, NotificationChannel } from './contracts'
+export type { ChannelName, Notifiable, NotificationChannel, NotificationDeliveryContext } from './contracts'
 export { Notification } from './contracts'
-export { DefaultNotificationManager, PendingNotification, UnknownNotificationChannel } from './NotificationManager'
+export { DefaultNotificationManager, NotificationChannelRegistry, PendingNotification, UnknownNotificationChannel } from './NotificationManager'
 export { LogChannel } from './LogChannel'
-export { notificationManagerToken } from './tokens'
+export { notificationChannelRegistryToken, notificationManagerToken } from './tokens'

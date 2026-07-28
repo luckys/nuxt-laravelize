@@ -28,6 +28,7 @@ const packageNames = [
   'execution-context-queue',
   'filesystem',
   'filesystem-aws',
+  'filesystem-aws-redis',
   'filesystem-cloudflare',
   'http',
   'idempotency',
@@ -37,6 +38,8 @@ const packageNames = [
   'migrations',
   'migrations-drizzle',
   'notifications',
+  'notifications-mail',
+  'notifications-queue',
   'observability',
   'observability-otel',
   'observability-queue',
@@ -168,12 +171,17 @@ runFixture('features', {
   '@nuxt-laravelize/filesystem/node',
   '@nuxt-laravelize/filesystem/testing',
   '@nuxt-laravelize/filesystem-aws',
+  '@nuxt-laravelize/filesystem-aws-redis',
   '@nuxt-laravelize/filesystem-cloudflare',
   '@nuxt-laravelize/mail/runtime',
   '@nuxt-laravelize/mail/node',
   '@nuxt-laravelize/mail/testing',
   '@nuxt-laravelize/notifications/runtime',
   '@nuxt-laravelize/notifications/testing',
+  '@nuxt-laravelize/notifications-mail',
+  '@nuxt-laravelize/notifications-mail/runtime',
+  '@nuxt-laravelize/notifications-queue',
+  '@nuxt-laravelize/notifications-queue/runtime',
   '@nuxt-laravelize/observability/runtime',
   '@nuxt-laravelize/observability/runtime/server',
   '@nuxt-laravelize/observability/testing',
@@ -263,12 +271,13 @@ runFixture('features', {
     '@nuxt-laravelize/filesystem/node': ['LocalFilesystem'],
     '@nuxt-laravelize/filesystem/testing': ['FilesystemFake'],
     '@nuxt-laravelize/filesystem-aws': ['AwsS3Filesystem', 'InMemoryS3UploadIssuanceStore', 'S3UploadConfirmationInProgressError', 'createAwsS3Filesystem'],
+    '@nuxt-laravelize/filesystem-aws-redis': ['RedisS3UploadIssuanceStore', 'RedisS3UploadIssuanceCorruptionError'],
     '@nuxt-laravelize/filesystem-cloudflare': ['CloudflareR2Filesystem'],
-    '@nuxt-laravelize/queue/runtime': ['queueToken'],
+    '@nuxt-laravelize/queue/runtime': ['NonRetryableJobError', 'isNonRetryableJobError', 'queueToken'],
     '@nuxt-laravelize/rate-limiter/runtime': ['RateLimiter', 'rateLimiterToken'],
     '@nuxt-laravelize/reliability': ['createEnvelope', 'OutboxProcessor', 'InboxConsumer', 'OutboxMessageConflictError', 'isPrunableReliabilityStore', 'normalizeReliabilityPruneOptions'],
     '@nuxt-laravelize/reliability/testing': ['InMemoryReliabilityStore', 'OutboxStoreFake', 'InboxStoreFake'],
-    '@nuxt-laravelize/reliability-drizzle': ['DrizzlePostgresReliabilityStore', 'DrizzleSQLiteReliabilityStore', 'DrizzleReliabilityDeadLetterAdapter'],
+    '@nuxt-laravelize/reliability-drizzle': ['DrizzleDeadLetterOperationStore', 'DrizzlePostgresReliabilityStore', 'DrizzleSQLiteReliabilityStore', 'DrizzleReliabilityDeadLetterAdapter'],
     '@nuxt-laravelize/reliability-drizzle/postgres': ['DrizzlePostgresReliabilityStore'],
     '@nuxt-laravelize/reliability-drizzle/sqlite': ['DrizzleSQLiteReliabilityStore'],
     '@nuxt-laravelize/reliability-drizzle/turso': ['TursoReliabilityStore'],
@@ -278,7 +287,9 @@ runFixture('features', {
     '@nuxt-laravelize/routes/runtime': ['defineRoutes', 'route'],
     '@nuxt-laravelize/routes/kit': ['addRoutesDeclaration'],
     '@nuxt-laravelize/mail/runtime': ['mailerToken'],
-    '@nuxt-laravelize/notifications/runtime': ['notificationManagerToken'],
+    '@nuxt-laravelize/notifications/runtime': ['NotificationChannelRegistry', 'notificationChannelRegistryToken', 'notificationManagerToken'],
+    '@nuxt-laravelize/notifications-mail/runtime': ['MailNotificationChannel', 'InvalidMailNotificationError'],
+    '@nuxt-laravelize/notifications-queue/runtime': ['NotificationCodecRegistry', 'QueuedNotificationDispatcher', 'QueuedNotificationJob', 'RecipientResolverRegistry'],
     '@nuxt-laravelize/observability/runtime': ['noopObservability', 'observe', 'observabilityToken'],
     '@nuxt-laravelize/observability/testing': ['ObservabilityFake'],
     '@nuxt-laravelize/observability-otel': ['OtelObservability'],
@@ -688,7 +699,8 @@ function runFixture(name, fixtureDependencies, overrides, imports, absentPackage
     if (options.buildSchedulerNuxt) {
       execFileSync('pnpm', ['exec', 'nuxt', 'build'], { cwd: fixture, stdio: 'inherit' })
       const generatedTask = join(fixture, '.nuxt', 'laravelize', 'scheduler', `${Buffer.from('smoke:tick').toString('base64url')}.mjs`)
-      if (!existsSync(generatedTask) || !readFileSync(generatedTask, 'utf8').includes('createGeneratedSchedulerTask(task, runtimeProvider)')) {
+      const generatedSource = existsSync(generatedTask) ? readFileSync(generatedTask, 'utf8') : ''
+      if (!generatedSource.includes('createGeneratedSchedulerTask(task, runtimeProvider,') || !generatedSource.includes('timestampSource: "wall-clock"')) {
         throw new Error('Packed scheduler-nuxt module did not generate its SchedulerRunner wrapper')
       }
     }

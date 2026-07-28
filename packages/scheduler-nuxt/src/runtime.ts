@@ -3,6 +3,9 @@ import { isScheduledTaskDue, normalizeScheduledTask, type NormalizedScheduledTas
 export interface SchedulerExecutionContext {
   readonly task: NormalizedScheduledTask
   readonly payload: Readonly<Record<string, unknown>>
+  readonly scheduledTime: ScheduledTimestamp
+  readonly signal: AbortSignal
+  readonly fencingToken?: string
 }
 
 export interface ScheduledOperationHandler {
@@ -16,11 +19,21 @@ export interface SchedulerQueueDispatcher {
 export interface SchedulerLockLease {
   release(): void | Promise<void>
   assertOwned?(): void | Promise<void>
+  readonly signal?: AbortSignal
+  readonly fencingToken?: string
+}
+
+export interface SchedulerOccurrenceClaim {
+  /** Retain the completed occurrence marker until its configured TTL expires. */
+  complete(): void | Promise<void>
+  /** Owner-atomically release an incomplete occurrence so it can be retried. */
+  release(): void | Promise<void>
 }
 
 export interface SchedulerLockProvider {
   readonly capabilities: { readonly distributed: boolean }
   acquire(key: string, expiresAfterSeconds: number): SchedulerLockLease | null | Promise<SchedulerLockLease | null>
+  claim?(key: string, expiresAfterSeconds: number): SchedulerOccurrenceClaim | null | Promise<SchedulerOccurrenceClaim | null>
 }
 
 export interface SchedulerMaintenanceProvider { isActive(): boolean | Promise<boolean> }
@@ -33,6 +46,9 @@ export interface SchedulerRunnerOptions {
   readonly queue?: SchedulerQueueDispatcher
   readonly locks?: SchedulerLockProvider
   readonly maintenance?: SchedulerMaintenanceProvider
+  readonly clock?: SchedulerClock
+  readonly namespace?: string
+  readonly occurrenceRetentionSeconds?: number
   readonly hooks?: {
     readonly success?: Readonly<Record<string, SchedulerHook>>
     readonly failure?: Readonly<Record<string, SchedulerHook>>
@@ -48,7 +64,7 @@ export class SchedulerLockLostError extends Error {}
 export class SchedulerHandlerNotFoundError extends Error {}
 
 export interface SchedulerRunner {
-  run(task: ScheduledTask, payload?: Readonly<Record<string, unknown>>): Promise<SchedulerRunResult>
+  run(task: ScheduledTask, payload?: Readonly<Record<string, unknown>>, options?: Readonly<{ scheduledTime?: ScheduledTimestamp }>): Promise<SchedulerRunResult>
 }
 
 export interface NitroTaskInvocation {
@@ -75,7 +91,7 @@ export interface GeneratedSchedulerTaskOptions {
 }
 
 export class ScheduledMinuteGuard {
-  readonly #lastDueMinute = new Map<string, number>()
+  readonly #minutes = new Map<string, Readonly<{ minute: number, state: 'in-flight' | 'completed' }>>()
 
   check(task: ScheduledTask, timestamp: ScheduledTimestamp): 'timezone-not-due' | 'duplicate-minute' | undefined {
     const normalizedTask = normalizeScheduledTask(task)
@@ -83,8 +99,21 @@ export class ScheduledMinuteGuard {
     if (!Number.isFinite(instant)) throw new Error('Scheduled timestamp must be a valid Date or epoch millisecond value.')
     const minute = Math.floor(instant / 60_000) * 60_000
     if (normalizedTask.timezone && !isScheduledTaskDue(normalizedTask, instant)) return 'timezone-not-due'
-    if (this.#lastDueMinute.get(normalizedTask.name) === minute) return 'duplicate-minute'
-    this.#lastDueMinute.set(normalizedTask.name, minute)
+    if (this.#minutes.get(normalizedTask.name)?.minute === minute) return 'duplicate-minute'
+    this.#minutes.set(normalizedTask.name, { minute, state: 'in-flight' })
+  }
+
+  complete(task: ScheduledTask, timestamp: ScheduledTimestamp): void {
+    const name = normalizeScheduledTask(task).name
+    const minute = scheduledMinute(timestamp)
+    if (this.#minutes.get(name)?.minute === minute) this.#minutes.set(name, { minute, state: 'completed' })
+  }
+
+  fail(task: ScheduledTask, timestamp: ScheduledTimestamp): void {
+    const name = normalizeScheduledTask(task).name
+    const minute = scheduledMinute(timestamp)
+    const current = this.#minutes.get(name)
+    if (current?.minute === minute && current.state === 'in-flight') this.#minutes.delete(name)
   }
 }
 
@@ -97,24 +126,61 @@ export async function runScheduledTaskIfDue(
 ): Promise<SchedulerRunResult> {
   const reason = guard.check(task, timestamp)
   if (reason) return { status: 'skipped', reason }
-  return runner.run(task, payload)
+  try {
+    const result = await runner.run(task, payload, { scheduledTime: timestamp })
+    settleMinuteGuard(guard, task, timestamp, result)
+    return result
+  }
+  catch (error) {
+    guard.fail(task, timestamp)
+    throw error
+  }
 }
 
 export function createSchedulerRunner(options: SchedulerRunnerOptions): SchedulerRunner {
+  const occurrenceRetentionSeconds = options.occurrenceRetentionSeconds ?? 24 * 60 * 60
+  if (!Number.isSafeInteger(occurrenceRetentionSeconds) || occurrenceRetentionSeconds < 60 || occurrenceRetentionSeconds > 2_147_483_647) {
+    throw new Error('Scheduler occurrence retention must be an integer between 60 and 2147483647 seconds.')
+  }
   return {
-    async run(task, payload = {}) {
+    async run(task, payload = {}, execution = {}) {
       const normalizedTask = normalizeScheduledTask(task)
-      const context = { task: normalizedTask, payload }
-      const lock = lockRequirement(normalizedTask, options.locks)
+      const scheduledTime = execution.scheduledTime ?? options.clock?.() ?? Date.now()
+      const minute = scheduledMinute(scheduledTime)
       if (normalizedTask.maintenance === 'skip' && await options.maintenance?.isActive()) return { status: 'skipped', reason: 'maintenance' }
-      const lease = lock ? await lock.provider.acquire(`scheduler:${normalizedTask.name}`, lock.expiresAfterSeconds) : undefined
-      if (lock && !lease) return { status: 'skipped', reason: 'locked' }
+      const locks = lockRequirements(normalizedTask, options.locks, options.namespace)
+      const lease = locks.overlap ? await locks.overlap.provider.acquire(`scheduler:${locks.namespace}:overlap:${normalizedTask.name}`, locks.overlap.expiresAfterSeconds) : undefined
+      if (locks.overlap && !lease) return { status: 'skipped', reason: 'locked' }
+      let claim: SchedulerOccurrenceClaim | undefined
+      try {
+        claim = locks.election ? await locks.election.provider.claim!(`scheduler:${locks.namespace}:one-server:${normalizedTask.name}:${minute}`, occurrenceRetentionSeconds) ?? undefined : undefined
+        if (locks.election && !claim) {
+          await lease?.release()
+          return { status: 'skipped', reason: 'locked' }
+        }
+      }
+      catch (primaryError) {
+        const relatedErrors: unknown[] = []
+        try {
+          await lease?.release()
+        }
+        catch (releaseError) { relatedErrors.push(releaseError) }
+        throwPrimaryWithRelated(primaryError, relatedErrors)
+      }
+      const context = {
+        task: normalizedTask,
+        payload,
+        scheduledTime,
+        signal: lease?.signal ?? new AbortController().signal,
+        ...(lease?.fencingToken ? { fencingToken: lease.fencingToken } : {}),
+      }
       let result: unknown
       try {
         result = await execute(normalizedTask, context, options)
         await lease?.assertOwned?.()
         await invokeHook(normalizedTask.hooks?.success, options.hooks?.success, { ...context, result })
         await lease?.assertOwned?.()
+        await claim?.complete()
       }
       catch (primaryError) {
         const relatedErrors: unknown[] = []
@@ -122,6 +188,10 @@ export function createSchedulerRunner(options: SchedulerRunnerOptions): Schedule
           await invokeHook(normalizedTask.hooks?.failure, options.hooks?.failure, { ...context, error: primaryError })
         }
         catch (hookError) { relatedErrors.push(hookError) }
+        try {
+          await claim?.release()
+        }
+        catch (releaseError) { relatedErrors.push(releaseError) }
         try {
           await lease?.release()
         }
@@ -147,13 +217,24 @@ export function createGeneratedSchedulerTask(task: ScheduledTask, provider: Sche
       const scheduledTime = options.timestampSource === 'event' ? eventScheduledTime ?? clock() : clock()
       const reason = guard.check(normalizedTask, scheduledTime)
       if (reason) return { result: { status: 'skipped' as const, reason } }
-      const runtimeInvocation = { ...invocation, payload, scheduledTime }
-      const scope = await provider.createScope(runtimeInvocation)
-      if (!scope?.runner) throw new Error(`Scheduler runtime provider did not create a runner for task "${normalizedTask.name}".`)
-      return runWithCleanup(
-        async () => ({ result: await scope.runner.run(normalizedTask, payload) }),
-        async () => scope.dispose?.(),
-      )
+      try {
+        const runtimeInvocation = { ...invocation, payload, scheduledTime }
+        const scope = await provider.createScope(runtimeInvocation)
+        if (!scope?.runner) throw new Error(`Scheduler runtime provider did not create a runner for task "${normalizedTask.name}".`)
+        const result = await runWithCleanup(
+          async () => {
+            const runResult = await scope.runner.run(normalizedTask, payload, { scheduledTime })
+            settleMinuteGuard(guard, normalizedTask, scheduledTime, runResult)
+            return { result: runResult }
+          },
+          async () => scope.dispose?.(),
+        )
+        return result
+      }
+      catch (error) {
+        guard.fail(normalizedTask, scheduledTime)
+        throw error
+      }
     },
   }
 }
@@ -191,11 +272,37 @@ function throwPrimaryWithRelated(primaryError: unknown, relatedErrors: readonly 
   throw new AggregateError([primaryError, ...relatedErrors], 'Scheduler execution failed and cleanup reported additional errors.', { cause: primaryError })
 }
 
-function lockRequirement(task: NormalizedScheduledTask, provider?: SchedulerLockProvider): { provider: SchedulerLockProvider, expiresAfterSeconds: number } | undefined {
-  if (!task.oneServer && !task.overlap) return undefined
+function lockRequirements(task: NormalizedScheduledTask, provider?: SchedulerLockProvider, configuredNamespace?: string): {
+  readonly namespace: string
+  readonly election?: { readonly provider: SchedulerLockProvider }
+  readonly overlap?: { readonly provider: SchedulerLockProvider, readonly expiresAfterSeconds: number }
+} {
+  if (!task.oneServer && !task.overlap) return { namespace: '' }
   if (!provider) throw new SchedulerLockCapabilityError(`Scheduled task "${task.name}" requires a lock provider.`)
+  const namespace = normalizeSchedulerNamespace(configuredNamespace)
   if (task.oneServer && !provider.capabilities.distributed) throw new SchedulerLockCapabilityError(`Scheduled task "${task.name}" requires a distributed lock provider for onOneServer.`)
-  return { provider, expiresAfterSeconds: task.overlap?.expiresAfterSeconds ?? 24 * 60 * 60 }
+  if (task.oneServer && !provider.claim) throw new SchedulerLockCapabilityError(`Scheduled task "${task.name}" requires an atomic occurrence-claim provider for onOneServer.`)
+  return {
+    namespace,
+    ...(task.oneServer ? { election: { provider } } : {}),
+    ...(task.overlap ? { overlap: { provider, expiresAfterSeconds: task.overlap.expiresAfterSeconds } } : {}),
+  }
+}
+
+function normalizeSchedulerNamespace(value: unknown): string {
+  if (typeof value !== 'string' || !/^[a-z0-9][\w.-]{0,127}$/i.test(value)) throw new SchedulerLockCapabilityError('Lock-backed scheduled tasks require a stable alphanumeric scheduler namespace.')
+  return value
+}
+
+function scheduledMinute(timestamp: ScheduledTimestamp): number {
+  const instant = timestamp instanceof Date ? timestamp.getTime() : timestamp
+  if (!Number.isFinite(instant)) throw new Error('Scheduled timestamp must be a valid Date or epoch millisecond value.')
+  return Math.floor(instant / 60_000) * 60_000
+}
+
+function settleMinuteGuard(guard: ScheduledMinuteGuard, task: ScheduledTask, timestamp: ScheduledTimestamp, result: SchedulerRunResult): void {
+  if (result.status === 'skipped' && result.reason === 'locked') guard.fail(task, timestamp)
+  else guard.complete(task, timestamp)
 }
 
 async function execute(task: NormalizedScheduledTask, context: SchedulerExecutionContext, options: SchedulerRunnerOptions): Promise<unknown> {

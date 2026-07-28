@@ -24,6 +24,7 @@ const expectedNames = {
     '0004_reliability_terminal_at_postgres',
     '0006_reliability_dead_letter_management_postgres',
     '0008_reliability_dead_letter_operations_postgres',
+    '0010_generalize_dead_letter_operations_postgres',
     '0000_create_scout_documents',
     '0000_workflows_postgres',
   ],
@@ -36,6 +37,7 @@ const expectedNames = {
     '0005_reliability_terminal_at_sqlite',
     '0007_reliability_dead_letter_management_sqlite',
     '0009_reliability_dead_letter_operations_sqlite',
+    '0011_generalize_dead_letter_operations_sqlite',
     '0001_create_scout_documents_sqlite',
     '0001_workflows_sqlite',
   ],
@@ -56,12 +58,12 @@ describe('aggregate migration sources', () => {
     const backend = new InMemoryMigrationBackend(dialect)
     const plan = await new MigrationRunner<typeof dialect>({ dialect, sources, backend }).plan()
 
-    expect(plan).toHaveLength(10)
+    expect(plan).toHaveLength(11)
     expect(plan.every(item => item.state === 'pending')).toBe(true)
     expect(new Set(plan.map(item => item.id)).size).toBe(plan.length)
     const namesBySourceOrder = (await Promise.all(sources.map(source => source.migrations()))).flat().map(migration => migration.name)
     expect(namesBySourceOrder).toEqual(expectedNames[dialect])
-    const migrationCounts = [2, 1, 5, 1, 1]
+    const migrationCounts = [2, 1, 6, 1, 1]
     let offset = 0
     const expectedIds = sources.flatMap((source, index) => {
       const names = expectedNames[dialect].slice(offset, offset + migrationCounts[index]!)
@@ -100,8 +102,8 @@ describe('aggregate migration sources', () => {
 
     const result = await new MigrationRunner({ dialect: 'sqlite', sources: sqliteMigrationSources, backend }).up()
 
-    expect(result.executed).toHaveLength(10)
-    expect(result.statements).toHaveLength(32)
+    expect(result.executed).toHaveLength(11)
+    expect(result.statements).toHaveLength(40)
     expect(executed.filter(sql => !sql.includes('laravelize_migration'))).toEqual(result.statements.map(statement => statement.sql))
     const objects = database.prepare('SELECT name FROM sqlite_master WHERE type IN (\'table\', \'index\')').all().map(row => String(row.name))
     expect(objects).toEqual(expect.arrayContaining([

@@ -33,6 +33,7 @@ describe('Nuxt module configuration boundary', () => {
         runner: createSchedulerRunner({
           operations: { 'policy.operation': { execute } },
           locks: { capabilities: { distributed: false }, acquire: vi.fn(() => ({ release })) },
+          namespace: 'tests',
           hooks: { success: { audit: success } },
         }),
         dispose,
@@ -44,6 +45,6 @@ describe('Nuxt module configuration boundary', () => {
     expect(success).toHaveBeenCalledOnce()
     expect(release).toHaveBeenCalledOnce()
     expect(dispose).toHaveBeenCalledOnce()
-    expect(renderSchedulerTaskModule(task, './runtime-provider', './scheduler-runtime')).toContain('createGeneratedSchedulerTask(task, runtimeProvider)')
+    expect(renderSchedulerTaskModule(task, './runtime-provider', './scheduler-runtime')).toContain('timestampSource: "wall-clock"')
   })
 })

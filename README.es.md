@@ -28,6 +28,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/filesystem` | Discos portables, almacenamiento en memoria y adapter local Node confinado al root |
 | `@nuxt-laravelize/filesystem-cloudflare` | Adapter filesystem opcional y nativo del binding R2, sin AWS SDK |
 | `@nuxt-laravelize/filesystem-aws` | Adapter filesystem opcional para S3 con AWS SDK, compatible con la API S3 de R2 |
+| `@nuxt-laravelize/filesystem-aws-redis` | Store Redis/Valkey compartido para confirmaciones S3 resistentes a reinicios |
 | `@nuxt-laravelize/queue` | Contratos de cola portables, jobs, ejecucion por scope y driver en memoria |
 | `@nuxt-laravelize/queue-bullmq` | Driver BullMQ y worker persistente, solo para Node |
 | `@nuxt-laravelize/rate-limiter` | Rate limiting de ventana fija sobre cache y middleware Nitro |
@@ -42,6 +43,8 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/migrations` | Runner transaccional neutral al ORM con checksums y comandos console |
 | `@nuxt-laravelize/migrations-drizzle` | Backends PostgreSQL/SQLite y fuentes agregadas de migraciones |
 | `@nuxt-laravelize/notifications` | Canales de notificacion y routing bajo demanda |
+| `@nuxt-laravelize/notifications-mail` | Canal mail opt-in con destinos validados |
+| `@nuxt-laravelize/notifications-queue` | Entrega encolada versionada con recarga del destinatario |
 | `@nuxt-laravelize/observability` | Base no-op neutral, spans HTTP seguros, metricas y fake de testing |
 | `@nuxt-laravelize/observability-otel` | Adapter OpenTelemetry API opcional; SDK/exporters pertenecen a la aplicacion |
 | `@nuxt-laravelize/observability-queue` | Propagacion W3C acotada y telemetria semantica para jobs |

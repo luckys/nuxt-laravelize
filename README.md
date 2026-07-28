@@ -28,6 +28,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/filesystem` | Portable named disks, in-memory storage, and a root-confined local Node adapter |
 | `@nuxt-laravelize/filesystem-cloudflare` | Optional Cloudflare R2 binding-native filesystem adapter without the AWS SDK |
 | `@nuxt-laravelize/filesystem-aws` | Optional AWS SDK S3 filesystem adapter, also usable with R2's S3 API |
+| `@nuxt-laravelize/filesystem-aws-redis` | Shared Redis/Valkey store for restart-safe S3 upload confirmation |
 | `@nuxt-laravelize/queue` | Portable queue contracts, jobs, scoped execution, and in-memory driver |
 | `@nuxt-laravelize/queue-bullmq` | Node-only BullMQ driver and persistent worker |
 | `@nuxt-laravelize/rate-limiter` | Cache-backed fixed-window rate limiting and Nitro middleware |
@@ -42,6 +43,8 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/migrations` | ORM-neutral transactional migration runner, checksums, and console commands |
 | `@nuxt-laravelize/migrations-drizzle` | PostgreSQL/SQLite backends and aggregate package migration sources |
 | `@nuxt-laravelize/notifications` | Notification channels and on-demand routing |
+| `@nuxt-laravelize/notifications-mail` | Validated opt-in mail notification channel |
+| `@nuxt-laravelize/notifications-queue` | Versioned, recipient-reloading queued notification delivery |
 | `@nuxt-laravelize/observability` | Vendor-neutral no-op foundation, safe HTTP spans, metrics, and testing fake |
 | `@nuxt-laravelize/observability-otel` | Optional OpenTelemetry API adapter; application-owned SDK/exporters |
 | `@nuxt-laravelize/observability-queue` | Optional bounded W3C queue propagation and semantic job telemetry |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defineSchedule, DuplicateScheduledTaskError, InvalidTimezoneError, isScheduledTaskDue, normalizeScheduledTask, type ScheduledTask } from '../src/index'
+import { defineSchedule, DuplicateScheduledTaskError, InvalidTimezoneError, isScheduledTaskDue, normalizeScheduledTask, type Schedule as SchedulerSchedule, type ScheduledTask } from '../src/index'
 import { compileSchedule } from '../src/nitro3'
 
 describe('Schedule', () => {
@@ -15,6 +15,17 @@ describe('Schedule', () => {
       '30 2 * * *': 'reports:daily',
       '0 * * * *': 'sessions:prune',
     })
+  })
+
+  it.each([
+    ['timezone', (schedule: SchedulerSchedule) => schedule.task('policy').timezone('Europe/Madrid').daily()],
+    ['queue dispatch', (schedule: SchedulerSchedule) => schedule.dispatch('policy', 'job').daily()],
+    ['withoutOverlapping', (schedule: SchedulerSchedule) => schedule.task('policy').daily().withoutOverlapping()],
+    ['onOneServer', (schedule: SchedulerSchedule) => schedule.task('policy').daily().onOneServer()],
+    ['maintenance override', (schedule: SchedulerSchedule) => schedule.task('policy').daily().evenInMaintenanceMode()],
+    ['success/failure hooks', (schedule: SchedulerSchedule) => schedule.task('policy').daily().onSuccess('hook')],
+  ])('fails closed when the Nitro 3 adapter cannot enforce %s', (policy, declaration) => {
+    expect(() => compileSchedule(defineSchedule(declaration), { policy: { handler: './tasks/policy' } })).toThrow(policy)
   })
 
   it('rejects invalid cron expressions', () => {

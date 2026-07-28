@@ -1,5 +1,5 @@
 import { CacheLock, isDistributedCache, type DistributedCache } from '@nuxt-laravelize/cache/runtime'
-import { SchedulerLockLostError, type SchedulerLockLease, type SchedulerLockProvider } from './runtime'
+import { SchedulerLockLostError, type SchedulerLockLease, type SchedulerLockProvider, type SchedulerOccurrenceClaim } from './runtime'
 
 export interface CacheLockSchedulerLockProviderOptions {
   /** Fraction of the TTL to wait between owner-atomic renewals. */
@@ -21,11 +21,65 @@ export class CacheLockSchedulerLockProvider implements SchedulerLockProvider {
     }
   }
 
-  async acquire(key: string, expiresAfterSeconds: number): Promise<SchedulerLockLease | null> {
-    const intervalMilliseconds = expiresAfterSeconds * 1000 * this.#renewalIntervalRatio
-    if (!Number.isFinite(intervalMilliseconds) || intervalMilliseconds < 1 || intervalMilliseconds > 2_147_483_647) {
-      throw new Error('Lock TTL produces a renewal interval outside the supported timer range.')
+  async claim(key: string, expiresAfterSeconds: number): Promise<SchedulerOccurrenceClaim | null> {
+    const intervalMilliseconds = this.renewalInterval(expiresAfterSeconds)
+    const lock = new CacheLock(this.cache, key, expiresAfterSeconds)
+    if (!await lock.acquire()) return null
+    let active = true
+    let completed = false
+    let released = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let renewal: Promise<void> | undefined
+    let lost: SchedulerLockLostError | undefined
+    const markLost = (cause?: unknown): SchedulerLockLostError => {
+      lost ??= new SchedulerLockLostError(`Scheduler occurrence claim "${key}" was lost before completion.`, cause === undefined ? undefined : { cause })
+      return lost
     }
+    const scheduleRenewal = (): void => {
+      timer = setTimeout(() => {
+        renewal = (async () => {
+          try {
+            if (!await lock.renew()) markLost()
+          }
+          catch (error) { markLost(error) }
+          finally {
+            renewal = undefined
+            if (active && !lost) scheduleRenewal()
+          }
+        })()
+      }, intervalMilliseconds)
+      timer.unref?.()
+    }
+    const stopRenewal = async (): Promise<void> => {
+      active = false
+      if (timer) clearTimeout(timer)
+      await renewal
+    }
+    scheduleRenewal()
+    return {
+      complete: async () => {
+        if (completed) return
+        await stopRenewal()
+        if (lost) throw lost
+        try {
+          if (!await lock.renew(expiresAfterSeconds)) throw markLost()
+        }
+        catch (error) {
+          throw error instanceof SchedulerLockLostError ? error : markLost(error)
+        }
+        completed = true
+      },
+      release: async () => {
+        if (completed || released) return
+        released = true
+        await stopRenewal()
+        if (!await lock.release()) throw lost ?? new SchedulerLockLostError(`Scheduler occurrence claim "${key}" was lost before it could be released.`)
+      },
+    }
+  }
+
+  async acquire(key: string, expiresAfterSeconds: number): Promise<SchedulerLockLease | null> {
+    const intervalMilliseconds = this.renewalInterval(expiresAfterSeconds)
     const lock = new CacheLock(this.cache, key, expiresAfterSeconds)
     if (!await lock.acquire()) return null
 
@@ -33,9 +87,11 @@ export class CacheLockSchedulerLockProvider implements SchedulerLockProvider {
     let timer: ReturnType<typeof setTimeout> | undefined
     let renewal: Promise<void> | undefined
     let lost: SchedulerLockLostError | undefined
+    const controller = new AbortController()
 
     const markLost = (cause?: unknown): SchedulerLockLostError => {
       lost ??= new SchedulerLockLostError(`Scheduler lock "${key}" was lost before execution completed.`, cause === undefined ? undefined : { cause })
+      if (!controller.signal.aborted) controller.abort(lost)
       return lost
     }
     const scheduleRenewal = (): void => {
@@ -58,6 +114,7 @@ export class CacheLockSchedulerLockProvider implements SchedulerLockProvider {
     scheduleRenewal()
 
     return {
+      signal: controller.signal,
       assertOwned: async () => {
         if (lost) throw lost
         if (!await lock.owned()) throw markLost()
@@ -77,5 +134,13 @@ export class CacheLockSchedulerLockProvider implements SchedulerLockProvider {
         }
       },
     }
+  }
+
+  private renewalInterval(expiresAfterSeconds: number): number {
+    const intervalMilliseconds = expiresAfterSeconds * 1000 * this.#renewalIntervalRatio
+    if (!Number.isFinite(intervalMilliseconds) || intervalMilliseconds < 1 || intervalMilliseconds > 2_147_483_647) {
+      throw new Error('Lock TTL produces a renewal interval outside the supported timer range.')
+    }
+    return intervalMilliseconds
   }
 }

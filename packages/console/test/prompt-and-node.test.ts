@@ -2,7 +2,7 @@ import { PassThrough } from 'node:stream'
 import { createToken, LaravelizeApplication, type Container, type ServiceProvider } from '@nuxt-laravelize/core/runtime'
 import { describe, expect, it } from 'vitest'
 import { CommandRegistry, ConsoleRunner, defineCommand, EXIT_ABORTED, FailClosedPrompt, NonInteractivePromptError, type CommandHandler } from '../src/index'
-import { NodePrompt } from '../src/node'
+import { NodeProcessAdapter, NodePrompt, runNodeConsole } from '../src/node'
 import { FakeProcess, FakeTerminal } from '../src/testing'
 
 type Empty = Record<never, never>
@@ -46,6 +46,37 @@ describe('prompt safety and testing adapters', () => {
 
     await expect(running).resolves.toBe(EXIT_ABORTED)
     expect(destructiveActionRan).toBe(false)
+    await application.close()
+  })
+
+  it.each(['SIGINT', 'SIGTERM'] as const)('turns %s into cooperative cancellation and removes both listeners', (signal) => {
+    const beforeInterrupt = process.listenerCount('SIGINT')
+    const beforeTerminate = process.listenerCount('SIGTERM')
+    const adapter = new NodeProcessAdapter([])
+
+    process.emit(signal, signal)
+    expect(adapter.signal.aborted).toBe(true)
+    adapter.dispose()
+
+    expect(process.listenerCount('SIGINT')).toBe(beforeInterrupt)
+    expect(process.listenerCount('SIGTERM')).toBe(beforeTerminate)
+  })
+
+  it('fails prompts closed when a custom terminal has no matching prompt', async () => {
+    const handlerToken = createToken<CommandHandler<Empty, Empty>>('custom-terminal.handler')
+    class Provider implements ServiceProvider {
+      register(container: Container) {
+        container.instance(handlerToken, { handle: async ({ prompt }) => {
+          await prompt.text('Input?')
+        } })
+      }
+    }
+    const application = new LaravelizeApplication([Provider])
+    const terminal = new FakeTerminal({ interactive: true })
+    const processAdapter = new NodeProcessAdapter(['prompt'])
+
+    await expect(runNodeConsole({ application, registry: new CommandRegistry().register(defineCommand({ name: 'prompt', handler: handlerToken })), terminal, process: processAdapter })).resolves.toBe(1)
+    expect(terminal.errors).toContain('Prompts are unavailable')
     await application.close()
   })
 })

@@ -1,6 +1,6 @@
 export { Mailable } from './Mailable'
 export type { Attachment, MailMessage } from './MailMessage'
-export type { Mailer } from './Mailer'
+export type { Mailer, MailSendOptions } from './Mailer'
 export { LogMailer } from './drivers/LogMailer'
 export { ResendMailer, type ResendClient } from './drivers/ResendMailer'
 export { mailerToken } from './tokens'

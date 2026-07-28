@@ -105,9 +105,9 @@ El contrato queue podria añadir chains secuenciales, batches durables con progr
 
 ### Ecosistema de notificaciones
 
-Paquetes candidatos: `notifications-mail`, `notifications-queue`, `notifications-database`, `notifications-broadcast`, `notifications-webhook` y posteriormente adapters SMS, push y Slack/Teams.
+Entregado: bridges opt-in `notifications-mail` y `notifications-queue` con rendering mail acotado, codecs explicitos, referencias opacas de destinatario, recarga de destinatario/preferencias/locale en worker, comprobacion de tenant confiable, fallos terminales para versiones invalidas y deduplicacion mediante inbox durable.
 
-Debe soportar rendering por canal, entrega encolada, delays, localizacion, preferencias, registros read/unread, eventos de entrega/fallo, retries, dead letters y assertions de testing. Los payloads encolados requieren versiones explicitas de serializacion.
+Quedan como candidatas `notifications-database`, `notifications-broadcast`, `notifications-webhook`, delays por canal, registros read/unread, eventos de entrega/fallo, assertions mas ricas y posteriormente SMS, push y Slack/Teams. Los dead letters pertenecen al backend de queue configurado; la entrega sigue siendo at-least-once en el limite del proveedor externo.
 
 ### Precognition
 
@@ -131,7 +131,7 @@ La capa browser proporcionaria composables Vue SSR-safe para canales publicos, p
 
 Entregado en los contratos portables y adapters opt-in: guards de capacidades fail-closed, politicas inmutables de upload restringido y confirmacion, discos scoped/read-only, release/reject explicito de cuarentena, fallback de lectura con escrituras solo al primario y contratos de streams/multipart. El adapter S3 proporciona URLs SigV4 GET temporales y uploads POST prefirmados con rangos reales de tamaño y condiciones exactas de MIME/metadata/checksum, confirmacion de metadata, visibility, checksums SHA-256, bodies nativos y lifecycle multipart explicito. El adapter local proporciona streams, checksums y visibility; el binding R2 proporciona streams pero no declara signing ni capacidades que no pueda garantizar.
 
-El escaneo antivirus y las transformaciones siguen siendo responsabilidad de queues/workflows de la aplicacion tras confirmar; no se declara ningun scanner. El estado durable de emision, la proteccion de carreras mediante versiones inmutables, la configuracion lifecycle del provider y la verificacion de replicas siguen siendo infraestructura de aplicacion/provider, no semantica portable simulada.
+El escaneo antivirus y las transformaciones siguen siendo responsabilidad de queues/workflows de la aplicacion tras confirmar; no se declara ningun scanner. Un adapter Redis/Valkey ya proporciona estado compartido atomico para confirmacion; la durabilidad ante failover, proteccion de carreras mediante versiones inmutables, configuracion lifecycle del provider y verificacion de replicas siguen siendo infraestructura de aplicacion/provider, no semantica portable simulada.
 
 ### Mejoras de factories
 
@@ -172,7 +172,7 @@ Estas mejoras menores pueden aportar valor antes de los paquetes grandes:
 1. Comando `doctor` para configuracion, adapters, migraciones, workers y definiciones historicas.
 2. Bridge `audit-http` acotado a route, outcome, duracion y decisiones de autorizacion.
 3. Bulk actions acotadas en dead-letter operations.
-4. Bridges mail y queue para notifications.
+4. Canales database/broadcast/webhook y eventos de entrega; los bridges mail y queue ya estan entregados.
 5. Middleware de jobs `WithoutOverlapping` y `RateLimited`.
 6. URLs temporales para S3 y R2.
 7. Maintenance mode sobre un store compartido.

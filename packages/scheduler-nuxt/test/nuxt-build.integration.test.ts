@@ -14,7 +14,7 @@ describe('enabled scheduler Nuxt module', () => {
     expect(buildDir).toBeTruthy()
     const taskFile = resolve(buildDir!, 'laravelize/scheduler', `${Buffer.from('fixture:tick').toString('base64url')}.mjs`)
     const generated = await readFile(taskFile, 'utf8')
-    expect(generated).toContain('createGeneratedSchedulerTask(task, runtimeProvider)')
+    expect(generated).toContain('timestampSource: "wall-clock"')
     expect(generated).not.toContain('createRequire')
   })
 })

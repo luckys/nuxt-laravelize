@@ -1,4 +1,5 @@
 import { createToken } from '@nuxt-laravelize/core/runtime'
-import type { DefaultNotificationManager } from './NotificationManager'
+import type { DefaultNotificationManager, NotificationChannelRegistry } from './NotificationManager'
 
 export const notificationManagerToken = createToken<DefaultNotificationManager>('laravelize.notifications')
+export const notificationChannelRegistryToken = createToken<NotificationChannelRegistry>('laravelize.notification-channels')

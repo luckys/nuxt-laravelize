@@ -90,6 +90,11 @@ describe('parseCommandInput', () => {
     expect(() => parseCommandInput(command, ['Ada', 'nope'])).toThrow(/integer/i)
   })
 
+  it.each(['constructor', 'prototype', 'toString', 'hasOwnProperty', '__proto__'])('rejects inherited option name %s', (name) => {
+    expect(() => parseCommandInput(command, ['Ada', `--${name}=unsafe`])).toThrow(/unknown option/i)
+    expect(() => parseCommandInput(command, ['Ada', `--no-${name}`])).toThrow(/unknown option/i)
+  })
+
   it('supports defaults, custom validation, negated booleans, and the option terminator', () => {
     const validated = defineCommand({
       name: 'validated',

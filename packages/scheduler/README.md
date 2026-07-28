@@ -18,6 +18,9 @@ export default compileSchedule(schedule, {
 ```
 
 Merge the compiled result into a standalone Nitro 3 configuration. Scheduling
-support depends on the selected Nitro deployment preset.
+support depends on the selected Nitro deployment preset. This minimal adapter
+accepts plain operation schedules only and fails closed for timezones, queue
+dispatch, overlap/one-server policies, maintenance overrides, and hooks. Use
+`@nuxt-laravelize/scheduler-nuxt` or a policy-aware wrapper for those features.
 
 See the complete [English](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.md#scheduler) or [Spanish](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.es.md#scheduler) guide for the full schedule DSL and Nitro 3 operations.

@@ -41,7 +41,7 @@ describe('CacheLockSchedulerLockProvider', () => {
     const execute = vi.fn(async () => 'done')
     const task = taskFrom(schedule => schedule.task('singleton').hourly().onOneServer())
 
-    await expect(createSchedulerRunner({ operations: { singleton: { execute } }, locks: provider }).run(task)).resolves.toEqual({ status: 'completed', result: 'done' })
+    await expect(createSchedulerRunner({ operations: { singleton: { execute } }, locks: provider, namespace: 'tests' }).run(task)).resolves.toEqual({ status: 'completed', result: 'done' })
     expect(() => new CacheLockSchedulerLockProvider(new InMemoryCache() as never)).toThrow(/distributed owner-atomic cache/)
     await expect(provider.acquire('too-short', 0.001)).rejects.toThrow(/timer range/)
   })
@@ -70,14 +70,16 @@ describe('CacheLockSchedulerLockProvider', () => {
     const lostLease = await new CacheLockSchedulerLockProvider(new RedisCache(redisClient(false))).acquire('scheduler:lost', 0.1)
     await vi.advanceTimersByTimeAsync(50)
     await expect(lostLease?.assertOwned?.()).rejects.toBeInstanceOf(SchedulerLockLostError)
+    expect(lostLease?.signal?.aborted).toBe(true)
     await expect(lostLease?.release()).rejects.toBeInstanceOf(SchedulerLockLostError)
 
     const ownershipLost = new SchedulerLockLostError('lost')
     const runner = createSchedulerRunner({
       operations: { slow: { execute: async () => 'must-not-complete' } },
-      locks: { capabilities: { distributed: true }, acquire: async () => ({ release: vi.fn(), assertOwned: async () => { throw ownershipLost } }) },
+      locks: { capabilities: { distributed: true }, claim: async () => ({ complete: vi.fn(), release: vi.fn() }), acquire: async () => ({ release: vi.fn(), assertOwned: async () => { throw ownershipLost } }) },
+      namespace: 'tests',
     })
-    const task = taskFrom(schedule => schedule.task('slow').hourly().onOneServer())
+    const task = taskFrom(schedule => schedule.task('slow').hourly().onOneServer().withoutOverlapping(1))
     await expect(runner.run(task)).rejects.toBe(ownershipLost)
   })
 
@@ -87,6 +89,26 @@ describe('CacheLockSchedulerLockProvider', () => {
     const lease = await new CacheLockSchedulerLockProvider(new RedisCache(client)).acquire('scheduler:expired', 60)
 
     await expect(lease?.release()).rejects.toBeInstanceOf(SchedulerLockLostError)
+  })
+
+  it('retains one-server occurrence claims until their TTL expires', async () => {
+    const provider = new CacheLockSchedulerLockProvider(new RedisCache(redisClient()))
+
+    const claim = await provider.claim('scheduler:one-server:report:1', 60)
+    await expect(claim?.complete()).resolves.toBeUndefined()
+    await expect(provider.claim('scheduler:one-server:report:1', 60)).resolves.toBeNull()
+  })
+
+  it('renews occurrence ownership in flight and resets retention from completion', async () => {
+    vi.useFakeTimers()
+    const client = redisClient()
+    const claim = await new CacheLockSchedulerLockProvider(new RedisCache(client)).claim('scheduler:one-server:long', 0.1)
+
+    await vi.advanceTimersByTimeAsync(50)
+    expect(client.eval).toHaveBeenCalledWith(expect.stringContaining('PEXPIRE'), 1, expect.any(String), expect.any(String), 100)
+    vi.mocked(client.eval).mockClear()
+    await claim?.complete()
+    expect(client.eval).toHaveBeenCalledWith(expect.stringContaining('PEXPIRE'), 1, expect.any(String), expect.any(String), 100)
   })
 
   it('fails release when an in-flight renewal loses ownership', async () => {

@@ -1,16 +1,20 @@
 import process from 'node:process'
 import { createInterface } from 'node:readline/promises'
 import { ConsoleRunner, type ConsoleRunnerOptions } from './runner'
-import { NonInteractivePromptError, type ProcessAdapter, type Prompt, type Terminal } from './ports'
+import { FailClosedPrompt, NonInteractivePromptError, type ProcessAdapter, type Prompt, type Terminal } from './ports'
 
 export class NodeTerminal implements Terminal {
-  readonly #stdout: NodeJS.WriteStream
-  readonly #stderr: NodeJS.WriteStream
+  readonly #stdout: NodeJS.WritableStream
+  readonly #stderr: NodeJS.WritableStream
   readonly interactive: boolean
-  constructor(options: Readonly<{ stdout?: NodeJS.WriteStream, stderr?: NodeJS.WriteStream, stdin?: NodeJS.ReadStream }> = {}) {
+  constructor(options: Readonly<{
+    stdout?: NodeJS.WritableStream & { readonly isTTY?: boolean }
+    stderr?: NodeJS.WritableStream
+    stdin?: NodeJS.ReadableStream & { readonly isTTY?: boolean }
+  }> = {}) {
     this.#stdout = options.stdout ?? process.stdout
     this.#stderr = options.stderr ?? process.stderr
-    this.interactive = Boolean((options.stdin ?? process.stdin).isTTY && this.#stdout.isTTY)
+    this.interactive = Boolean((options.stdin ?? process.stdin).isTTY && (options.stdout ?? process.stdout).isTTY)
   }
 
   write(value: string): void { this.#stdout.write(value) }
@@ -56,17 +60,32 @@ export class NodeProcessAdapter implements ProcessAdapter {
   constructor(argv: readonly string[] = process.argv.slice(2)) {
     this.argv = [...argv]
     process.once('SIGINT', this.#onInterrupt)
+    process.once('SIGTERM', this.#onInterrupt)
   }
 
   get signal(): AbortSignal { return this.#controller.signal }
   setExitCode(code: number): void { process.exitCode = code }
-  dispose(): void { process.off('SIGINT', this.#onInterrupt) }
+  dispose(): void {
+    process.off('SIGINT', this.#onInterrupt)
+    process.off('SIGTERM', this.#onInterrupt)
+  }
 }
 
-export async function runNodeConsole(options: Omit<ConsoleRunnerOptions, 'terminal' | 'process' | 'prompt'> & Readonly<{ terminal?: Terminal, process?: NodeProcessAdapter, prompt?: Prompt }>): Promise<number> {
-  const terminal = options.terminal ?? new NodeTerminal()
+export interface RunNodeConsoleOptions extends Omit<ConsoleRunnerOptions, 'terminal' | 'process' | 'prompt'> {
+  readonly terminal?: Terminal
+  readonly process?: NodeProcessAdapter
+  readonly prompt?: Prompt
+  readonly stdin?: NodeJS.ReadableStream & { readonly isTTY?: boolean }
+  readonly stdout?: NodeJS.WritableStream & { readonly isTTY?: boolean }
+  readonly stderr?: NodeJS.WritableStream
+}
+
+export async function runNodeConsole(options: RunNodeConsoleOptions): Promise<number> {
+  const terminal = options.terminal ?? new NodeTerminal({ stdin: options.stdin, stdout: options.stdout, stderr: options.stderr })
   const processAdapter = options.process ?? new NodeProcessAdapter()
-  const prompt = options.prompt ?? new NodePrompt(terminal, { signal: processAdapter.signal })
+  const prompt = options.prompt ?? (options.terminal
+    ? new FailClosedPrompt()
+    : new NodePrompt(terminal, { signal: processAdapter.signal, stdin: options.stdin, stdout: options.stdout }))
   try {
     const code = await new ConsoleRunner({ ...options, terminal, process: processAdapter, prompt }).run()
     processAdapter.setExitCode(code)

@@ -4,7 +4,7 @@ import { sql as drizzleSql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { DrizzleTransactionManager, type DrizzleAsyncTransactionSource } from '@nuxt-laravelize/database-drizzle'
-import { DrizzlePostgresReliabilityStore, DrizzleReliabilityDeadLetterAdapter, type DrizzleReliabilityDatabase } from '@nuxt-laravelize/reliability-drizzle'
+import { DrizzleDeadLetterOperationStore, DrizzlePostgresReliabilityStore, DrizzleReliabilityDeadLetterAdapter, type DrizzleReliabilityDatabase } from '@nuxt-laravelize/reliability-drizzle'
 import { createEnvelope } from '@nuxt-laravelize/reliability'
 import { defineStep, defineWorkflow, InvalidWorkflowSnapshotError, InvalidWorkflowVersionError, LeaseConflictError, RevisionConflictError, UnsupportedWorkflowSnapshotFormatError, WorkflowIdentityConflictError, WorkflowManager, WorkflowRegistry, WorkflowStoreContractError, type WorkflowStore } from '@nuxt-laravelize/workflows'
 import { DrizzlePostgresWorkflowStore, type DrizzlePostgresWorkflowDatabase } from '@nuxt-laravelize/workflows-drizzle'
@@ -24,6 +24,7 @@ const migrations = [
   new URL('../../reliability-drizzle/migrations/0004_reliability_terminal_at_postgres.sql', import.meta.url),
   new URL('../../reliability-drizzle/migrations/0006_reliability_dead_letter_management_postgres.sql', import.meta.url),
   new URL('../../reliability-drizzle/migrations/0008_reliability_dead_letter_operations_postgres.sql', import.meta.url),
+  new URL('../../reliability-drizzle/migrations/0010_generalize_dead_letter_operations_postgres.sql', import.meta.url),
 ]
 
 const definition = defineWorkflow({ name: 'postgres-proof', version: '1', steps: [defineStep({ name: 'work', run: () => null })] })
@@ -68,6 +69,41 @@ describe('PostgreSQL transactional workflow wake-ups', () => {
     const committed = await adapter.discard(request)
     expect(await adapter.discard(request)).toEqual(committed)
     expect((await client`select status, fingerprint, failure_code from reliability_dead_letter_operations where operation_id = ${request.operationId}`)[0]).toMatchObject({ status: 'committed', failure_code: null })
+  })
+
+  it('preserves legacy receipts while generalizing dead-letter operations', async () => {
+    const upgradeSchema = `dead_letter_upgrade_${process.pid}_${Date.now()}`
+    const legacy = await readFile(new URL('../../reliability-drizzle/migrations/0008_reliability_dead_letter_operations_postgres.sql', import.meta.url), 'utf8')
+    const upgrade = await readFile(new URL('../../reliability-drizzle/migrations/0010_generalize_dead_letter_operations_postgres.sql', import.meta.url), 'utf8')
+    try {
+      await client.unsafe(`create schema "${upgradeSchema}"`)
+      await client.unsafe(`set search_path to "${upgradeSchema}"`)
+      await client.unsafe(legacy)
+      await client.unsafe(`insert into reliability_dead_letter_operations (operation_id, fingerprint, source, message_kind, message_id, action, status, reserved_at, resolved_at, result_revision, result_disposition, failure_code) values
+        ('legacy-pending', repeat('a', 64), 'reliability', 'outbox', 'pending-1', 'retry', 'pending', now(), null, null, null, null),
+        ('legacy-committed', repeat('b', 64), 'reliability', 'outbox', 'committed-1', 'discard', 'committed', now(), now(), 7, 'discarded', null),
+        ('legacy-failed', repeat('c', 64), 'reliability', 'outbox', 'failed-1', 'retry', 'failed', now(), now(), null, null, 'stale_revision')`)
+
+      await client.unsafe(upgrade)
+
+      const stored = await client`select operation_id, status, result_revision from reliability_dead_letter_operations order by operation_id`
+      expect(stored).toEqual([
+        expect.objectContaining({ operation_id: 'legacy-committed', status: 'committed', result_revision: '7' }),
+        expect.objectContaining({ operation_id: 'legacy-failed', status: 'failed', result_revision: null }),
+        expect.objectContaining({ operation_id: 'legacy-pending', status: 'pending', result_revision: null }),
+      ])
+      const operations = new DrizzleDeadLetterOperationStore(database, () => new Date(1_000))
+      expect(await operations.reserve('bullmq-upgrade', 'd'.repeat(64))).toBe('reserved')
+      await operations.finalize('bullmq-upgrade', 'd'.repeat(64), {
+        status: 'committed',
+        result: { key: { source: 'bullmq', namespace: 'emails', id: 'job-1' }, disposition: 'active', revision: 'opaque_revision-v1', operationId: 'bullmq-upgrade', committedAt: new Date(2_000).toISOString() },
+      })
+      await expect(operations.get('bullmq-upgrade')).resolves.toMatchObject({ status: 'committed', result: { revision: 'opaque_revision-v1' } })
+    }
+    finally {
+      await client.unsafe(`set search_path to "${schema}"`)
+      await client.unsafe(`drop schema if exists "${upgradeSchema}" cascade`)
+    }
   })
 
   it('commits workflow and wake-up rows together', async () => {
