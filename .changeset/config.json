@@ -33,6 +33,8 @@
       "@nuxt-laravelize/hashing",
       "@nuxt-laravelize/mail",
       "@nuxt-laravelize/notifications",
+      "@nuxt-laravelize/notifications-database",
+      "@nuxt-laravelize/notifications-database-drizzle",
       "@nuxt-laravelize/notifications-mail",
       "@nuxt-laravelize/notifications-queue",
       "@nuxt-laravelize/pennant",

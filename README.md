@@ -43,6 +43,8 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/migrations` | ORM-neutral transactional migration runner, checksums, and console commands |
 | `@nuxt-laravelize/migrations-drizzle` | PostgreSQL/SQLite backends and aggregate package migration sources |
 | `@nuxt-laravelize/notifications` | Notification channels and on-demand routing |
+| `@nuxt-laravelize/notifications-database` | Tenant-fenced persistent notifications with read/unread state |
+| `@nuxt-laravelize/notifications-database-drizzle` | Durable PostgreSQL, SQLite, and Turso database-notification stores |
 | `@nuxt-laravelize/notifications-mail` | Validated opt-in mail notification channel |
 | `@nuxt-laravelize/notifications-queue` | Versioned, recipient-reloading queued notification delivery |
 | `@nuxt-laravelize/observability` | Vendor-neutral no-op foundation, safe HTTP spans, metrics, and testing fake |

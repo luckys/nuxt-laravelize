@@ -105,9 +105,9 @@ The queue contract could add sequential chains, durable batches with progress/ca
 
 ### Notification delivery ecosystem
 
-Delivered: opt-in `notifications-mail` and `notifications-queue` bridges with bounded mail rendering, explicit payload codecs, opaque recipient references, worker-side recipient/preference/locale reload, trusted tenant checks, terminal malformed-version handling, and durable inbox deduplication.
+Delivered: opt-in `notifications-mail`, `notifications-queue`, and `notifications-database` bridges with bounded rendering/payloads, explicit durable type versions, opaque recipient references, worker-side recipient/preference/locale reload, trusted tenant checks, terminal malformed-version handling, durable inbox deduplication, tenant-fenced cursor reads, and idempotent read/unread records backed by PostgreSQL or SQLite/Turso.
 
-Remaining candidates include `notifications-database`, `notifications-broadcast`, `notifications-webhook`, per-channel delays, read/unread records, delivery/failure events, richer assertions, and later SMS, push, and Slack/Teams adapters. Queue dead letters currently belong to the configured queue backend; delivery remains at-least-once at external provider boundaries.
+Remaining candidates include `notifications-broadcast`, `notifications-webhook`, per-channel delays, delivery/failure events, richer assertions, and later SMS, push, and Slack/Teams adapters. Queue dead letters currently belong to the configured queue backend; delivery remains at-least-once at external provider boundaries.
 
 ### Precognition
 

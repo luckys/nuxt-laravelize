@@ -9,6 +9,7 @@ import { migrationSourcesFor, postgresMigrationSources, sqliteMigrationSources }
 const namespaces = [
   'nuxt-laravelize.audit-drizzle',
   'nuxt-laravelize.idempotency-drizzle',
+  'nuxt-laravelize.notifications-database-drizzle',
   'nuxt-laravelize.reliability-drizzle',
   'nuxt-laravelize.scout-drizzle',
   'nuxt-laravelize.workflows-drizzle',
@@ -19,6 +20,7 @@ const expectedNames = {
     '0000_create_audit_entries',
     '0002_add_audit_locale',
     '0000_idempotency_postgres',
+    '0000_notifications_database_postgres',
     '0000_reliability_postgres',
     '0002_reliability_append_availability_postgres',
     '0004_reliability_terminal_at_postgres',
@@ -32,6 +34,7 @@ const expectedNames = {
     '0001_create_audit_entries_sqlite',
     '0003_add_audit_locale_sqlite',
     '0001_idempotency_sqlite',
+    '0001_notifications_database_sqlite',
     '0001_reliability_sqlite',
     '0003_reliability_append_availability_sqlite',
     '0005_reliability_terminal_at_sqlite',
@@ -58,12 +61,12 @@ describe('aggregate migration sources', () => {
     const backend = new InMemoryMigrationBackend(dialect)
     const plan = await new MigrationRunner<typeof dialect>({ dialect, sources, backend }).plan()
 
-    expect(plan).toHaveLength(11)
+    expect(plan).toHaveLength(12)
     expect(plan.every(item => item.state === 'pending')).toBe(true)
     expect(new Set(plan.map(item => item.id)).size).toBe(plan.length)
     const namesBySourceOrder = (await Promise.all(sources.map(source => source.migrations()))).flat().map(migration => migration.name)
     expect(namesBySourceOrder).toEqual(expectedNames[dialect])
-    const migrationCounts = [2, 1, 6, 1, 1]
+    const migrationCounts = [2, 1, 1, 6, 1, 1]
     let offset = 0
     const expectedIds = sources.flatMap((source, index) => {
       const names = expectedNames[dialect].slice(offset, offset + migrationCounts[index]!)
@@ -102,13 +105,14 @@ describe('aggregate migration sources', () => {
 
     const result = await new MigrationRunner({ dialect: 'sqlite', sources: sqliteMigrationSources, backend }).up()
 
-    expect(result.executed).toHaveLength(11)
-    expect(result.statements).toHaveLength(40)
+    expect(result.executed).toHaveLength(12)
+    expect(result.statements).toHaveLength(43)
     expect(executed.filter(sql => !sql.includes('laravelize_migration'))).toEqual(result.statements.map(statement => statement.sql))
     const objects = database.prepare('SELECT name FROM sqlite_master WHERE type IN (\'table\', \'index\')').all().map(row => String(row.name))
     expect(objects).toEqual(expect.arrayContaining([
       'audit_entries_correlation_idx',
       'idempotency_records',
+      'database_notifications_recipient_time_idx',
       'reliability_messages_dead_management_idx',
       'reliability_dead_letter_operations_retention_idx',
       'scout_documents_fts',

@@ -1,6 +1,7 @@
 import { migrationSourceFor as auditMigrationSourceFor } from '@nuxt-laravelize/audit-drizzle/migrations'
 import { migrationSourceFor as idempotencyMigrationSourceFor } from '@nuxt-laravelize/idempotency-drizzle/migrations'
 import type { MigrationDialect, MigrationSource } from '@nuxt-laravelize/migrations'
+import { migrationSourceFor as notificationsDatabaseMigrationSourceFor } from '@nuxt-laravelize/notifications-database-drizzle/migrations'
 import { migrationSourceFor as reliabilityMigrationSourceFor } from '@nuxt-laravelize/reliability-drizzle/migrations'
 import { migrationSourceFor as scoutMigrationSourceFor } from '@nuxt-laravelize/scout-drizzle/migrations'
 import { migrationSourceFor as workflowsMigrationSourceFor } from '@nuxt-laravelize/workflows-drizzle/migrations'
@@ -12,6 +13,7 @@ import { migrationSourceFor as workflowsMigrationSourceFor } from '@nuxt-laravel
 export const postgresMigrationSources: readonly MigrationSource<'postgresql'>[] = Object.freeze([
   auditMigrationSourceFor('postgresql'),
   idempotencyMigrationSourceFor('postgresql'),
+  notificationsDatabaseMigrationSourceFor('postgresql'),
   reliabilityMigrationSourceFor('postgresql'),
   scoutMigrationSourceFor('postgresql'),
   workflowsMigrationSourceFor('postgresql'),
@@ -20,6 +22,7 @@ export const postgresMigrationSources: readonly MigrationSource<'postgresql'>[] 
 export const sqliteMigrationSources: readonly MigrationSource<'sqlite'>[] = Object.freeze([
   auditMigrationSourceFor('sqlite'),
   idempotencyMigrationSourceFor('sqlite'),
+  notificationsDatabaseMigrationSourceFor('sqlite'),
   reliabilityMigrationSourceFor('sqlite'),
   scoutMigrationSourceFor('sqlite'),
   workflowsMigrationSourceFor('sqlite'),

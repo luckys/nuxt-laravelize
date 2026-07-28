@@ -55,6 +55,6 @@ export class QueuedNotificationJob extends Job<QueuedNotificationPayload> {
     const currentChannels = notification.via(resolved.notifiable)
     const enabled = resolved.channels ?? currentChannels
     if (!enabled.includes(this.payload.channel) || !currentChannels.includes(this.payload.channel)) return
-    await resolver.make(notificationManagerToken).sendChannel(this.payload.channel, resolved.notifiable, notification, { locale: resolved.locale, idempotencyKey: this.payload.deliveryId, signal: execution.signal })
+    await resolver.make(notificationManagerToken).sendChannel(this.payload.channel, resolved.notifiable, notification, { locale: resolved.locale, tenantId: resolved.tenantId, idempotencyKey: this.payload.deliveryId, signal: execution.signal })
   }
 }

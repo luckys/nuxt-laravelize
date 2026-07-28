@@ -2,6 +2,7 @@ export type ChannelName = 'log' | 'mail' | (string & {})
 
 export interface NotificationDeliveryContext {
   readonly locale?: string
+  readonly tenantId?: string
   readonly idempotencyKey?: string
   readonly signal?: AbortSignal
 }

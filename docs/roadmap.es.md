@@ -105,9 +105,9 @@ El contrato queue podria añadir chains secuenciales, batches durables con progr
 
 ### Ecosistema de notificaciones
 
-Entregado: bridges opt-in `notifications-mail` y `notifications-queue` con rendering mail acotado, codecs explicitos, referencias opacas de destinatario, recarga de destinatario/preferencias/locale en worker, comprobacion de tenant confiable, fallos terminales para versiones invalidas y deduplicacion mediante inbox durable.
+Entregado: bridges opt-in `notifications-mail`, `notifications-queue` y `notifications-database` con rendering/payloads acotados, versiones de tipo durables explicitas, referencias opacas de destinatario, recarga de destinatario/preferencias/locale en worker, comprobacion de tenant confiable, fallos terminales para versiones invalidas, deduplicacion mediante inbox durable, lecturas por cursor tenant-fenced y registros idempotentes leido/no leido respaldados por PostgreSQL o SQLite/Turso.
 
-Quedan como candidatas `notifications-database`, `notifications-broadcast`, `notifications-webhook`, delays por canal, registros read/unread, eventos de entrega/fallo, assertions mas ricas y posteriormente SMS, push y Slack/Teams. Los dead letters pertenecen al backend de queue configurado; la entrega sigue siendo at-least-once en el limite del proveedor externo.
+Quedan como candidatas `notifications-broadcast`, `notifications-webhook`, delays por canal, eventos de entrega/fallo, assertions mas ricas y posteriormente SMS, push y Slack/Teams. Los dead letters pertenecen al backend de queue configurado; la entrega sigue siendo at-least-once en el limite del proveedor externo.
 
 ### Precognition
 
