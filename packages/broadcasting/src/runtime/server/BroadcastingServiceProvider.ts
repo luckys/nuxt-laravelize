@@ -1,6 +1,6 @@
 import { useRuntimeConfig } from '#imports'
 import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { dispatcherToken, type Dispatcher } from '@nuxt-laravelize/events/runtime'
+import { eventListenerRegistryToken } from '@nuxt-laravelize/events/runtime'
 import { BroadcastingManager, FailClosedBroadcaster } from '../Broadcasting'
 import { ChannelRegistry } from '../ChannelRegistry'
 import { BroadcastEventListener } from '../EventBridge'
@@ -19,6 +19,6 @@ export default class BroadcastingServiceProvider implements ServiceProvider {
   }
 
   boot(container: Container): void {
-    container.make<Dispatcher>(dispatcherToken).listenAny(broadcastEventListenerToken)
+    container.make(eventListenerRegistryToken).listenAny(broadcastEventListenerToken)
   }
 }

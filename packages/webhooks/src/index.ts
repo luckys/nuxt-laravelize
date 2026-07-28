@@ -126,6 +126,12 @@ export type WebhookDiagnostic = Readonly<{
   status?: number
   detail?: string
 }>
+export type WebhookSecretResolutionContext = Readonly<{
+  tenantId?: string
+  deliveryId: string
+  url: string
+  signal: AbortSignal
+}>
 const safeDetail = (value: string) => value.replace(/https?:\/\/\S+/gi, '[url]').replace(/[\r\n]/g, ' ').slice(0, 256)
 function retryAfter(headers: Headers, now: Date): string | undefined {
   const value = headers.get('retry-after')
@@ -139,7 +145,7 @@ export class OutgoingWebhookProcessor {
   readonly processor: OutboxProcessor
   constructor(store: OutboxStore | undefined, private readonly options: {
     owner: string
-    resolveSecret: (secretId: string) => Promise<string>
+    resolveSecret: (secretId: string, context: WebhookSecretResolutionContext) => Promise<string>
     transport?: WebhookTransport
     resolver?: AddressResolver
     clock?: () => Date
@@ -174,7 +180,7 @@ export class OutgoingWebhookProcessor {
       const timestamp = String(clock().getTime())
       let secret: string
       try {
-        secret = await options.resolveSecret(job.secretId)
+        secret = await options.resolveSecret(job.secretId, { ...(message.context?.tenantId ? { tenantId: message.context.tenantId } : {}), deliveryId: message.id, url: job.url, signal: context!.signal })
       }
       catch (error) {
         const terminal = error instanceof WebhookSecretMissingError || error instanceof WebhookSecretRevokedError

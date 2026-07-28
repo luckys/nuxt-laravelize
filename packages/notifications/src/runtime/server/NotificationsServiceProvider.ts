@@ -1,4 +1,5 @@
 import { ConsoleLogger, loggerToken, type Container, type ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import { dispatcherToken } from '@nuxt-laravelize/events/runtime'
 import { LogChannel } from '../LogChannel'
 import { DefaultNotificationManager, NotificationChannelRegistry } from '../NotificationManager'
 import { notificationChannelRegistryToken, notificationManagerToken } from '../tokens'
@@ -13,7 +14,10 @@ export default class NotificationsServiceProvider implements ServiceProvider {
       return channels
     })
     container.scoped(notificationManagerToken, (resolver) => {
-      return new DefaultNotificationManager(resolver.make(notificationChannelRegistryToken), resolver)
+      return new DefaultNotificationManager(resolver.make(notificationChannelRegistryToken), resolver, {
+        ...(resolver.has(dispatcherToken) ? { dispatcher: resolver.make(dispatcherToken) } : {}),
+        logger: resolver.has(loggerToken) ? resolver.make(loggerToken) : new ConsoleLogger({ threshold: 'warn' }),
+      })
     })
   }
 }

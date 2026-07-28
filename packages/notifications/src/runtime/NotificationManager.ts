@@ -1,5 +1,7 @@
-import type { Resolver } from '@nuxt-laravelize/core/runtime'
+import type { Logger, Resolver } from '@nuxt-laravelize/core/runtime'
+import type { Dispatcher } from '@nuxt-laravelize/events/runtime'
 import type { ChannelName, Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from './contracts'
+import { NotificationDelivered, NotificationDeliveryFailed, type NotificationDeliveryEventContext } from './NotificationEvents'
 
 export class UnknownNotificationChannel extends Error {
   constructor(channel: string) {
@@ -24,10 +26,19 @@ export class NotificationChannelRegistry {
   }
 }
 
+export interface NotificationManagerOptions {
+  readonly dispatcher?: Pick<Dispatcher, 'dispatch'>
+  readonly logger?: Logger
+}
+
 export class DefaultNotificationManager {
   readonly #channels = new Map<string, NotificationChannel>()
 
-  constructor(channels?: NotificationChannelRegistry, resolver?: Resolver) {
+  constructor(
+    channels?: NotificationChannelRegistry,
+    resolver?: Resolver,
+    private readonly options: NotificationManagerOptions = {},
+  ) {
     if (channels) for (const [name, channel] of channels.entries(resolver)) this.#channels.set(name, channel)
   }
 
@@ -45,14 +56,47 @@ export class DefaultNotificationManager {
   }
 
   async sendChannel(name: ChannelName, notifiable: Notifiable, notification: Notification, context?: NotificationDeliveryContext): Promise<void> {
-    const channel = this.#channels.get(name)
-    if (!channel) throw new UnknownNotificationChannel(name)
-    if (context === undefined) await channel.send(notifiable, notification)
-    else await channel.send(notifiable, notification, context)
+    try {
+      context?.signal?.throwIfAborted()
+      const channel = this.#channels.get(name)
+      if (!channel) throw new UnknownNotificationChannel(name)
+      if (context === undefined) await channel.send(notifiable, notification)
+      else await channel.send(notifiable, notification, context)
+    }
+    catch (error) {
+      await this.#dispatchLifecycleEvent(new NotificationDeliveryFailed(
+        notifiable,
+        notification,
+        name,
+        deliveryEventContext(context),
+        error,
+        context?.signal?.aborted === true || isAbortError(error),
+      ))
+      throw error
+    }
+
+    await this.#dispatchLifecycleEvent(new NotificationDelivered(notifiable, notification, name, deliveryEventContext(context)))
   }
 
   route(channel: ChannelName, address: unknown): PendingNotification {
     return new PendingNotification(this).route(channel, address)
+  }
+
+  async #dispatchLifecycleEvent(event: NotificationDelivered | NotificationDeliveryFailed): Promise<void> {
+    if (!this.options.dispatcher) return
+    try {
+      await this.options.dispatcher.dispatch(event)
+    }
+    catch (error) {
+      try {
+        this.options.logger?.warn('notification lifecycle listener failed', {
+          channel: event.channel,
+          event: event.type,
+          errorType: error instanceof Error ? error.name : typeof error,
+        })
+      }
+      catch { /* Observers cannot alter notification delivery. */ }
+    }
   }
 }
 
@@ -69,4 +113,17 @@ export class PendingNotification {
   notify(notification: Notification): Promise<void> {
     return this.manager.sendNow({ routeNotificationFor: channel => this.#routes.get(channel) }, notification)
   }
+}
+
+function deliveryEventContext(context?: NotificationDeliveryContext): NotificationDeliveryEventContext {
+  return Object.freeze({
+    ...(context?.idempotencyKey !== undefined ? { idempotencyKey: context.idempotencyKey } : {}),
+    ...(context?.locale !== undefined ? { locale: context.locale } : {}),
+    ...(context?.occurredAt !== undefined ? { occurredAt: context.occurredAt } : {}),
+    ...(context?.tenantId !== undefined ? { tenantId: context.tenantId } : {}),
+  })
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError'
 }

@@ -1,27 +1,23 @@
 import type { Resolver, Token } from '@nuxt-laravelize/core/runtime'
 
 import type { Dispatcher, EventConstructor, EventSubscriber, Listener, QueuedListenerAdapter, ShouldQueue } from './contracts'
+import { EventListenerRegistry } from './EventListenerRegistry'
 import { queuedListenerAdapterToken } from './tokens'
 
-interface BoundListener {
-  readonly token: Token<Listener<unknown>>
-}
-
 export class InMemoryDispatcher implements Dispatcher {
-  readonly #listeners = new Map<EventConstructor, BoundListener[]>()
-  readonly #anyListeners: BoundListener[] = []
+  readonly #listeners = new EventListenerRegistry()
 
-  constructor(private readonly resolver: Resolver) {}
+  constructor(
+    private readonly resolver: Resolver,
+    private readonly sharedListeners?: EventListenerRegistry,
+  ) {}
 
   listen<E>(event: EventConstructor<E>, listener: Token<Listener<E>>): void {
-    const type = event as EventConstructor
-    const listeners = this.#listeners.get(type) ?? []
-    listeners.push({ token: listener as Token<Listener<unknown>> })
-    this.#listeners.set(type, listeners)
+    this.#listeners.listen(event, listener)
   }
 
   listenAny(listener: Token<Listener<unknown>>): void {
-    this.#anyListeners.push({ token: listener })
+    this.#listeners.listenAny(listener)
   }
 
   subscribe(subscriber: Token<EventSubscriber>): void {
@@ -30,11 +26,16 @@ export class InMemoryDispatcher implements Dispatcher {
 
   async dispatch<E>(event: E): Promise<void> {
     const eventType = (event as object).constructor as EventConstructor
-    const listeners = [...(this.#listeners.get(eventType) ?? []), ...this.#anyListeners]
+    const listeners = [
+      ...(this.sharedListeners?.listenersFor(eventType) ?? []),
+      ...this.#listeners.listenersFor(eventType),
+      ...(this.sharedListeners?.anyListeners() ?? []),
+      ...this.#listeners.anyListeners(),
+    ]
 
-    for (const entry of listeners) {
-      const listener = this.resolver.make(entry.token)
-      if (await this.#enqueueWhenSupported(entry.token, listener, event)) continue
+    for (const token of listeners) {
+      const listener = this.resolver.make(token)
+      if (await this.#enqueueWhenSupported(token, listener, event)) continue
       if (await listener.handle(event) === false) break
     }
   }

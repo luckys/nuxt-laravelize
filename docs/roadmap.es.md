@@ -105,9 +105,9 @@ El contrato queue podria añadir chains secuenciales, batches durables con progr
 
 ### Ecosistema de notificaciones
 
-Entregado: bridges opt-in `notifications-mail`, `notifications-queue` y `notifications-database` con rendering/payloads acotados, versiones de tipo durables explicitas, referencias opacas de destinatario, recarga de destinatario/preferencias/locale en worker, comprobacion de tenant confiable, fallos terminales para versiones invalidas, deduplicacion mediante inbox durable, lecturas por cursor tenant-fenced y registros idempotentes leido/no leido respaldados por PostgreSQL o SQLite/Turso.
+Entregado: bridges opt-in `notifications-mail`, `notifications-queue`, `notifications-database`, `notifications-broadcast` y `notifications-webhook` con rendering/payloads acotados, versiones de tipo durables explicitas, referencias opacas de destinatario y endpoint, recarga de destinatario/preferencias/locale en worker, comprobacion de tenant confiable, fallos terminales para versiones invalidas, deduplicacion durable mediante inbox/outbox, lecturas por cursor tenant-fenced, registros idempotentes leido/no leido respaldados por PostgreSQL o SQLite/Turso, canales realtime privados deterministas, jobs webhook firmados con IDs estables, eventos de lifecycle de entrega/fallo acotados por privacidad, delays de queue validados por destinatario/canal y assertions mas ricas para el fake.
 
-Quedan como candidatas `notifications-broadcast`, `notifications-webhook`, delays por canal, eventos de entrega/fallo, assertions mas ricas y posteriormente SMS, push y Slack/Teams. Los dead letters pertenecen al backend de queue configurado; la entrega sigue siendo at-least-once en el limite del proveedor externo.
+Quedan como candidatos los adapters SMS, push y Slack/Teams. Los eventos de lifecycle son observaciones sincronas best-effort, no recibos terminales durables. Los dead letters pertenecen al backend de queue configurado; la entrega sigue siendo at-least-once en el limite del proveedor externo.
 
 ### Precognition
 
@@ -172,7 +172,7 @@ Estas mejoras menores pueden aportar valor antes de los paquetes grandes:
 1. Comando `doctor` para configuracion, adapters, migraciones, workers y definiciones historicas.
 2. Bridge `audit-http` acotado a route, outcome, duracion y decisiones de autorizacion.
 3. Bulk actions acotadas en dead-letter operations.
-4. Canales database/broadcast/webhook y eventos de entrega; los bridges mail y queue ya estan entregados.
+4. Entregado: assertions de notificaciones mas ricas y delays de queue validados por canal.
 5. Middleware de jobs `WithoutOverlapping` y `RateLimited`.
 6. URLs temporales para S3 y R2.
 7. Maintenance mode sobre un store compartido.

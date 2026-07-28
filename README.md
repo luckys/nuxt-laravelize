@@ -42,11 +42,13 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/mail` | Mailables, mail manager, and transports |
 | `@nuxt-laravelize/migrations` | ORM-neutral transactional migration runner, checksums, and console commands |
 | `@nuxt-laravelize/migrations-drizzle` | PostgreSQL/SQLite backends and aggregate package migration sources |
-| `@nuxt-laravelize/notifications` | Notification channels and on-demand routing |
+| `@nuxt-laravelize/notifications` | Notification channels, on-demand routing, and delivery lifecycle events |
+| `@nuxt-laravelize/notifications-broadcast` | Tenant-fenced realtime notifications through the configured broadcaster |
 | `@nuxt-laravelize/notifications-database` | Tenant-fenced persistent notifications with read/unread state |
 | `@nuxt-laravelize/notifications-database-drizzle` | Durable PostgreSQL, SQLite, and Turso database-notification stores |
 | `@nuxt-laravelize/notifications-mail` | Validated opt-in mail notification channel |
 | `@nuxt-laravelize/notifications-queue` | Versioned, recipient-reloading queued notification delivery |
+| `@nuxt-laravelize/notifications-webhook` | Durable tenant-fenced notification delivery through signed webhooks |
 | `@nuxt-laravelize/observability` | Vendor-neutral no-op foundation, safe HTTP spans, metrics, and testing fake |
 | `@nuxt-laravelize/observability-otel` | Optional OpenTelemetry API adapter; application-owned SDK/exporters |
 | `@nuxt-laravelize/observability-queue` | Optional bounded W3C queue propagation and semantic job telemetry |

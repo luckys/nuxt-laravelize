@@ -105,9 +105,9 @@ The queue contract could add sequential chains, durable batches with progress/ca
 
 ### Notification delivery ecosystem
 
-Delivered: opt-in `notifications-mail`, `notifications-queue`, and `notifications-database` bridges with bounded rendering/payloads, explicit durable type versions, opaque recipient references, worker-side recipient/preference/locale reload, trusted tenant checks, terminal malformed-version handling, durable inbox deduplication, tenant-fenced cursor reads, and idempotent read/unread records backed by PostgreSQL or SQLite/Turso.
+Delivered: opt-in `notifications-mail`, `notifications-queue`, `notifications-database`, `notifications-broadcast`, and `notifications-webhook` bridges with bounded rendering/payloads, explicit durable type versions, opaque recipient and endpoint references, worker-side recipient/preference/locale reload, trusted tenant checks, terminal malformed-version handling, durable inbox/outbox deduplication, tenant-fenced cursor reads, idempotent read/unread records backed by PostgreSQL or SQLite/Turso, deterministic private realtime channels, signed webhook jobs with stable delivery IDs, privacy-bounded delivery/failure lifecycle events, validated per-recipient/channel queue delays, and richer fake assertions.
 
-Remaining candidates include `notifications-broadcast`, `notifications-webhook`, per-channel delays, delivery/failure events, richer assertions, and later SMS, push, and Slack/Teams adapters. Queue dead letters currently belong to the configured queue backend; delivery remains at-least-once at external provider boundaries.
+Remaining candidates include SMS, push, and Slack/Teams adapters. Lifecycle events are synchronous best-effort observations rather than durable terminal receipts. Queue dead letters currently belong to the configured queue backend; delivery remains at-least-once at external provider boundaries.
 
 ### Precognition
 
@@ -172,7 +172,7 @@ The following smaller additions can provide value before the larger packages:
 1. A `doctor` command for configuration, adapter, migration, worker, and historical workflow checks.
 2. A privacy-bounded `audit-http` bridge for route, outcome, duration, and authorization decisions.
 3. Bounded bulk actions in dead-letter operations.
-4. Database/broadcast/webhook notification channels and delivery events; mail and queue bridges are delivered.
+4. Delivered: richer notification assertions and validated per-channel queue delays.
 5. `WithoutOverlapping` and `RateLimited` job middleware.
 6. Temporary URLs for S3 and R2.
 7. Maintenance mode backed by a shared store.

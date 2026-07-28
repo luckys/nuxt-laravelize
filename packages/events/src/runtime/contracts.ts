@@ -10,17 +10,20 @@ export interface ShouldQueue {
   readonly shouldQueue: true
 }
 
-export interface EventSubscriber {
-  subscribe(dispatcher: Dispatcher): void
-}
-
 export interface QueuedListenerAdapter {
   enqueue(listener: Token<Listener<unknown>>, event: unknown): boolean | Promise<boolean>
 }
 
-export interface Dispatcher {
+export interface EventListenerRegistrar {
   listen<E>(event: EventConstructor<E>, listener: Token<Listener<E>>): void
   listenAny(listener: Token<Listener<unknown>>): void
+}
+
+export interface EventSubscriber {
+  subscribe(dispatcher: EventListenerRegistrar): void
+}
+
+export interface Dispatcher extends EventListenerRegistrar {
   subscribe(subscriber: Token<EventSubscriber>): void
   dispatch<E>(event: E): Promise<void>
 }

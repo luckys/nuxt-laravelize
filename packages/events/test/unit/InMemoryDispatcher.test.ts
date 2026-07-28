@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createToken, type Resolver } from '@nuxt-laravelize/core/runtime'
+import { createContainer, createToken, type Resolver } from '@nuxt-laravelize/core/runtime'
 
+import { EventListenerRegistry } from '../../src/runtime/EventListenerRegistry'
 import { InMemoryDispatcher } from '../../src/runtime/InMemoryDispatcher'
-import { queuedListenerAdapterToken } from '../../src/runtime/tokens'
+import EventsServiceProvider from '../../src/runtime/server/EventsServiceProvider'
+import { dispatcherToken, eventListenerRegistryToken, queuedListenerAdapterToken } from '../../src/runtime/tokens'
 import type { Listener, QueuedListenerAdapter } from '../../src/runtime/contracts'
 
 class Event { readonly type = 'event' }
@@ -41,6 +43,59 @@ describe('InMemoryDispatcher', () => {
     await dispatcher.dispatch(new Event())
 
     expect(enqueue).toHaveBeenCalledOnce()
+  })
+
+  it('shares boot listener definitions while resolving listeners from the current scope', async () => {
+    const listener = createToken<Listener<Event>>('scoped-listener')
+    const registry = new EventListenerRegistry()
+    const calls: string[] = []
+    const firstResolver = createResolver(new Map([[listener.key, { handle: () => calls.push('first') }]]))
+    const secondResolver = createResolver(new Map([[listener.key, { handle: () => calls.push('second') }]]))
+    const first = new InMemoryDispatcher(firstResolver, registry)
+    const second = new InMemoryDispatcher(secondResolver, registry)
+    registry.listen(Event, listener)
+
+    await first.dispatch(new Event())
+    await second.dispatch(new Event())
+
+    expect(calls).toEqual(['first', 'second'])
+  })
+
+  it('keeps provider registrations visible in child scopes', async () => {
+    const container = createContainer()
+    const listener = createToken<Listener<Event>>('provider-listener')
+    const calls: Event[] = []
+    container.scoped(listener, () => ({
+      handle: (event) => {
+        calls.push(event)
+      },
+    }))
+    new EventsServiceProvider().register(container)
+    container.make(eventListenerRegistryToken).listen(Event, listener)
+
+    await container.createScope().make(dispatcherToken).dispatch(new Event())
+
+    expect(calls).toHaveLength(1)
+  })
+
+  it('keeps child-scope registrations local to that dispatcher', async () => {
+    const container = createContainer()
+    const listener = createToken<Listener<Event>>('local-listener')
+    const calls: Event[] = []
+    container.scoped(listener, () => ({
+      handle: (event) => {
+        calls.push(event)
+      },
+    }))
+    new EventsServiceProvider().register(container)
+    const first = container.createScope().make(dispatcherToken)
+    const second = container.createScope().make(dispatcherToken)
+    first.listen(Event, listener)
+
+    await second.dispatch(new Event())
+    await first.dispatch(new Event())
+
+    expect(calls).toHaveLength(1)
   })
 })
 
