@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { Queue as BullQueue } from 'bullmq'
 import { MAX_JOB_PRIORITY, type Job, type JobDeduplicationOptions, type JobHandle, type PushOptions, type Queue, type JobRunner, type JobSerializer } from '@nuxt-laravelize/queue/runtime'
 import type { BullMQConnection } from './BullMQConnection'
-import { FailureReporter } from './FailureReporter'
+import type { FailureReporter } from './FailureReporter'
 
 export class BullMQQueue implements Queue {
   readonly #queues = new Map<string, BullQueue>()
@@ -10,7 +10,7 @@ export class BullMQQueue implements Queue {
     private readonly connection: BullMQConnection,
     private readonly runner: JobRunner,
     private readonly serializer: JobSerializer,
-    private readonly failures: FailureReporter = new FailureReporter(),
+    private readonly failures: FailureReporter = connection.failures,
   ) {}
 
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {

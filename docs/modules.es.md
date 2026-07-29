@@ -742,7 +742,9 @@ await worker.stop()
 await queue.close()
 ```
 
-`FailureReporter.listen()` observa fallos terminales y `report()` notifica a los observadores. El CLI del worker carga un export default `{ worker }` desde `laravelize.queue.config.mjs` (o `--config=path`):
+`worker.stop()` es idempotente: la primera llamada impide nuevos registros mediante `work()`, detiene la toma de jobs en cada worker BullMQ registrado, espera jobs activos y reportes de fallo terminal, e intenta cerrar todos los workers aunque uno falle. Los jobs waiting y delayed permanecen en Redis para otro worker; drenar nunca limpia la queue. El drain no tiene deadline integrado porque forzar el cierre puede volver ambigua una ejecucion activa. Configura el periodo de gracia del supervisor, conserva handlers acotados e idempotentes y llama al `queue.close()` del productor solo despues de que termine el drain.
+
+`FailureReporter.listen()` observa fallos terminales y `report()` notifica a los observadores. Un `BullMQConnection` posee el reporter compartido por defecto, por lo que queues y workers que usan la misma instancia de conexion tambien comparten observaciones de `queue.onFailed()`; pasa un reporter explicito a ambos constructores cuando una composicion personalizada requiera wrappers de conexion separados. El CLI del worker carga un export default `{ worker }` desde `laravelize.queue.config.mjs` (o `--config=path`):
 
 ```js
 // laravelize.queue.config.mjs

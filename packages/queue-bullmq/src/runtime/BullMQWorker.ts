@@ -1,18 +1,21 @@
 import { DelayedError, UnrecoverableError, Worker, type Job as BullJob } from 'bullmq'
 import { isJobReleasedError, isNonRetryableJobError, NonRetryableJobError, type InMemoryJobRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
 import type { BullMQConnection } from './BullMQConnection'
-import { FailureReporter } from './FailureReporter'
+import type { FailureReporter } from './FailureReporter'
 
 export class BullMQWorker {
-  readonly #workers: Worker[] = []
+  readonly #workers = new Set<Worker>()
+  readonly #terminalReports = new Set<Promise<void>>()
+  #stopping?: Promise<void>
   constructor(
     private readonly connection: BullMQConnection,
     private readonly registry: InMemoryJobRegistry,
     private readonly runner: JobRunner,
-    private readonly failures: FailureReporter = new FailureReporter(),
+    private readonly failures: FailureReporter = connection.failures,
   ) {}
 
   async work(queue = 'default', concurrency = 1): Promise<void> {
+    if (this.#stopping) throw new Error('BullMQ worker is stopping and cannot accept new queues')
     const worker = new Worker(queue, async (job, token) => {
       await processBullMQJob(this.runner, job, queue, token)
     }, {
@@ -20,14 +23,26 @@ export class BullMQWorker {
       concurrency,
     })
     worker.on('failed', (job, error) => {
-      void this.#reportTerminalFailure(job, error, queue)
+      const report = this.#reportTerminalFailure(job, error, queue)
+      this.#terminalReports.add(report)
+      void report.then(() => this.#terminalReports.delete(report), () => this.#terminalReports.delete(report))
     })
-    this.#workers.push(worker)
+    this.#workers.add(worker)
   }
 
-  async stop(): Promise<void> {
-    await Promise.all(this.#workers.map(worker => worker.close()))
-    this.#workers.length = 0
+  stop(): Promise<void> {
+    this.#stopping ??= this.#drain()
+    return this.#stopping
+  }
+
+  async #drain(): Promise<void> {
+    const workers = [...this.#workers]
+    const results = await Promise.allSettled(workers.map(worker => worker.close()))
+    for (const worker of workers) this.#workers.delete(worker)
+    await Promise.resolve()
+    while (this.#terminalReports.size > 0) await Promise.all([...this.#terminalReports])
+    const errors = results.flatMap(result => result.status === 'rejected' ? [result.reason] : [])
+    if (errors.length > 0) throw new AggregateError(errors, 'One or more BullMQ workers failed to drain')
   }
 
   async #reportTerminalFailure(job: BullJob | undefined, error: Error, queue: string): Promise<void> {

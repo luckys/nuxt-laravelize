@@ -751,7 +751,9 @@ await worker.stop()
 await queue.close()
 ```
 
-`FailureReporter.listen()` observes terminal failures and `report()` notifies registered observers. The worker CLI loads a default-exported `{ worker }` from `laravelize.queue.config.mjs` (or `--config=path`):
+`worker.stop()` is idempotent: the first call prevents new `work()` registrations, stops intake on every registered BullMQ worker, waits for active jobs and terminal failure reporting, and attempts every worker close even if one fails. Waiting and delayed jobs remain in Redis for another worker; draining never clears the queue. The drain has no built-in deadline because force-closing can make active execution ambiguous. Configure the process supervisor's termination grace period, keep handlers bounded and idempotent, and call producer `queue.close()` only after worker draining resolves.
+
+`FailureReporter.listen()` observes terminal failures and `report()` notifies registered observers. A `BullMQConnection` owns the default shared reporter, so queues and workers that use the same connection instance also share `queue.onFailed()` observations; pass one explicit reporter to both constructors when custom composition requires separate connection wrappers. The worker CLI loads a default-exported `{ worker }` from `laravelize.queue.config.mjs` (or `--config=path`):
 
 ```js
 // laravelize.queue.config.mjs

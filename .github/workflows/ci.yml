@@ -33,6 +33,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -53,6 +64,11 @@ jobs:
 
       - name: Test
         run: pnpm run test
+
+      - name: Test Redis integrations
+        run: pnpm run test:redis
+        env:
+          REDIS_URL: redis://127.0.0.1:6379
 
       - name: Typecheck
         run: pnpm run typecheck

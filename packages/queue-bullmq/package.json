@@ -27,6 +27,7 @@
     "build": "nuxt-module-build build && unbuild --config public.build.config.ts",
     "typecheck": "nuxt-module-build prepare && vue-tsc --noEmit",
     "test": "nuxt-module-build prepare && vitest run",
+    "test:redis": "nuxt-module-build prepare && QUEUE_BULLMQ_REDIS_REQUIRED=1 vitest run test/integration",
     "prepack": "pnpm run build",
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
