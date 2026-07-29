@@ -296,7 +296,7 @@ runFixture('features', {
     '@nuxt-laravelize/filesystem-cloudflare': ['CloudflareR2Filesystem'],
     '@nuxt-laravelize/queue/runtime': ['JOB_TAGS_METADATA_KEY', 'JobReleasedError', 'MAX_JOB_METADATA_KEYS', 'MAX_JOB_PRIORITY', 'MAX_JOB_TAG_LENGTH', 'MAX_JOB_TAGS', 'MAX_JOB_TAGS_LENGTH', 'NonRetryableJobError', 'isJobReleasedError', 'isNonRetryableJobError', 'queueToken', 'readJobTags'],
     '@nuxt-laravelize/queue-middleware': ['default'],
-    '@nuxt-laravelize/queue-middleware/runtime': ['JobOverlapLockLostError', 'RateLimited', 'WithoutOverlapping'],
+    '@nuxt-laravelize/queue-middleware/runtime': ['ExceptionThrottleOpenError', 'ExceptionThrottlePredicateError', 'ExceptionThrottleRecordingError', 'JobOverlapLockLostError', 'RateLimited', 'ThrottlesExceptions', 'WithoutOverlapping'],
     '@nuxt-laravelize/rate-limiter/runtime': ['RateLimiter', 'rateLimiterToken'],
     '@nuxt-laravelize/reliability': ['createEnvelope', 'OutboxProcessor', 'InboxConsumer', 'OutboxMessageConflictError', 'isPrunableReliabilityStore', 'normalizeReliabilityPruneOptions'],
     '@nuxt-laravelize/reliability/testing': ['InMemoryReliabilityStore', 'OutboxStoreFake', 'InboxStoreFake'],

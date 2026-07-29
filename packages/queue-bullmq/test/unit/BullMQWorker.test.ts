@@ -66,12 +66,15 @@ describe('toBullMQJobError', () => {
 
   it('preserves move-to-delayed failures and enforces release budgets', async () => {
     const moveError = new Error('stale worker lock')
-    const runner = { run: vi.fn().mockRejectedValue(new JobReleasedError(100, 1)) } as unknown as JobRunner
+    const releaseCause = new Error('throttle open')
+    const runner = { run: vi.fn().mockRejectedValue(new JobReleasedError(100, 1, { cause: releaseCause })) } as unknown as JobRunner
     const moving = { data: { version: 1, name: 'Probe', payload: {} }, attemptsMade: 0, attemptsStarted: 1, opts: { attempts: 3 }, moveToDelayed: vi.fn().mockRejectedValue(moveError) }
     await expect(processBullMQJob(runner, moving as never, 'critical', 'token')).rejects.toBe(moveError)
 
     const exhausted = { ...moving, attemptsStarted: 2, moveToDelayed: vi.fn() }
-    await expect(processBullMQJob(runner, exhausted as never, 'critical', 'token')).rejects.toBeInstanceOf(UnrecoverableError)
+    const failure = await processBullMQJob(runner, exhausted as never, 'critical', 'token').catch(error => error)
+    expect(failure).toBeInstanceOf(UnrecoverableError)
+    expect(failure.cause).toBe(releaseCause)
     expect(exhausted.moveToDelayed).not.toHaveBeenCalled()
 
     const stalled = { ...moving, attemptsStarted: 2, stalledCounter: 1, moveToDelayed: vi.fn().mockResolvedValue(undefined) }

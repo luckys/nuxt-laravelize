@@ -31,7 +31,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 | `@nuxt-laravelize/filesystem-aws-redis` | Store Redis/Valkey compartido para confirmaciones S3 resistentes a reinicios |
 | `@nuxt-laravelize/queue` | Contratos de cola portables, jobs, ejecucion por scope y driver en memoria |
 | `@nuxt-laravelize/queue-bullmq` | Driver BullMQ y worker persistente, solo para Node |
-| `@nuxt-laravelize/queue-middleware` | Locks anti-overlap y rate limits de jobs opt-in |
+| `@nuxt-laravelize/queue-middleware` | Locks anti-overlap, rate limits y throttling de excepciones por ventana fija |
 | `@nuxt-laravelize/rate-limiter` | Rate limiting de ventana fija sobre cache y middleware Nitro |
 | `@nuxt-laravelize/reliability` | Outbox at-least-once e inbox idempotente independientes del framework |
 | `@nuxt-laravelize/reliability-drizzle` | Stores durables opcionales para PostgreSQL, SQLite y Turso |

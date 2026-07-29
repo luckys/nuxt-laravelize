@@ -140,7 +140,7 @@ export class InMemoryQueue implements Queue {
           this.#enqueue(entry, failure.delay)
           return
         }
-        failure = new NonRetryableJobError('JOB_RELEASE_LIMIT_EXCEEDED', 'Job exceeded its delayed release budget')
+        failure = new NonRetryableJobError('JOB_RELEASE_LIMIT_EXCEEDED', 'Job exceeded its delayed release budget', { cause: failure.cause ?? failure })
       }
       if (!isNonRetryableJobError(failure) && entry.attempt < entry.options.tries) {
         this.#enqueue(entry, resolveBackoff(entry.options.backoff, entry.attempt))

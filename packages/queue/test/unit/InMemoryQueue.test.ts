@@ -451,8 +451,9 @@ describe('InMemoryQueue', () => {
     const registry = new InMemoryJobRegistry()
     registry.register(TestJob.name, TestJob)
     const runner = new JobRunner(createContainer(), registry)
+    const releaseCause = new Error('throttle open')
     runner.use('always-release', async () => {
-      throw new JobReleasedError(10, 1)
+      throw new JobReleasedError(10, 1, { cause: releaseCause })
     })
     const queue = new InMemoryQueue(runner)
     const failed = vi.fn()
@@ -463,6 +464,7 @@ describe('InMemoryQueue', () => {
       await vi.advanceTimersByTimeAsync(10)
       await vi.waitFor(() => expect(failed).toHaveBeenCalledOnce())
       expect(failed.mock.calls[0]?.[0]).toMatchObject({ attempts: 1, error: { code: 'JOB_RELEASE_LIMIT_EXCEEDED' } })
+      expect(failed.mock.calls[0]?.[0].error.cause).toBe(releaseCause)
       expect(TestJob.runs).not.toContain(102)
     }
     finally {

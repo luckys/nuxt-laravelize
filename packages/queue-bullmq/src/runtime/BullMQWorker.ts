@@ -73,7 +73,7 @@ export async function processBullMQJob(runner: JobRunner, job: BullJob, queue: s
       const state = job as BullJob & { attemptsStarted?: number, stalledCounter?: number }
       const attemptsStarted = state.attemptsStarted ?? job.attemptsMade + 1
       const releases = Math.max(0, attemptsStarted - job.attemptsMade - (state.stalledCounter ?? 0) - 1)
-      if (releases >= error.maxReleases) throw toBullMQJobError(new NonRetryableJobError('JOB_RELEASE_LIMIT_EXCEEDED', 'Job exceeded its delayed release budget'))
+      if (releases >= error.maxReleases) throw toBullMQJobError(new NonRetryableJobError('JOB_RELEASE_LIMIT_EXCEEDED', 'Job exceeded its delayed release budget', { cause: error.cause ?? error }))
       await job.moveToDelayed(now() + error.delay, token)
       throw new DelayedError()
     }
@@ -82,7 +82,10 @@ export async function processBullMQJob(runner: JobRunner, job: BullJob, queue: s
 }
 
 export function toBullMQJobError(error: unknown): unknown {
-  return isNonRetryableJobError(error) ? new UnrecoverableError(`[${error.code}] Non-retryable job failure`) : error
+  if (!isNonRetryableJobError(error)) return error
+  const converted = new UnrecoverableError(`[${error.code}] Non-retryable job failure`)
+  if (error instanceof Error && error.cause !== undefined) Object.defineProperty(converted, 'cause', { configurable: true, value: error.cause })
+  return converted
 }
 
 export function isTerminalBullMQFailure(job: Pick<BullJob, 'attemptsMade' | 'opts'>, error: Error): boolean {
