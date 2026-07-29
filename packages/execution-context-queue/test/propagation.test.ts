@@ -11,6 +11,7 @@ class ProbeJob extends Job {
   static seen: unknown
   constructor(_payload: Record<string, unknown> = {}) { super() }
   handle(resolver: ReturnType<typeof createContainer>) { ProbeJob.seen = resolver.make(executionContextToken).snapshot() }
+  override tags() { return ['report:probe'] }
 }
 class LegacyJob extends Job {
   readonly payload = {}
@@ -125,6 +126,6 @@ describe('queue propagation', () => {
     installExecutionContextQueuePropagation(contributors, runner, current)
     const serialized = serializer.serialize(new ProbeJob())
     expect(serialized.version).toBe(2)
-    if (serialized.version === 2) expect(Object.keys(serialized.metadata)).toEqual(['laravelize.execution-context.v1'])
+    if (serialized.version === 2) expect(Object.keys(serialized.metadata)).toEqual(['laravelize.execution-context.v1', 'laravelize.queue.tags.v1'])
   })
 })

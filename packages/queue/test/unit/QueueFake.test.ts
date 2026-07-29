@@ -14,6 +14,13 @@ class ReportsJob extends Job {
   handle() {}
 }
 
+class TaggedJob extends Job {
+  readonly payload = {}
+  constructor(private readonly values: string[]) { super() }
+  handle() {}
+  override tags() { return this.values }
+}
+
 describe('QueueFake priority', () => {
   it('records the effective static priority and push override', async () => {
     const queue = new QueueFake()
@@ -93,6 +100,18 @@ describe('QueueFake deduplication', () => {
 })
 
 describe('QueueFake recording', () => {
+  it('records a validated tag snapshot for admitted jobs', async () => {
+    const queue = new QueueFake()
+    const tags = ['report:one', 'report:one', 'tenant:trusted']
+    await queue.push(new TaggedJob(tags))
+    tags[0] = 'mutated'
+
+    expect(queue.pushed[0]?.tags).toEqual(['report:one', 'tenant:trusted'])
+    await expect(queue.push(new TaggedJob(['unsafe value']))).rejects.toThrow('Job tags must be safe identifiers')
+    await expect(queue.later(100, new TaggedJob(['unsafe value']))).rejects.toThrow('Job tags must be safe identifiers')
+    await expect(queue.sync(new TaggedJob(['unsafe value']))).rejects.toThrow('Job tags must be safe identifiers')
+    expect(queue.pushed).toHaveLength(1)
+  })
   it('keeps generated handles unique across full and selective clears', async () => {
     const queue = new QueueFake()
     const first = await queue.push(new PriorityJob(), { queue: 'exports' })

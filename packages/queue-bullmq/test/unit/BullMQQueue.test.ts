@@ -20,6 +20,10 @@ class ProbeJob extends Job {
   static override readonly priority = 12
   readonly payload = { value: 1 }
   handle() {}
+  override tags() { return ['report:one', 'tenant:trusted'] }
+}
+class InvalidTaggedJob extends ProbeJob {
+  override tags() { return ['unsafe value'] }
 }
 
 describe('BullMQQueue', () => {
@@ -41,7 +45,7 @@ describe('BullMQQueue', () => {
       version: 2,
       name: 'ProbeJob',
       payload: { value: 1 },
-      metadata: { propagated: 'context' },
+      metadata: { 'propagated': 'context', 'laravelize.queue.tags.v1': ['report:one', 'tenant:trusted'] },
     }, expect.any(Object))
   })
 
@@ -67,6 +71,14 @@ describe('BullMQQueue', () => {
     const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
     const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
     await expect(queue.push(new ProbeJob(), { priority: 2 ** 21 + 1 })).rejects.toThrow('priority must be an integer between 0 and 2097152')
+    expect(add).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid tags before constructing or mutating BullMQ', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+    await expect(queue.push(new InvalidTaggedJob())).rejects.toThrow('Job tags must be safe identifiers')
+    expect(constructQueue).not.toHaveBeenCalled()
     expect(add).not.toHaveBeenCalled()
   })
 

@@ -648,6 +648,9 @@ export class SendReport extends Job<SendReportPayload> {
   async handle(resolver: Resolver) {
     await resolver.make(reportServiceToken).send(this.payload.reportId)
   }
+  tags() {
+    return ['report:delivery']
+  }
 }
 ```
 
@@ -663,6 +666,7 @@ await queue.sync(new SendReport({ reportId: 'report_3' }))
 | API | Purpose |
 |---|---|
 | `Job.serialize()` | Produces the versioned queue payload. Override `handle()` and optionally `failed()`. |
+| `Job.tags()` / `readJobTags()` | Declares bounded diagnostic tags and defensively reads their serialized snapshot. |
 | `InMemoryJobRegistry.register()` | Maps a serialized job name to its constructor. |
 | `InMemoryJobRegistry.rehydrate()` | Recreates a registered job or throws `JobNotRegisteredError`. |
 | `JobRunner.run()` / `failed()` | Runs a serialized job and its failure hook in a scope. |
@@ -670,8 +674,10 @@ await queue.sync(new SendReport({ reportId: 'report_3' }))
 | `Queue.size()` / `clear()` | Inspects or clears all jobs, optionally by queue name. |
 | `Queue.onFailed()` | Registers a terminal-failure observer. |
 | `PushOptions` | Overrides `tries`, `delay`, `queue`, `backoff` and `priority`; `deduplication` suppresses matching queue-local admission. |
-| `QueueFake` | Records admitted pushes and their effective priority while reproducing local deduplication; use `assertPushed()`, `size()` and `clear()`. |
+| `QueueFake` | Records admitted pushes, effective priority and normalized tags while reproducing local deduplication; use `assertPushed()`, `size()` and `clear()`. |
 | `JobReleasedError` | Requests delayed replay without consuming the ordinary failure-attempt budget. Queue adapters handle it; application jobs should not use it as a business error. |
+
+Jobs may declare up to 16 diagnostic tags with `tags()`. Each tag is a safe identifier of at most 128 characters, all declarations together are limited to 1024 characters, and duplicates are removed while preserving order. Tags are snapshotted into namespaced versioned metadata at serialization, so retries, delayed releases and dead-letter inspection see the same values. `readJobTags()` returns a frozen defensive copy and treats absent or malformed persisted tag metadata as no tags; producer serialization remains strict. Tags may appear in Redis job data, backups, failed-job tooling and operations dashboards. Never include credentials, tokens, email addresses, raw customer identifiers or unnecessary personal data. Tags are diagnostics only: they do not authorize tenant/principal access, fence effects, deduplicate admission or automatically become metric labels or trace attributes. Indexing and fleet-wide tag queries are intentionally not provided.
 
 Priorities are queue-local scheduling hints from `0` through `2^21`. `0` is the ordinary unprioritized class and runs before positive priorities; among positive values, lower numbers run first. Equal priorities remain FIFO, delayed jobs compete only after becoming due, and running work is never preempted. `PushOptions.priority` overrides the job static. Retries and delayed middleware releases retain the resolved priority. Priority is transport metadata rather than part of the serialized job and does not provide fairness, uniqueness or exactly-once execution.
 

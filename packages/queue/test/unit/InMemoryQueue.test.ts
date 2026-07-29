@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobReleasedError, JobRunner, NonRetryableJobError } from '../../src/runtime/index'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobReleasedError, JobRunner, NonRetryableJobError, readJobTags } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {
   static runs: number[] = []
@@ -24,6 +24,10 @@ class StableJob extends TestJob {
 }
 class PriorityJob extends TestJob {
   static override readonly priority = 1
+}
+class TaggedJob extends TestJob {
+  constructor(payload: Record<string, unknown>, private readonly values: readonly string[] = []) { super(payload) }
+  override tags() { return this.values }
 }
 class TerminalJob extends Job {
   static runs = 0
@@ -186,6 +190,38 @@ describe('InMemoryQueue', () => {
       expect(releases).toBe(1)
       await vi.advanceTimersByTimeAsync(100)
       expect(TestJob.runs).toEqual([42, 41])
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('reuses the admitted tag snapshot across delayed releases', async () => {
+    vi.useFakeTimers()
+    const registry = new InMemoryJobRegistry()
+    registry.register(TaggedJob.name, TaggedJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const seen: (readonly string[])[] = []
+    let release = true
+    runner.use('tag-snapshot', async (job, _scope, next) => {
+      seen.push(readJobTags(job))
+      if (release) {
+        release = false
+        throw new JobReleasedError(100)
+      }
+      await next()
+    })
+    const queue = new InMemoryQueue(runner)
+    const tags = ['report:original']
+
+    try {
+      const admission = queue.push(new TaggedJob({ value: 43 }, tags))
+      tags[0] = 'report:mutated'
+      await admission
+      await vi.advanceTimersByTimeAsync(0)
+      await vi.advanceTimersByTimeAsync(100)
+      expect(seen).toEqual([['report:original'], ['report:original']])
     }
     finally {
       await queue.clear()

@@ -9,7 +9,7 @@ import { ObservabilityFake } from '@nuxt-laravelize/observability/testing'
 import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobReleasedError, JobRunner, JobSerializer } from '@nuxt-laravelize/queue/runtime'
 import { installQueueObservability, queueTraceMetadata } from '../src/bridge'
 
-class Probe extends Job { static override jobName = 'probe'; static seen: unknown; readonly payload = {}; constructor() { super() } async handle(resolver: Resolver) { Probe.seen = resolver.has(executionContextToken) ? resolver.make(executionContextToken).snapshot() : undefined; await Promise.resolve() } }
+class Probe extends Job { static override jobName = 'probe'; static seen: unknown; readonly payload = {}; constructor() { super() } override tags() { return ['diagnostic:private-id'] } async handle(resolver: Resolver) { Probe.seen = resolver.has(executionContextToken) ? resolver.make(executionContextToken).snapshot() : undefined; await Promise.resolve() } }
 describe('queue observability', () => {
   it('propagates only trace context and records a consumer span', async () => {
     const telemetry = new ObservabilityFake(); const contributors = new JobMetadataContributorRegistry(); const registry = new InMemoryJobRegistry(); registry.register(Probe.jobName, Probe); const runner = new JobRunner(createContainer(), registry)
@@ -19,6 +19,7 @@ describe('queue observability', () => {
     await runner.run(serialized, { queue: 'critical', attempt: 1, maxAttempts: 2 })
     expect(telemetry.spans.at(-1)).toMatchObject({ name: 'queue.process', status: 'ok', ended: 1 })
     expect(telemetry.metrics.some(metric => metric.name === 'queue.process.jobs')).toBe(true)
+    expect(JSON.stringify({ spans: telemetry.spans, metrics: telemetry.metrics })).not.toContain('diagnostic:private-id')
   })
   it('ignores malformed and oversized metadata without failing jobs', async () => {
     const telemetry = new ObservabilityFake(); const registry = new InMemoryJobRegistry(); registry.register(Probe.jobName, Probe); const runner = new JobRunner(createContainer(), registry); installQueueObservability(new JobMetadataContributorRegistry(), runner, telemetry, { jobs: [], queues: [] })

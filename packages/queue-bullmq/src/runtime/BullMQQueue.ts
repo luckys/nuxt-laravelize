@@ -22,7 +22,8 @@ export class BullMQQueue implements Queue {
     const delay = integer(options.delay ?? config.delay, 'delay', 0, 86_400_000)
     const priority = integer(options.priority ?? config.priority, 'priority', 0, MAX_JOB_PRIORITY)
     const deduplication = readDeduplication(options.deduplication)
-    const queued = await this.#queue(queueName).add(config.jobName ?? config.name, this.serializer.serialize(job), {
+    const serialized = this.serializer.serialize(job)
+    const queued = await this.#queue(queueName).add(config.jobName ?? config.name, serialized, {
       ...(options.id ? { jobId: options.id } : {}),
       attempts,
       delay,

@@ -1,6 +1,6 @@
 import type { Container } from '@nuxt-laravelize/core/runtime'
 
-import type { SerializedJob } from './Job'
+import { MAX_JOB_METADATA_KEYS, type SerializedJob } from './Job'
 import type { InMemoryJobRegistry } from './JobRegistry'
 
 export type JobScopeContributor = (serialized: SerializedJob, scope: Container) => void | Promise<void>
@@ -59,7 +59,7 @@ function assertSerializedJob(value: unknown): asserts value is SerializedJob {
     if (!value || Object.getPrototypeOf(value) !== Object.prototype) throw new TypeError('Envelope must be a plain object')
     const job = value as Partial<SerializedJob>
     if ((job.version !== 1 && job.version !== 2) || typeof job.name !== 'string' || !job.name || job.name.length > 256 || !job.payload || Object.getPrototypeOf(job.payload) !== Object.prototype) throw new TypeError('Envelope fields are invalid')
-    if (job.version === 2 && (!job.metadata || Object.getPrototypeOf(job.metadata) !== Object.prototype || Object.keys(job.metadata).length > 64)) throw new TypeError('Envelope metadata is invalid')
+    if (job.version === 2 && (!job.metadata || Object.getPrototypeOf(job.metadata) !== Object.prototype || Object.keys(job.metadata).length > MAX_JOB_METADATA_KEYS)) throw new TypeError('Envelope metadata is invalid')
   }
   catch { throw new TypeError('Invalid serialized job envelope') }
 }

@@ -639,6 +639,9 @@ export class SendReport extends Job<SendReportPayload> {
   async handle(resolver: Resolver) {
     await resolver.make(reportServiceToken).send(this.payload.reportId)
   }
+  tags() {
+    return ['report:delivery']
+  }
 }
 ```
 
@@ -654,6 +657,7 @@ await queue.sync(new SendReport({ reportId: 'report_3' }))
 | API | Proposito |
 |---|---|
 | `Job.serialize()` | Produce el payload versionado. Implementa `handle()` y opcionalmente `failed()`. |
+| `Job.tags()` / `readJobTags()` | Declara tags diagnosticos acotados y lee defensivamente su snapshot serializado. |
 | `InMemoryJobRegistry.register()` | Asocia el nombre serializado con su constructor. |
 | `InMemoryJobRegistry.rehydrate()` | Recrea un job o lanza `JobNotRegisteredError`. |
 | `JobRunner.run()` / `failed()` | Ejecuta un job serializado y su hook de fallo en un scope. |
@@ -661,8 +665,10 @@ await queue.sync(new SendReport({ reportId: 'report_3' }))
 | `Queue.size()` / `clear()` | Consulta o limpia jobs, opcionalmente por nombre de cola. |
 | `Queue.onFailed()` | Registra un observador de fallos terminales. |
 | `PushOptions` | Sobrescribe `tries`, `delay`, `queue`, `backoff` y `priority`; `deduplication` suprime admision coincidente local a la queue. |
-| `QueueFake` | Guarda pushes admitidos y su prioridad efectiva mientras reproduce deduplicacion local; usa `assertPushed()`, `size()` y `clear()`. |
+| `QueueFake` | Guarda pushes admitidos, prioridad efectiva y tags normalizados mientras reproduce deduplicacion local; usa `assertPushed()`, `size()` y `clear()`. |
 | `JobReleasedError` | Solicita replay retrasado sin consumir el budget normal de intentos fallidos. Lo manejan los adapters; los jobs de aplicacion no deben usarlo como error de negocio. |
+
+Los jobs pueden declarar hasta 16 tags diagnosticos con `tags()`. Cada tag es un identificador seguro de hasta 128 caracteres, el conjunto declarado queda limitado a 1024 caracteres y los duplicados se eliminan conservando el orden. Los tags se capturan en metadata versionada y namespaced al serializar, por lo que retries, releases retrasados e inspeccion de dead letters ven los mismos valores. `readJobTags()` devuelve una copia defensiva congelada y trata metadata persistida ausente o malformada como ausencia de tags; la serializacion del productor sigue siendo estricta. Los tags pueden aparecer en datos Redis, backups, tooling de jobs fallidos y dashboards operativos. Nunca incluyas credenciales, tokens, emails, identificadores crudos de clientes ni datos personales innecesarios. Los tags son solo diagnostico: no autorizan acceso de tenant/principal, no aportan fencing, no deduplican admision ni se convierten automaticamente en labels de metricas o atributos de traces. Indexado y consultas globales por tag quedan intencionalmente fuera del contrato.
 
 Las prioridades son hints de scheduling locales a cada queue entre `0` y `2^21`. `0` es la clase ordinaria sin prioridad y se ejecuta antes que las prioridades positivas; entre valores positivos, los menores se ejecutan primero. Los empates conservan FIFO, los jobs retrasados solo compiten al vencer su delay y el trabajo en ejecucion nunca se interrumpe. `PushOptions.priority` sobrescribe el valor estatico del job. Retries y releases retrasados de middleware conservan la prioridad resuelta. La prioridad es metadata de transporte, no forma parte del job serializado y no proporciona fairness, unicidad ni ejecucion exactly-once.
 

@@ -45,11 +45,12 @@ export class InMemoryQueue implements Queue {
 
   async push(job: Job, options?: PushOptions): Promise<JobHandle> {
     const resolved = resolveOptions(job, options)
+    const serialized = this.serializer.serialize(job)
     const duplicate = resolved.deduplication ? this.#deduplicated(resolved.queue, resolved.deduplication.id) : undefined
     if (duplicate) return duplicate
     const entry: PendingJob = {
       original: job,
-      serialized: this.serializer.serialize(job),
+      serialized,
       options: resolved,
       handle: { id: resolved.id ?? `memory-${this.#nextId++}`, queue: resolved.queue },
       attempt: 0,

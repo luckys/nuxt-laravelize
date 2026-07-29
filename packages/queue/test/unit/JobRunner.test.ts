@@ -1,9 +1,13 @@
 /* eslint-disable @stylistic/max-statements-per-line, @typescript-eslint/no-useless-constructor */
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobReleasedError, JobRunner, JobSerializer, isJobReleasedError } from '../../src/runtime/index'
+import { InMemoryJobRegistry, JOB_TAGS_METADATA_KEY, Job, JobMetadataContributorRegistry, JobReleasedError, JobRunner, JobSerializer, MAX_JOB_METADATA_KEYS, MAX_JOB_TAGS, isJobReleasedError, readJobTags } from '../../src/runtime/index'
 
 class Probe extends Job { readonly payload = {}; constructor() { super() } handle() {} }
+class TaggedProbe extends Probe { constructor(private readonly values: readonly string[]) { super() } override tags() { return this.values } }
+class CustomSerializedProbe extends Probe {
+  override serialize() { return { version: 1, name: 'custom.probe', payload: { custom: true } } as const }
+}
 describe('JobRunner middleware', () => {
   it('uses stable order and rejects duplicate ids', async () => {
     const registry = new InMemoryJobRegistry(); registry.register(Probe.name, Probe); const runner = new JobRunner(createContainer(), registry); const calls: string[] = []
@@ -36,6 +40,67 @@ describe('JobRunner middleware', () => {
     runner.use(async () => { middleware() })
     await expect(runner.run({ version: 2, name: 'Probe', payload: {}, metadata: null } as never)).rejects.toThrow('Invalid serialized job envelope')
     expect(middleware).not.toHaveBeenCalled()
+  })
+  it('serializes bounded tags once alongside contributor metadata', () => {
+    const declared = ['report:one', 'tenant:trusted', 'report:one']
+    const contributors = new JobMetadataContributorRegistry(); contributors.contribute(() => ({ propagated: true }))
+    const serialized = new JobSerializer(contributors).serialize(new TaggedProbe(declared))
+    declared[0] = 'mutated'
+    expect(serialized).toMatchObject({ version: 2, metadata: { propagated: true, [JOB_TAGS_METADATA_KEY]: ['report:one', 'tenant:trusted'] } })
+    expect(readJobTags(serialized)).toEqual(['report:one', 'tenant:trusted'])
+    expect(Object.isFrozen(readJobTags(serialized))).toBe(true)
+  })
+  it('uses the same tag-aware envelope for direct and shared serialization', () => {
+    const tagged = new TaggedProbe(['report:direct'])
+    const tags = vi.spyOn(tagged, 'tags')
+    expect(tagged.serialize()).toMatchObject({ version: 2, metadata: { [JOB_TAGS_METADATA_KEY]: ['report:direct'] } })
+    expect(tags).toHaveBeenCalledOnce()
+    expect(new Probe().serialize()).toEqual({ version: 1, name: 'Probe', payload: {} })
+    expect(() => new TaggedProbe(['unsafe value']).serialize()).toThrow('Job tags must be safe identifiers')
+  })
+  it('preserves existing custom serialization without effective metadata', () => {
+    const custom = new CustomSerializedProbe()
+    expect(custom.serialize()).toEqual({ version: 1, name: 'custom.probe', payload: { custom: true } })
+    expect(new JobSerializer().serialize(custom)).toEqual(custom.serialize())
+    const contributors = new JobMetadataContributorRegistry(); contributors.contribute(() => ({}))
+    expect(new JobSerializer(contributors).serialize(custom)).toEqual(custom.serialize())
+  })
+  it('reserves tag metadata ownership and validates bounded identifiers', () => {
+    const contributors = new JobMetadataContributorRegistry(); contributors.contribute(() => ({ [JOB_TAGS_METADATA_KEY]: ['spoofed'] }))
+    expect(() => new JobSerializer(contributors).serialize(new Probe())).toThrow('Reserved job metadata key')
+    for (const tags of [[''], ['unsafe value'], ['a'.repeat(129)], Array.from({ length: MAX_JOB_TAGS + 1 }, () => 'valid'), ['valid', 1] as never]) {
+      expect(() => new JobSerializer().serialize(new TaggedProbe(tags))).toThrow(TypeError)
+    }
+  })
+  it('enforces tag and metadata boundaries on the final envelope', () => {
+    const maximumTag = `a${'x'.repeat(127)}`
+    const maximumAggregate = Array.from({ length: 8 }, (_, index) => `${index}${'x'.repeat(127)}`)
+    expect(readJobTags(new TaggedProbe(Array.from({ length: MAX_JOB_TAGS }, (_, index) => `tag:${index}`)).serialize())).toHaveLength(MAX_JOB_TAGS)
+    expect(readJobTags(new TaggedProbe([maximumTag]).serialize())).toEqual([maximumTag])
+    expect(readJobTags(new TaggedProbe(maximumAggregate).serialize())).toEqual(maximumAggregate)
+    expect(() => new TaggedProbe([...maximumAggregate, 'a']).serialize()).toThrow('at most 1024 characters in total')
+
+    const contributors = new JobMetadataContributorRegistry()
+    contributors.contribute(() => Object.fromEntries(Array.from({ length: MAX_JOB_METADATA_KEYS }, (_, index) => [`key-${index}`, index])))
+    expect(new JobSerializer(contributors).serialize(new Probe())).toMatchObject({ version: 2 })
+    expect(() => new JobSerializer(contributors).serialize(new TaggedProbe(['report:tagged']))).toThrow('at most 64 keys')
+  })
+  it('defensively ignores absent or malformed persisted tag metadata', () => {
+    expect(readJobTags(new Probe().serialize())).toEqual([])
+    for (const value of [null, 'tag', ['unsafe value'], Array.from({ length: MAX_JOB_TAGS + 1 }, () => 'valid')]) {
+      expect(readJobTags({ version: 2, name: 'Probe', payload: {}, metadata: { [JOB_TAGS_METADATA_KEY]: value } })).toEqual([])
+    }
+    const throwing = new Proxy({}, { getPrototypeOf() { throw new Error('trap') } })
+    expect(readJobTags({ version: 2, name: 'Probe', payload: {}, metadata: throwing })).toEqual([])
+    const previous = Object.getOwnPropertyDescriptor(Object.prototype, JOB_TAGS_METADATA_KEY)
+    Object.defineProperty(Object.prototype, JOB_TAGS_METADATA_KEY, { configurable: true, value: ['inherited'] })
+    try {
+      expect(readJobTags({ version: 2, name: 'Probe', payload: {}, metadata: {} })).toEqual([])
+    }
+    finally {
+      if (previous) Object.defineProperty(Object.prototype, JOB_TAGS_METADATA_KEY, previous)
+      else Reflect.deleteProperty(Object.prototype, JOB_TAGS_METADATA_KEY)
+    }
   })
   it('validates portable release signals', () => {
     expect(isJobReleasedError(new JobReleasedError(1000))).toBe(true)

@@ -1,11 +1,12 @@
-import type { Job } from '../Job'
+import { JobSerializer, readJobTags, type Job } from '../Job'
 import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type JobHandle, type PushOptions, type Queue } from '../Queue'
 
-export interface PushedJob { readonly job: Job, readonly options: PushOptions, readonly priority: number, readonly queue?: string }
+export interface PushedJob { readonly job: Job, readonly options: PushOptions, readonly priority: number, readonly queue?: string, readonly tags: readonly string[] }
 
 export class QueueFake implements Queue {
   readonly pushed: PushedJob[] = []
   readonly #deduplication = new Map<string, Map<string, { readonly handle: JobHandle, readonly expiresAt?: number }>>()
+  readonly #serializer = new JobSerializer()
   #nextId = 1
   #deduplicationTimer?: ReturnType<typeof setTimeout>
   #deduplicationTimerDueAt?: number
@@ -14,6 +15,7 @@ export class QueueFake implements Queue {
     const priority = options.priority ?? (job.constructor as typeof Job).priority
     if (!Number.isSafeInteger(priority) || priority < 0 || priority > MAX_JOB_PRIORITY) throw new TypeError(`priority must be an integer between 0 and ${MAX_JOB_PRIORITY}`)
     const queue = options.queue ?? (job.constructor as typeof Job).queue
+    const tags = readJobTags(this.#serializer.serialize(job))
     const deduplication = normalizeDeduplication(options.deduplication)
     if (deduplication) {
       const reservations = this.#deduplication.get(queue)
@@ -21,7 +23,7 @@ export class QueueFake implements Queue {
       if (reservation && (reservation.expiresAt === undefined || reservation.expiresAt > Date.now())) return reservation.handle
       if (reservation) reservations!.delete(deduplication.id)
     }
-    this.pushed.push({ job, options, priority, queue })
+    this.pushed.push({ job, options, priority, queue, tags })
     const handle = { id: options.id ?? `fake-${this.#nextId++}`, queue }
     if (deduplication) {
       const reservations = this.#deduplication.get(queue) ?? new Map()
@@ -33,7 +35,7 @@ export class QueueFake implements Queue {
   }
 
   later(delay: number, job: Job, options: PushOptions = {}): Promise<JobHandle> { return this.push(job, { ...options, delay }) }
-  async sync(_job: Job): Promise<void> {}
+  async sync(job: Job): Promise<void> { this.#serializer.serialize(job) }
   async size(queue?: string): Promise<number> { return queue === undefined ? this.pushed.length : this.pushed.filter(item => item.queue === queue).length }
   async clear(queue?: string): Promise<void> {
     if (queue === undefined) {
