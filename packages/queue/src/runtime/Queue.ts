@@ -1,11 +1,14 @@
 import type { Job } from './Job'
 
+export const MAX_JOB_PRIORITY = 2 ** 21
+
 export interface PushOptions {
   readonly id?: string
   readonly tries?: number
   readonly delay?: number
   readonly queue?: string
   readonly backoff?: number | readonly number[]
+  readonly priority?: number
 }
 
 export interface JobHandle { readonly id: string, readonly queue: string }

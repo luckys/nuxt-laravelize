@@ -1,12 +1,14 @@
 import type { Job } from '../Job'
-import type { FailedJobCallback, JobHandle, PushOptions, Queue } from '../Queue'
+import { MAX_JOB_PRIORITY, type FailedJobCallback, type JobHandle, type PushOptions, type Queue } from '../Queue'
 
-export interface PushedJob { readonly job: Job, readonly options: PushOptions }
+export interface PushedJob { readonly job: Job, readonly options: PushOptions, readonly priority: number }
 
 export class QueueFake implements Queue {
   readonly pushed: PushedJob[] = []
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {
-    this.pushed.push({ job, options })
+    const priority = options.priority ?? (job.constructor as typeof Job).priority
+    if (!Number.isSafeInteger(priority) || priority < 0 || priority > MAX_JOB_PRIORITY) throw new TypeError(`priority must be an integer between 0 and ${MAX_JOB_PRIORITY}`)
+    this.pushed.push({ job, options, priority })
     return { id: options.id ?? `fake-${this.pushed.length}`, queue: options.queue ?? (job.constructor as typeof Job).queue }
   }
 

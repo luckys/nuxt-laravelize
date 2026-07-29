@@ -6,6 +6,7 @@ const add = vi.fn(async (_name: string, _data: unknown, _options: unknown) => ({
 vi.mock('bullmq', () => ({ Queue: class { add = add; count = vi.fn(); obliterate = vi.fn(); close = vi.fn() } }))
 
 class ProbeJob extends Job {
+  static override readonly priority = 12
   readonly payload = { value: 1 }
   handle() {}
 }
@@ -26,6 +27,31 @@ describe('BullMQQueue', () => {
       payload: { value: 1 },
       metadata: { propagated: 'context' },
     }, expect.any(Object))
+  })
+
+  it('forwards static priority and allows a validated push override', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+    await queue.push(new ProbeJob())
+    await queue.push(new ProbeJob(), { priority: 3, tries: 4, delay: 500, backoff: 250 })
+
+    expect(add.mock.calls[0]?.[2]).toMatchObject({ priority: 12 })
+    expect(add.mock.calls[1]?.[2]).toMatchObject({ priority: 3, attempts: 4, delay: 500, backoff: { type: 'fixed', delay: 250 } })
+  })
+
+  it('omits BullMQ priority for the ordinary zero-priority class', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+    await queue.push(new ProbeJob(), { priority: 0 })
+
+    expect(add.mock.calls[0]?.[2]).not.toHaveProperty('priority')
+  })
+
+  it('rejects invalid priority before mutating BullMQ', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+    await expect(queue.push(new ProbeJob(), { priority: 2 ** 21 + 1 })).rejects.toThrow('priority must be an integer between 0 and 2097152')
+    expect(add).not.toHaveBeenCalled()
   })
 
   it('preserves producer construction while forwarding a scoped serializer resolver', async () => {

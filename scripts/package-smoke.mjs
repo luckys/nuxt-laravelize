@@ -291,7 +291,7 @@ runFixture('features', {
     '@nuxt-laravelize/filesystem-aws': ['AwsS3Filesystem', 'InMemoryS3UploadIssuanceStore', 'S3UploadConfirmationInProgressError', 'createAwsS3Filesystem'],
     '@nuxt-laravelize/filesystem-aws-redis': ['RedisS3UploadIssuanceStore', 'RedisS3UploadIssuanceCorruptionError'],
     '@nuxt-laravelize/filesystem-cloudflare': ['CloudflareR2Filesystem'],
-    '@nuxt-laravelize/queue/runtime': ['JobReleasedError', 'NonRetryableJobError', 'isJobReleasedError', 'isNonRetryableJobError', 'queueToken'],
+    '@nuxt-laravelize/queue/runtime': ['JobReleasedError', 'MAX_JOB_PRIORITY', 'NonRetryableJobError', 'isJobReleasedError', 'isNonRetryableJobError', 'queueToken'],
     '@nuxt-laravelize/queue-middleware': ['default'],
     '@nuxt-laravelize/queue-middleware/runtime': ['JobOverlapLockLostError', 'RateLimited', 'WithoutOverlapping'],
     '@nuxt-laravelize/rate-limiter/runtime': ['RateLimiter', 'rateLimiterToken'],

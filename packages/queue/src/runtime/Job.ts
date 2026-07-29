@@ -21,6 +21,7 @@ export abstract class Job<TPayload extends Record<string, unknown> = Record<stri
   static readonly delay: number = 0
   static readonly queue: string = 'default'
   static readonly backoff: number | readonly number[] = 0
+  static readonly priority: number = 0
 
   abstract readonly payload: TPayload
   abstract handle(resolver: Resolver): void | Promise<void>

@@ -1,5 +1,5 @@
 import { Queue as BullQueue } from 'bullmq'
-import type { Job, JobHandle, PushOptions, Queue, JobRunner, JobSerializer } from '@nuxt-laravelize/queue/runtime'
+import { MAX_JOB_PRIORITY, type Job, type JobHandle, type PushOptions, type Queue, type JobRunner, type JobSerializer } from '@nuxt-laravelize/queue/runtime'
 import type { BullMQConnection } from './BullMQConnection'
 import { FailureReporter } from './FailureReporter'
 
@@ -18,11 +18,13 @@ export class BullMQQueue implements Queue {
     const queueName = options.queue ?? config.queue
     const attempts = integer(options.tries ?? config.tries, 'tries', 1, 1000)
     const delay = integer(options.delay ?? config.delay, 'delay', 0, 86_400_000)
+    const priority = integer(options.priority ?? config.priority, 'priority', 0, MAX_JOB_PRIORITY)
     const queued = await this.#queue(queueName).add(config.jobName ?? config.name, this.serializer.serialize(job), {
       ...(options.id ? { jobId: options.id } : {}),
       attempts,
       delay,
       backoff: { type: 'fixed', delay: readBackoff(options.backoff ?? config.backoff) },
+      ...(priority > 0 ? { priority } : {}),
     })
     return { id: String(queued.id ?? ''), queue: queueName }
   }

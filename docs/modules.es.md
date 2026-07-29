@@ -627,6 +627,7 @@ export class SendReport extends Job<SendReportPayload> {
   static readonly tries = 3
   static readonly queue = 'reports'
   static readonly backoff = [1_000, 5_000]
+  static readonly priority = 10
 
   readonly payload: SendReportPayload
 
@@ -659,9 +660,11 @@ await queue.sync(new SendReport({ reportId: 'report_3' }))
 | `Queue.push()` / `later()` / `sync()` | Encola, retrasa o ejecuta inmediatamente un job. |
 | `Queue.size()` / `clear()` | Consulta o limpia jobs, opcionalmente por nombre de cola. |
 | `Queue.onFailed()` | Registra un observador de fallos terminales. |
-| `PushOptions` | Sobrescribe `tries`, `delay`, `queue` y `backoff`. |
-| `QueueFake` | Guarda pushes; usa `assertPushed()`, `size()` y `clear()`. |
+| `PushOptions` | Sobrescribe `tries`, `delay`, `queue`, `backoff` y `priority`. |
+| `QueueFake` | Guarda pushes y su prioridad efectiva; usa `assertPushed()`, `size()` y `clear()`. |
 | `JobReleasedError` | Solicita replay retrasado sin consumir el budget normal de intentos fallidos. Lo manejan los adapters; los jobs de aplicacion no deben usarlo como error de negocio. |
+
+Las prioridades son hints de scheduling locales a cada queue entre `0` y `2^21`. `0` es la clase ordinaria sin prioridad y se ejecuta antes que las prioridades positivas; entre valores positivos, los menores se ejecutan primero. Los empates conservan FIFO, los jobs retrasados solo compiten al vencer su delay y el trabajo en ejecucion nunca se interrumpe. `PushOptions.priority` sobrescribe el valor estatico del job. Retries y releases retrasados de middleware conservan la prioridad resuelta. La prioridad es metadata de transporte, no forma parte del job serializado y no proporciona fairness, unicidad ni ejecucion exactly-once.
 
 ```ts
 import { QueueFake } from '@nuxt-laravelize/queue/testing'

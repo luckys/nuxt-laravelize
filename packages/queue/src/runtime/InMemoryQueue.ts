@@ -1,6 +1,6 @@
 import { JobSerializer, type Job, type SerializedJob } from './Job'
 import type { JobRunner } from './JobRunner'
-import type { FailedJobCallback, JobHandle, PushOptions, Queue } from './Queue'
+import { MAX_JOB_PRIORITY, type FailedJobCallback, type JobHandle, type PushOptions, type Queue } from './Queue'
 import { isNonRetryableJobError, NonRetryableJobError } from './NonRetryableJobError'
 import { isJobReleasedError } from './JobReleasedError'
 
@@ -10,6 +10,7 @@ interface ResolvedOptions {
   readonly delay: number
   readonly queue: string
   readonly backoff: number | readonly number[]
+  readonly priority: number
 }
 
 interface PendingJob {
@@ -19,13 +20,17 @@ interface PendingJob {
   readonly handle: JobHandle
   attempt: number
   releases: number
+  ready: boolean
+  readonly sequence: number
 }
 
 export class InMemoryQueue implements Queue {
   readonly #pending = new Map<string, PendingJob[]>()
   readonly #timers = new Map<ReturnType<typeof setTimeout>, PendingJob>()
   readonly #failedCallbacks: FailedJobCallback[] = []
+  readonly #scheduledQueues = new Set<string>()
   #nextId = 1
+  #nextSequence = 1
 
   constructor(private readonly runner: JobRunner, private readonly serializer: JobSerializer = new JobSerializer()) {}
 
@@ -38,6 +43,8 @@ export class InMemoryQueue implements Queue {
       handle: { id: resolved.id ?? `memory-${this.#nextId++}`, queue: resolved.queue },
       attempt: 0,
       releases: 0,
+      ready: false,
+      sequence: this.#nextSequence++,
     }
     this.#enqueue(entry, resolved.delay)
     return entry.handle
@@ -68,22 +75,33 @@ export class InMemoryQueue implements Queue {
   onFailed(callback: FailedJobCallback): void { this.#failedCallbacks.push(callback) }
 
   #enqueue(entry: PendingJob, delay: number): void {
+    entry.ready = false
     const jobs = this.#pending.get(entry.options.queue) ?? []
     jobs.push(entry)
     this.#pending.set(entry.options.queue, jobs)
     if (delay > 0) {
       const timer = setTimeout(() => {
         this.#timers.delete(timer)
-        this.#schedule(entry)
+        entry.ready = true
+        this.#schedule(entry.options.queue)
       }, delay)
       this.#timers.set(timer, entry)
       return
     }
-    this.#schedule(entry)
+    entry.ready = true
+    this.#schedule(entry.options.queue)
   }
 
-  #schedule(entry: PendingJob): void {
-    queueMicrotask(() => void this.#run(entry))
+  #schedule(queue: string): void {
+    if (this.#scheduledQueues.has(queue)) return
+    this.#scheduledQueues.add(queue)
+    queueMicrotask(() => {
+      this.#scheduledQueues.delete(queue)
+      const ready = (this.#pending.get(queue) ?? [])
+        .filter(entry => entry.ready)
+        .sort((left, right) => left.options.priority - right.options.priority || left.sequence - right.sequence)
+      for (const entry of ready) void this.#run(entry)
+    })
   }
 
   async #run(entry: PendingJob): Promise<void> {
@@ -141,6 +159,7 @@ function resolveOptions(job: Job, options?: PushOptions): ResolvedOptions {
     delay: integer(options?.delay ?? config.delay, 'delay', 0, 86_400_000),
     queue: options?.queue ?? config.queue,
     backoff: validateBackoff(options?.backoff ?? config.backoff),
+    priority: integer(options?.priority ?? config.priority, 'priority', 0, MAX_JOB_PRIORITY),
   }
 }
 

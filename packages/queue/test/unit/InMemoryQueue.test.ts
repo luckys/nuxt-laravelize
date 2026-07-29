@@ -22,6 +22,9 @@ class FailedJob extends Job {
 class StableJob extends TestJob {
   static override readonly jobName = 'stable.test.v1'
 }
+class PriorityJob extends TestJob {
+  static override readonly priority = 1
+}
 class TerminalJob extends Job {
   static runs = 0
   static failures = 0
@@ -70,6 +73,109 @@ describe('InMemoryQueue', () => {
     expect(await queue.size()).toBe(0)
     expect(TestJob.runs).not.toContain(99)
     vi.useRealTimers()
+  })
+
+  it('orders ready jobs by BullMQ-compatible priority and preserves FIFO ties', async () => {
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    registry.register(PriorityJob.name, PriorityJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    await Promise.all([
+      queue.push(new TestJob({ value: 20 }), { priority: 20 }),
+      queue.push(new PriorityJob({ value: 1 })),
+      queue.push(new TestJob({ value: 0 })),
+      queue.push(new PriorityJob({ value: 2 }), { priority: 1 }),
+    ])
+    await vi.waitFor(() => expect(TestJob.runs).toHaveLength(4))
+
+    expect(TestJob.runs).toEqual([0, 1, 2, 20])
+  })
+
+  it('does not make delayed high-priority jobs eligible before their delay', async () => {
+    vi.useFakeTimers()
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    try {
+      await queue.push(new TestJob({ value: 1 }), { delay: 100, priority: 0 })
+      await queue.push(new TestJob({ value: 2 }), { priority: 10 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(TestJob.runs).toEqual([2])
+      await vi.advanceTimersByTimeAsync(100)
+      expect(TestJob.runs).toEqual([2, 1])
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps retry backoff ineligible when another job schedules the queue', async () => {
+    vi.useFakeTimers()
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    let attempts = 0
+    runner.use('fail-once', async (job, _scope, next) => {
+      if (job.payload.value === 31 && attempts++ === 0) throw new Error('retry')
+      await next()
+    })
+    const queue = new InMemoryQueue(runner)
+
+    try {
+      await queue.push(new TestJob({ value: 31 }), { tries: 2, backoff: 100, priority: 1 })
+      await vi.advanceTimersByTimeAsync(0)
+      await queue.push(new TestJob({ value: 32 }), { priority: 2 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(TestJob.runs).toEqual([32])
+      expect(attempts).toBe(1)
+      await vi.advanceTimersByTimeAsync(100)
+      expect(TestJob.runs).toEqual([32, 31])
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps middleware releases ineligible when another job schedules the queue', async () => {
+    vi.useFakeTimers()
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    let releases = 0
+    runner.use('release-once', async (job, _scope, next) => {
+      if (job.payload.value === 41 && releases++ === 0) throw new JobReleasedError(100)
+      await next()
+    })
+    const queue = new InMemoryQueue(runner)
+
+    try {
+      await queue.push(new TestJob({ value: 41 }), { priority: 1 })
+      await vi.advanceTimersByTimeAsync(0)
+      await queue.push(new TestJob({ value: 42 }), { priority: 2 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(TestJob.runs).toEqual([42])
+      expect(releases).toBe(1)
+      await vi.advanceTimersByTimeAsync(100)
+      expect(TestJob.runs).toEqual([42, 41])
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('rejects priorities outside the portable BullMQ range', async () => {
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), new InMemoryJobRegistry()))
+    await expect(queue.push(new TestJob({ value: 1 }), { priority: -1 })).rejects.toThrow('priority must be an integer between 0 and 2097152')
+    await expect(queue.push(new TestJob({ value: 1 }), { priority: 2 ** 21 + 1 })).rejects.toThrow('priority must be an integer between 0 and 2097152')
   })
 
   it('creates, contributes, and disposes a scope for terminal failed hooks', async () => {
