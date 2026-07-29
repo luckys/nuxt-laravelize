@@ -60,6 +60,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 | `@nuxt-laravelize/hashing` | Versioned PBKDF2 password hashing and rehash detection |
 | `@nuxt-laravelize/database` | ORM-neutral factories and seeders |
 | `@nuxt-laravelize/database-drizzle` | Explicit async and sync Drizzle transaction manager adapters |
+| `@nuxt-laravelize/database-queue` | Explicit best-effort queue dispatch after confirmed database commit |
 | `@nuxt-laravelize/idempotency` | Lease-fenced HTTP idempotency, fingerprint conflicts, and response replay |
 | `@nuxt-laravelize/idempotency-drizzle` | Durable PostgreSQL, SQLite, and Turso idempotency stores |
 | `@nuxt-laravelize/testing` | Aggregate test harness and fakes |
@@ -132,6 +133,7 @@ pnpm add @nuxt-laravelize/ai-sdk ai zod @ai-sdk/anthropic
 pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
 pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/reliability-drizzle drizzle-orm
 pnpm add @nuxt-laravelize/database @nuxt-laravelize/database-drizzle drizzle-orm
+pnpm add @nuxt-laravelize/database @nuxt-laravelize/queue @nuxt-laravelize/database-queue
 pnpm add @nuxt-laravelize/idempotency
 pnpm add @nuxt-laravelize/workflows
 pnpm add @nuxt-laravelize/idempotency @nuxt-laravelize/idempotency-drizzle drizzle-orm
@@ -195,6 +197,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/http` | `/runtime` | - |
 | `@nuxt-laravelize/hashing` | `/runtime` | - |
 | `@nuxt-laravelize/database` | `/runtime` | - |
+| `@nuxt-laravelize/database-queue` | Package root | - |
 | `@nuxt-laravelize/testing` | Package root | Package root |
 | `@nuxt-laravelize/validation` | `/runtime` | - |
 | `@nuxt-laravelize/scheduler` | Package root, `/nitro3` | - |

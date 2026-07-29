@@ -1261,6 +1261,29 @@ await transactions.transaction(async (unitOfWork) => {
 
 Repositories receive `unitOfWork.session` explicitly, so domain writes and outbox records can share the physical transaction. Call `unitOfWork.markRollbackOnly(error)` when a caught inner failure must still abort the transaction. Transaction managers throw before native commit and skip `afterCommit` hooks whenever rollback-only is marked; custom implementations must provide the same guarantee. `afterCommit` hooks otherwise run only after a confirmed commit, and a hook failure cannot roll the commit back. Use `DrizzleSyncTransactionManager` for synchronous SQLite drivers: it deliberately rejects Promise-returning work instead of allowing async work to escape the native transaction.
 
+### Best-effort queue dispatch after commit
+
+`@nuxt-laravelize/database-queue` joins the explicit unit-of-work and queue contracts without adding ambient transaction discovery.
+
+```bash
+pnpm add @nuxt-laravelize/database @nuxt-laravelize/queue @nuxt-laravelize/database-queue
+```
+
+```ts
+import { dispatchAfterCommit } from '@nuxt-laravelize/database-queue'
+
+await transactions.transaction(async (unitOfWork) => {
+  await orders.save(unitOfWork.session, order)
+  dispatchAfterCommit(unitOfWork, queue, new SendOrderConfirmation({ orderId: order.id }), {
+    deduplication: { id: `tenant.${trustedTenantId}.order.${order.id}.confirmation` },
+  })
+})
+```
+
+`dispatchAfterCommit()` registers synchronously and returns `void`; awaiting a job handle inside transaction work would deadlock because admission starts only after the callback returns and commit succeeds. Rollback and rollback-only suppress the hook. The transaction promise awaits hooks in registration order, and a failed earlier hook can prevent later hooks from running. Multiple dispatches are not an atomic batch: earlier jobs may already be admitted when a later dispatch fails, so reconcile partial admission without retrying the transaction and use an outbox for durable fan-out. Queue options are snapshotted when registered. The retained job and queue metadata contributors are serialized after commit in the originating scope: keep payloads immutable, do not replace execution context before completion, and require custom transaction managers to await hooks before disposing that scope. Build deduplication IDs from trusted server-side tenant scope plus domain identity, never from a complete client-supplied ID. Workers must independently re-authorize because propagated context is provenance, not authority.
+
+This bridge provides ordering, not durable or exactly-once delivery. A process crash after commit can lose publication; a transport may admit the job and then lose its acknowledgement. `AfterCommitQueueDispatchError` therefore means persistence committed and queue admission failed or is ambiguous: do not retry the whole transaction. Its `cause` is server-only diagnostic material and must be redacted before logs or client exposure. Configure bounded queue transport timeouts and cap dispatch cardinality per transaction; timeout is also ambiguous. Deduplication begins at actual admission and cannot close the commit/publication gap. If losing a job would leave committed domain state unrecoverable, append a versioned message to a durable outbox inside the same physical transaction instead.
+
 ## Workflows and sagas
 
 `@nuxt-laravelize/workflows` implements persisted, linear workflows with versioned definitions, fenced renewable leases, retries, restart-safe attempts, cooperative in-flight cancellation, and reverse-order compensation.
@@ -1467,6 +1490,7 @@ Merge `compiled` into a standalone Nitro 3 configuration. Actual scheduling supp
 | `notifications` | `/runtime` | `/testing` |
 | `http` | `/runtime` | - |
 | `database` | `/runtime` | - |
+| `database-queue` | package root | - |
 | `console` | package root, `/node` | `/testing` |
 | `migrations` | package root, `/console` | `/testing` |
 | `migrations-drizzle` | package root, `/postgres`, `/sqlite`, `/sources` | `/testing` |

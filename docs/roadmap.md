@@ -101,7 +101,7 @@ The operations surface would report queue depth, throughput, latency, worker hea
 
 ### Queue chains, batches, uniqueness, and middleware
 
-Delivered: portable delayed-release semantics, queue-local priorities, explicit queue-local admission deduplication, hardened graceful BullMQ draining, and opt-in `WithoutOverlapping` and `RateLimited` middleware across the in-memory and BullMQ adapters, with bounded metadata, distributed-cache fail-closed policy, and release-aware observability. Remaining candidates include sequential chains, durable batches with progress/cancellation hooks, after-commit dispatch, tags, `ThrottlesExceptions`, and tenant/principal requirements. Durable metadata must be versioned, bounded, and compatible with at-least-once execution. This capability should not turn workflows into an implicit DAG engine.
+Delivered: portable delayed-release semantics, queue-local priorities, explicit queue-local admission deduplication, hardened graceful BullMQ draining, explicit best-effort after-commit dispatch, and opt-in `WithoutOverlapping` and `RateLimited` middleware across the in-memory and BullMQ adapters, with bounded metadata, distributed-cache fail-closed policy, and release-aware observability. Remaining candidates include sequential chains, durable batches with progress/cancellation hooks, tags, `ThrottlesExceptions`, and tenant/principal requirements. Durable metadata must be versioned, bounded, and compatible with at-least-once execution. This capability should not turn workflows into an implicit DAG engine.
 
 ### Notification delivery ecosystem
 

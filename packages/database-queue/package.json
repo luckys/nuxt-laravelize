@@ -1,0 +1,36 @@
+{
+  "name": "@nuxt-laravelize/database-queue",
+  "version": "0.1.0",
+  "description": "Explicit post-commit queue dispatch for Nuxt Laravelize transactions",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "dependencies": {
+    "@nuxt-laravelize/database": "workspace:^",
+    "@nuxt-laravelize/queue": "workspace:^"
+  },
+  "devDependencies": {
+    "@nuxt-laravelize/database-drizzle": "workspace:^",
+    "@types/node": "latest",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5"
+  }
+}

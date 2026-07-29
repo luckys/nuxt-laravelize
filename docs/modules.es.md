@@ -1250,6 +1250,29 @@ await transactions.transaction(async (unitOfWork) => {
 
 Los repositorios reciben `unitOfWork.session` explicitamente para compartir la transaccion fisica entre cambios de dominio y outbox. Llama a `unitOfWork.markRollbackOnly(error)` cuando un fallo interno capturado aun debe abortar la transaccion. Los gestores deben lanzar antes del commit nativo y omitir los hooks `afterCommit` cuando la unidad quede marcada; las implementaciones personalizadas deben ofrecer la misma garantia. En los demas casos, los hooks `afterCommit` solo se ejecutan despues de confirmar el commit y su fallo no puede revertirlo. Usa `DrizzleSyncTransactionManager` con drivers SQLite sincronicos: rechaza deliberadamente trabajo que devuelve Promise para impedir que escape de la transaccion nativa.
 
+### Dispatch best-effort a queue despues del commit
+
+`@nuxt-laravelize/database-queue` conecta los contratos explicitos de unit of work y queue sin introducir discovery ambiental de transacciones.
+
+```bash
+pnpm add @nuxt-laravelize/database @nuxt-laravelize/queue @nuxt-laravelize/database-queue
+```
+
+```ts
+import { dispatchAfterCommit } from '@nuxt-laravelize/database-queue'
+
+await transactions.transaction(async (unitOfWork) => {
+  await orders.save(unitOfWork.session, order)
+  dispatchAfterCommit(unitOfWork, queue, new SendOrderConfirmation({ orderId: order.id }), {
+    deduplication: { id: `tenant.${trustedTenantId}.order.${order.id}.confirmation` },
+  })
+})
+```
+
+`dispatchAfterCommit()` registra el hook sincronicamente y devuelve `void`; esperar un handle dentro del trabajo transaccional causaria deadlock porque la admision solo comienza cuando el callback retorna y el commit tiene exito. Rollback y rollback-only omiten el hook. La promesa de la transaccion espera hooks en orden de registro y el fallo de uno anterior puede impedir los posteriores. Varios dispatches no forman un batch atomico: algunos jobs anteriores pueden estar admitidos cuando falla uno posterior, asi que reconcilia la admision parcial sin reintentar la transaccion y usa outbox para fan-out durable. Las opciones de queue se copian al registrar. El job retenido y los contributors de metadata se serializan despues del commit dentro del scope original: conserva payloads inmutables, no reemplaces el execution context antes de completar y exige que gestores custom esperen hooks antes de destruir el scope. Construye IDs de deduplicacion con scope de tenant confiable del servidor mas identidad de dominio, nunca desde un ID completo enviado por el cliente. Los workers deben reautorizar porque el contexto propagado es procedencia, no autoridad.
+
+Este bridge ofrece orden, no entrega durable ni exactly-once. Un crash despues del commit puede perder la publicacion; un transport puede admitir el job y perder despues su acknowledgement. `AfterCommitQueueDispatchError` significa que la persistencia ya hizo commit y la admision fallo o es ambigua: no reintentes la transaccion completa. Su `cause` es diagnostico solo para servidor y debe redactarse antes de logs o respuestas. Configura timeouts acotados en el transport y limita el numero de dispatches por transaccion; un timeout tambien es ambiguo. La deduplicacion comienza en la admision real y no cierra la ventana commit/publicacion. Si perder un job dejaria el estado de dominio confirmado sin recuperacion, registra un mensaje versionado en un outbox durable dentro de la misma transaccion fisica.
+
 ## Workflows y sagas
 
 `@nuxt-laravelize/workflows` implementa workflows lineales persistidos con definiciones versionadas, leases renovables con fencing, reintentos, intentos reanudables, cancelacion cooperativa en curso y compensacion en orden inverso.
@@ -1456,6 +1479,7 @@ Combina `compiled` con una configuracion Nitro 3 standalone. El soporte real de 
 | `notifications` | `/runtime` | `/testing` |
 | `http` | `/runtime` | - |
 | `database` | `/runtime` | - |
+| `database-queue` | raiz del paquete | - |
 | `console` | raiz del paquete, `/node` | `/testing` |
 | `migrations` | raiz del paquete, `/console` | `/testing` |
 | `migrations-drizzle` | raiz, `/postgres`, `/sqlite`, `/sources` | `/testing` |

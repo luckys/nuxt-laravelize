@@ -101,7 +101,7 @@ La superficie mostraria profundidad, throughput y latencia de queues; heartbeats
 
 ### Chains, batches, unicidad y middleware de queues
 
-Entregado: semantica portable de delayed release, prioridades locales a cada queue, deduplicacion explicita de admision local a cada queue, graceful draining BullMQ reforzado y middleware opt-in `WithoutOverlapping` y `RateLimited` en los adapters memory y BullMQ, con metadata acotada, politica fail-closed para cache distribuido y observabilidad consciente de releases. Quedan como candidatos chains secuenciales, batches durables con progreso/cancelacion, dispatch after-commit, tags, `ThrottlesExceptions` y requisitos de tenant/principal. La metadata durable debe ser versionada, acotada y compatible con ejecucion at-least-once. Esto no debe convertir workflows en un motor DAG implicito.
+Entregado: semantica portable de delayed release, prioridades locales a cada queue, deduplicacion explicita de admision local a cada queue, graceful draining BullMQ reforzado, dispatch after-commit best-effort explicito y middleware opt-in `WithoutOverlapping` y `RateLimited` en los adapters memory y BullMQ, con metadata acotada, politica fail-closed para cache distribuido y observabilidad consciente de releases. Quedan como candidatos chains secuenciales, batches durables con progreso/cancelacion, tags, `ThrottlesExceptions` y requisitos de tenant/principal. La metadata durable debe ser versionada, acotada y compatible con ejecucion at-least-once. Esto no debe convertir workflows en un motor DAG implicito.
 
 ### Ecosistema de notificaciones
 
