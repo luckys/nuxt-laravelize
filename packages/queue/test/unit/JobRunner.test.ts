@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line, @typescript-eslint/no-useless-constructor */
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer } from '../../src/runtime/index'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobReleasedError, JobRunner, JobSerializer, isJobReleasedError } from '../../src/runtime/index'
 
 class Probe extends Job { readonly payload = {}; constructor() { super() } handle() {} }
 describe('JobRunner middleware', () => {
@@ -36,5 +36,12 @@ describe('JobRunner middleware', () => {
     runner.use(async () => { middleware() })
     await expect(runner.run({ version: 2, name: 'Probe', payload: {}, metadata: null } as never)).rejects.toThrow('Invalid serialized job envelope')
     expect(middleware).not.toHaveBeenCalled()
+  })
+  it('validates portable release signals', () => {
+    expect(isJobReleasedError(new JobReleasedError(1000))).toBe(true)
+    expect(isJobReleasedError({ name: 'JobReleasedError', delay: 1000 })).toBe(false)
+    expect(() => new JobReleasedError(0)).toThrow(TypeError)
+    expect(() => new JobReleasedError(86_400_001)).toThrow(TypeError)
+    expect(() => new JobReleasedError(1, 100_001)).toThrow(TypeError)
   })
 })

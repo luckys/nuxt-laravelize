@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobRunner, NonRetryableJobError } from '../../src/runtime/index'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobReleasedError, JobRunner, NonRetryableJobError } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {
   static runs: number[] = []
@@ -99,5 +99,61 @@ describe('InMemoryQueue', () => {
     await vi.waitFor(() => expect(TerminalJob.failures).toBe(1))
 
     expect(TerminalJob.runs).toBe(1)
+  })
+
+  it('releases without consuming attempts or invoking failure observers', async () => {
+    vi.useFakeTimers()
+    let releases = 2
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const attempts: number[] = []
+    runner.use('release-twice', async (_job, _scope, next, descriptor) => {
+      attempts.push(descriptor?.attempt ?? 0)
+      if (releases-- > 0) throw new JobReleasedError(100)
+      await next()
+    })
+    const queue = new InMemoryQueue(runner)
+    const failed = vi.fn()
+    queue.onFailed(failed)
+
+    try {
+      await queue.push(new TestJob({ value: 101 }), { tries: 1 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(TestJob.runs).not.toContain(101)
+      await vi.advanceTimersByTimeAsync(200)
+      expect(TestJob.runs).toContain(101)
+      expect(attempts).toEqual([1, 1, 1])
+      expect(failed).not.toHaveBeenCalled()
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('fails terminally after exhausting the independent release budget', async () => {
+    vi.useFakeTimers()
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    runner.use('always-release', async () => {
+      throw new JobReleasedError(10, 1)
+    })
+    const queue = new InMemoryQueue(runner)
+    const failed = vi.fn()
+    queue.onFailed(failed)
+
+    try {
+      await queue.push(new TestJob({ value: 102 }), { tries: 5 })
+      await vi.advanceTimersByTimeAsync(10)
+      await vi.waitFor(() => expect(failed).toHaveBeenCalledOnce())
+      expect(failed.mock.calls[0]?.[0]).toMatchObject({ attempts: 1, error: { code: 'JOB_RELEASE_LIMIT_EXCEEDED' } })
+      expect(TestJob.runs).not.toContain(102)
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
   })
 })

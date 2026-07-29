@@ -661,6 +661,7 @@ await queue.sync(new SendReport({ reportId: 'report_3' }))
 | `Queue.onFailed()` | Registra un observador de fallos terminales. |
 | `PushOptions` | Sobrescribe `tries`, `delay`, `queue` y `backoff`. |
 | `QueueFake` | Guarda pushes; usa `assertPushed()`, `size()` y `clear()`. |
+| `JobReleasedError` | Solicita replay retrasado sin consumir el budget normal de intentos fallidos. Lo manejan los adapters; los jobs de aplicacion no deben usarlo como error de negocio. |
 
 ```ts
 import { QueueFake } from '@nuxt-laravelize/queue/testing'
@@ -669,6 +670,40 @@ const queue = new QueueFake()
 await queue.push(new SendReport({ reportId: 'report_1' }))
 queue.assertPushed(SendReport)
 ```
+
+## Middleware de queue
+
+`@nuxt-laravelize/queue-middleware` proporciona `WithoutOverlapping` y `RateLimited` opt-in. Registra sus funciones `handle` estables en el `JobRunner` compartido; ambos omiten hooks `failed()` terminales. Un job bloqueado se libera con delay acotado en vez de marcarse como exitoso o consumir un retry ordinario. `InMemoryQueue` reprograma la misma entrada y BullMQ usa `moveToDelayed()` con el token del worker. La observabilidad de queue lo registra como `released`, no `failed`.
+
+```ts
+import { cacheToken } from '@nuxt-laravelize/cache/runtime'
+import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
+import { RateLimited, WithoutOverlapping } from '@nuxt-laravelize/queue-middleware/runtime'
+import { jobRunnerToken } from '@nuxt-laravelize/queue/runtime'
+
+const runner = container.make(jobRunnerToken)
+const cache = container.make(cacheToken)
+
+runner.use('invoice-overlap', new WithoutOverlapping(cache, {
+  namespace: 'billing:production',
+  key: (job, scope) => {
+    const context = scope.make(executionContextToken).snapshot()
+    if (!context.tenantId) throw new Error('Tenant context is required')
+    return `tenant:${context.tenantId}:invoice:${String(job.payload.invoiceId)}`
+  },
+  expiresAfterSeconds: 120,
+  releaseAfterMilliseconds: 1000,
+}).handle)
+
+runner.use('mail-provider-limit', new RateLimited(cache, {
+  namespace: 'billing:production',
+  key: 'provider:mail',
+  maxAttempts: 100,
+  decaySeconds: 60,
+}).handle)
+```
+
+Namespaces y keys logicas solo aceptan identificadores acotados, deben incluir tenant confiable cuando corresponda y se hashean antes de almacenarse en cache o aparecer en errores. Nunca las derives de direcciones, tokens u otros secretos. Se exige un cache distribuido owner-atomic por defecto en todos los entornos y `RateLimited` exige ademas una operacion fixed-window atomica; desarrollo local debe optar explicitamente con `requireDistributed: false`. Los releases no consumen intentos fallidos ordinarios, pero estan acotados por `maxReleases`. `WithoutOverlapping` renueva y libera su lease solo si conserva ownership, aunque expiracion y failover no proporcionan fencing; conserva efectos externos idempotentes. `sync()` no puede reprogramar un job liberado y por eso propaga `JobReleasedError` al caller.
 
 ## Adapter BullMQ
 

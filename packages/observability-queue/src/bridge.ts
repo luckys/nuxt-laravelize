@@ -3,7 +3,7 @@ import type { Container } from '@nuxt-laravelize/core/runtime'
 import { ExecutionContext, executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
 import type { Observability, PropagationCarrier } from '@nuxt-laravelize/observability/runtime'
 import { safeErrorType, sanitizeCarrier } from '@nuxt-laravelize/observability/runtime'
-import type { JobExecutionDescriptor, JobMetadataContributorRegistry, JobRunner, SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { isJobReleasedError, type JobExecutionDescriptor, type JobMetadataContributorRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
 
 const KEY = 'laravelize.trace.v1'
 const INSTALLATION = 'laravelize.observability.queue'
@@ -50,9 +50,16 @@ async function consume(observability: Observability, serialized: SerializedJob, 
           catch {}
         }
         catch (error) {
-          result = 'failed'; try { span.recordErrorType(safeErrorType(error)) }
-          catch {}; try { span.setStatus('error') }
-          catch {}; throw error
+          if (isJobReleasedError(error)) {
+            result = 'released'; try { span.setStatus('ok') }
+            catch {}
+          }
+          else {
+            result = 'failed'; try { span.recordErrorType(safeErrorType(error)) }
+            catch {}; try { span.setStatus('error') }
+            catch {}
+          }
+          throw error
         }
       })()
       return execution

@@ -101,7 +101,7 @@ La superficie mostraria profundidad, throughput y latencia de queues; heartbeats
 
 ### Chains, batches, unicidad y middleware de queues
 
-El contrato queue podria añadir chains secuenciales, batches durables con progreso/cancelacion, jobs unicos, dispatch after-commit, tags, prioridades, draining y middleware como `WithoutOverlapping`, `RateLimited`, `ThrottlesExceptions` y requisitos de tenant/principal. La metadata durable debe ser versionada, acotada y compatible con ejecucion at-least-once. Esto no debe convertir workflows en un motor DAG implicito.
+Entregado: semantica portable de delayed release y middleware opt-in `WithoutOverlapping` y `RateLimited` en los adapters memory y BullMQ, con politica fail-closed para cache distribuido y observabilidad consciente de releases. Quedan como candidatos chains secuenciales, batches durables con progreso/cancelacion, jobs unicos, dispatch after-commit, tags, prioridades, draining, `ThrottlesExceptions` y requisitos de tenant/principal. La metadata durable debe ser versionada, acotada y compatible con ejecucion at-least-once. Esto no debe convertir workflows en un motor DAG implicito.
 
 ### Ecosistema de notificaciones
 
@@ -173,7 +173,7 @@ Estas mejoras menores pueden aportar valor antes de los paquetes grandes:
 2. Bridge `audit-http` acotado a route, outcome, duracion y decisiones de autorizacion.
 3. Bulk actions acotadas en dead-letter operations.
 4. Entregado: assertions de notificaciones mas ricas y delays de queue validados por canal.
-5. Middleware de jobs `WithoutOverlapping` y `RateLimited`.
+5. Entregado: middleware `WithoutOverlapping` y `RateLimited` con delayed release portable.
 6. URLs temporales para S3 y R2.
 7. Maintenance mode sobre un store compartido.
 8. Generadores para policies, jobs, workflows, notifications, commands y migrations.

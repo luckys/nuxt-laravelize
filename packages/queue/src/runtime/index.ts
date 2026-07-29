@@ -5,3 +5,4 @@ export type { FailedJobCallback, FailedJobInfo, JobHandle, PushOptions, Queue } 
 export { InMemoryQueue } from './InMemoryQueue'
 export { jobMetadataContributorsToken, jobRegistryToken, jobRunnerToken, jobSerializerToken, queueToken } from './tokens'
 export { NonRetryableJobError, isNonRetryableJobError } from './NonRetryableJobError'
+export { JobReleasedError, isJobReleasedError } from './JobReleasedError'

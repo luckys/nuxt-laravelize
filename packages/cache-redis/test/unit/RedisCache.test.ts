@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { isDistributedCache, type DistributedCache } from '@nuxt-laravelize/cache/runtime'
+import { isAtomicFixedWindowCache, isDistributedCache, type AtomicFixedWindowCache, type DistributedCache } from '@nuxt-laravelize/cache/runtime'
 import { RedisCache, type RedisCacheClient } from '../../src/index'
 
 function client(overrides: Partial<RedisCacheClient> = {}): RedisCacheClient {
@@ -20,6 +20,20 @@ describe('RedisCache', () => {
 
     expect(isDistributedCache(cache)).toBe(true)
     expectTypeOf(cache).toMatchTypeOf<DistributedCache>()
+    expect(isAtomicFixedWindowCache(cache)).toBe(true)
+    expectTypeOf(cache).toMatchTypeOf<AtomicFixedWindowCache>()
+  })
+  it('uses one Redis script for a fixed-window hit', async () => {
+    const evalMock = vi.fn().mockResolvedValue([2, 61_000, 59_500])
+    const cache = new RedisCache(client({ eval: evalMock }))
+
+    await expect(cache.hitFixedWindow('rate', 60_000)).resolves.toEqual({ attempts: 2, resetAt: 61_000, retryAfterMilliseconds: 59_500 })
+
+    const script = String(evalMock.mock.calls[0]?.[0])
+    expect(script).toContain('redis.call(\'TIME\')')
+    expect(script).toContain('redis.call(\'HSET\'')
+    expect(script).toContain('redis.call(\'PEXPIREAT\'')
+    expect(evalMock).toHaveBeenCalledWith(script, 1, expect.stringContaining('rate'), 60_000)
   })
   it.each(['tenant', 'tenant:1'])('rejects a prefix without a trailing colon: %s', (prefix) => {
     expect(() => new RedisCache(client(), { prefix })).toThrow('must end with a colon')

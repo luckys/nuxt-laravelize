@@ -44,6 +44,12 @@ describe.skipIf(!available)('RedisCache integration', () => {
     expect(pulled.filter(value => value !== undefined)).toHaveLength(1)
   })
 
+  it('coordinates fixed-window hits atomically across clients', async () => {
+    if (!available) return
+    const results = await Promise.all(Array.from({ length: 20 }, (_, index) => (index % 2 ? first : second).hitFixedWindow('shared-window', 60_000)))
+    expect(results.map(result => result.attempts).sort((a, b) => a - b)).toEqual(Array.from({ length: 20 }, (_, index) => index + 1))
+  })
+
   it('leaves an existing value and TTL untouched when add has a nonpositive TTL', async () => {
     if (!available) return
     const client = clients[0]!

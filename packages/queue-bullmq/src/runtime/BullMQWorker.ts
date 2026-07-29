@@ -1,5 +1,5 @@
-import { UnrecoverableError, Worker, type Job as BullJob } from 'bullmq'
-import { isNonRetryableJobError, type InMemoryJobRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { DelayedError, UnrecoverableError, Worker, type Job as BullJob } from 'bullmq'
+import { isJobReleasedError, isNonRetryableJobError, NonRetryableJobError, type InMemoryJobRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
 import type { BullMQConnection } from './BullMQConnection'
 import { FailureReporter } from './FailureReporter'
 
@@ -13,13 +13,8 @@ export class BullMQWorker {
   ) {}
 
   async work(queue = 'default', concurrency = 1): Promise<void> {
-    const worker = new Worker(queue, async (job) => {
-      try {
-        await this.runner.run(job.data as SerializedJob, { queue, attempt: job.attemptsMade + 1, maxAttempts: job.opts.attempts ?? 1 })
-      }
-      catch (error) {
-        throw toBullMQJobError(error)
-      }
+    const worker = new Worker(queue, async (job, token) => {
+      await processBullMQJob(this.runner, job, queue, token)
     }, {
       connection: this.connection.client,
       concurrency,
@@ -53,10 +48,27 @@ export class BullMQWorker {
   }
 }
 
+export async function processBullMQJob(runner: JobRunner, job: BullJob, queue: string, token?: string, now: () => number = Date.now): Promise<void> {
+  try {
+    await runner.run(job.data as SerializedJob, { queue, attempt: job.attemptsMade + 1, maxAttempts: job.opts.attempts ?? 1 })
+  }
+  catch (error) {
+    if (isJobReleasedError(error)) {
+      const state = job as BullJob & { attemptsStarted?: number, stalledCounter?: number }
+      const attemptsStarted = state.attemptsStarted ?? job.attemptsMade + 1
+      const releases = Math.max(0, attemptsStarted - job.attemptsMade - (state.stalledCounter ?? 0) - 1)
+      if (releases >= error.maxReleases) throw toBullMQJobError(new NonRetryableJobError('JOB_RELEASE_LIMIT_EXCEEDED', 'Job exceeded its delayed release budget'))
+      await job.moveToDelayed(now() + error.delay, token)
+      throw new DelayedError()
+    }
+    throw toBullMQJobError(error)
+  }
+}
+
 export function toBullMQJobError(error: unknown): unknown {
   return isNonRetryableJobError(error) ? new UnrecoverableError(`[${error.code}] Non-retryable job failure`) : error
 }
 
 export function isTerminalBullMQFailure(job: Pick<BullJob, 'attemptsMade' | 'opts'>, error: Error): boolean {
-  return error instanceof UnrecoverableError || error.name === 'UnrecoverableError' || job.attemptsMade >= (job.opts.attempts ?? 1)
+  return error.name !== 'DelayedError' && (error instanceof UnrecoverableError || error.name === 'UnrecoverableError' || job.attemptsMade >= (job.opts.attempts ?? 1))
 }

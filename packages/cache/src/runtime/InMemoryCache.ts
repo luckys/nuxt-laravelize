@@ -1,11 +1,14 @@
-import type { Cache, CacheTtl } from './Cache'
+import { atomicFixedWindowCacheCapabilities, atomicFixedWindowCacheCapability, type AtomicFixedWindowCache, type CacheTtl, type FixedWindowState } from './Cache'
 
 interface CacheEntry {
   value: unknown
   expiresAt: number | null
 }
 
-export class InMemoryCache implements Cache {
+interface FixedWindowEntry { readonly type: 'fixed-window', attempts: number, readonly resetAt: number }
+
+export class InMemoryCache implements AtomicFixedWindowCache {
+  readonly [atomicFixedWindowCacheCapability] = atomicFixedWindowCacheCapabilities
   readonly #entries = new Map<string, CacheEntry>()
   readonly #pending = new Map<string, Promise<unknown>>()
   #writesUntilSweep = 64
@@ -122,6 +125,31 @@ export class InMemoryCache implements Cache {
     return this.increment(key, -amount, ttl)
   }
 
+  async hitFixedWindow(key: string, windowMilliseconds: number): Promise<FixedWindowState> {
+    assertKey(key)
+    assertWindow(windowMilliseconds)
+    const now = this.now()
+    if (!Number.isSafeInteger(now + windowMilliseconds)) throw new TypeError('Fixed-window expiration exceeds the safe integer range.')
+    const current = this.#entry(key, now)?.value
+    const existing = isFixedWindowEntry(current) ? current : undefined
+    const resetAt = existing?.resetAt ?? now + windowMilliseconds
+    const attempts = (existing?.attempts ?? 0) + 1
+    this.#touch(key)
+    this.#entries.set(key, { value: { type: 'fixed-window', attempts, resetAt } satisfies FixedWindowEntry, expiresAt: resetAt })
+    return { attempts, resetAt, retryAfterMilliseconds: Math.max(1, resetAt - now) }
+  }
+
+  async fixedWindowState(key: string): Promise<FixedWindowState | undefined> {
+    const now = this.now()
+    const current = this.#entry(key, now)?.value
+    if (!isFixedWindowEntry(current)) return undefined
+    return { attempts: current.attempts, resetAt: current.resetAt, retryAfterMilliseconds: Math.max(1, current.resetAt - now) }
+  }
+
+  clearFixedWindow(key: string): Promise<boolean> {
+    return this.forget(key)
+  }
+
   #entry(key: string, now = this.now()): CacheEntry | undefined {
     assertKey(key)
     const entry = this.#entries.get(key)
@@ -179,4 +207,14 @@ function assertKey(key: string): void {
 
 function assertValue(value: unknown): void {
   if (value === undefined) throw new Error('Cache cannot store undefined values.')
+}
+
+function isFixedWindowEntry(value: unknown): value is FixedWindowEntry {
+  return !!value && typeof value === 'object' && (value as Partial<FixedWindowEntry>).type === 'fixed-window'
+    && Number.isSafeInteger((value as Partial<FixedWindowEntry>).attempts)
+    && Number.isSafeInteger((value as Partial<FixedWindowEntry>).resetAt)
+}
+
+function assertWindow(value: number): void {
+  if (!Number.isSafeInteger(value) || value < 1) throw new TypeError('Fixed window must be a positive safe integer in milliseconds.')
 }

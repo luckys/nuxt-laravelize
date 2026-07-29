@@ -101,7 +101,7 @@ The operations surface would report queue depth, throughput, latency, worker hea
 
 ### Queue chains, batches, uniqueness, and middleware
 
-The queue contract could add sequential chains, durable batches with progress/cancellation hooks, unique jobs, after-commit dispatch, tags, priorities, graceful draining, and middleware such as `WithoutOverlapping`, `RateLimited`, `ThrottlesExceptions`, and tenant/principal requirements. Durable metadata must be versioned, bounded, and compatible with at-least-once execution. This capability should not turn workflows into an implicit DAG engine.
+Delivered: portable delayed-release semantics plus opt-in `WithoutOverlapping` and `RateLimited` middleware across the in-memory and BullMQ adapters, with distributed-cache fail-closed policy and release-aware observability. Remaining candidates include sequential chains, durable batches with progress/cancellation hooks, unique jobs, after-commit dispatch, tags, priorities, graceful draining, `ThrottlesExceptions`, and tenant/principal requirements. Durable metadata must be versioned, bounded, and compatible with at-least-once execution. This capability should not turn workflows into an implicit DAG engine.
 
 ### Notification delivery ecosystem
 
@@ -173,7 +173,7 @@ The following smaller additions can provide value before the larger packages:
 2. A privacy-bounded `audit-http` bridge for route, outcome, duration, and authorization decisions.
 3. Bounded bulk actions in dead-letter operations.
 4. Delivered: richer notification assertions and validated per-channel queue delays.
-5. `WithoutOverlapping` and `RateLimited` job middleware.
+5. Delivered: `WithoutOverlapping` and `RateLimited` job middleware with portable delayed release.
 6. Temporary URLs for S3 and R2.
 7. Maintenance mode backed by a shared store.
 8. Generators for policies, jobs, workflows, notifications, commands, and migrations.

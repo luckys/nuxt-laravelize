@@ -17,6 +17,32 @@ export interface Cache {
   decrement(key: string, amount?: number, ttl?: CacheTtl): Promise<number>
 }
 
+export interface FixedWindowState {
+  readonly attempts: number
+  readonly resetAt: number
+  readonly retryAfterMilliseconds: number
+}
+
+export const atomicFixedWindowCacheCapability: unique symbol = Symbol.for('@nuxt-laravelize/cache/atomic-fixed-window')
+
+export interface AtomicFixedWindowCache extends Cache {
+  readonly [atomicFixedWindowCacheCapability]: { readonly atomic: true }
+  hitFixedWindow(key: string, windowMilliseconds: number): Promise<FixedWindowState>
+  fixedWindowState(key: string): Promise<FixedWindowState | undefined>
+  clearFixedWindow(key: string): Promise<boolean>
+}
+
+export const atomicFixedWindowCacheCapabilities = Object.freeze({ atomic: true as const })
+
+export function isAtomicFixedWindowCache(value: unknown): value is AtomicFixedWindowCache {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Partial<AtomicFixedWindowCache>
+  return candidate[atomicFixedWindowCacheCapability]?.atomic === true
+    && typeof candidate.hitFixedWindow === 'function'
+    && typeof candidate.fixedWindowState === 'function'
+    && typeof candidate.clearFixedWindow === 'function'
+}
+
 export const distributedCacheCapability: unique symbol = Symbol.for('@nuxt-laravelize/cache/distributed-owner-atomic')
 
 export interface DistributedCache extends Cache {

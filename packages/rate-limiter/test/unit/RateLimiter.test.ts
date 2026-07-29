@@ -13,10 +13,11 @@ describe('RateLimiter', () => {
       attempts: 1,
       remaining: 1,
       retryAfter: 10,
+      retryAfterMilliseconds: 10_000,
     })
     now += 2_000
-    await expect(limiter.hit('login:user', 2, 10)).resolves.toMatchObject({ allowed: true, attempts: 2, remaining: 0, retryAfter: 8 })
-    await expect(limiter.hit('login:user', 2, 10)).resolves.toMatchObject({ allowed: false, attempts: 3, remaining: 0, retryAfter: 8 })
+    await expect(limiter.hit('login:user', 2, 10)).resolves.toMatchObject({ allowed: true, attempts: 2, remaining: 0, retryAfter: 8, retryAfterMilliseconds: 8_000 })
+    await expect(limiter.hit('login:user', 2, 10)).resolves.toMatchObject({ allowed: false, attempts: 3, remaining: 0, retryAfter: 8, retryAfterMilliseconds: 8_000 })
   })
 
   it('starts a fresh window after expiration', async () => {
@@ -40,11 +41,21 @@ describe('RateLimiter', () => {
   })
 
   it('consumes concurrent attempts atomically', async () => {
-    const limiter = new RateLimiter(new InMemoryCache())
+    const limiter = new RateLimiter(new InMemoryCache(), Date.now, 'laravelize:rate-limit:', true)
     const results = await Promise.all(Array.from({ length: 10 }, () => limiter.hit('api:shared', 5, 60)))
 
     expect(results.filter(result => result.allowed)).toHaveLength(5)
     expect(results.map(result => result.attempts).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  })
+
+  it('preserves the legacy key scheme unless atomic windows are explicitly enabled', async () => {
+    const cache = new InMemoryCache(() => 1_000)
+    const limiter = new RateLimiter(cache, () => 1_000)
+
+    await limiter.hit('existing:user', 2, 60)
+
+    await expect(cache.has('laravelize:rate-limit:existing:user:timer')).resolves.toBe(true)
+    await expect(cache.has('laravelize:rate-limit:existing:user:window')).resolves.toBe(false)
   })
 
   it('reports attempts, remaining capacity and supports clearing a key', async () => {

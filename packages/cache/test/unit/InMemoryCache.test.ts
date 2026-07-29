@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
-import { isDistributedCache, type DistributedCache } from '../../src/runtime/Cache'
+import { isAtomicFixedWindowCache, isDistributedCache, type AtomicFixedWindowCache, type DistributedCache } from '../../src/runtime/Cache'
 import { InMemoryCache } from '../../src/runtime/InMemoryCache'
 
 describe('InMemoryCache', () => {
@@ -9,6 +9,22 @@ describe('InMemoryCache', () => {
 
     expect(isDistributedCache(cache)).toBe(false)
     expectTypeOf(cache).not.toMatchTypeOf<DistributedCache>()
+    expect(isAtomicFixedWindowCache(cache)).toBe(true)
+    expectTypeOf(cache).toMatchTypeOf<AtomicFixedWindowCache>()
+  })
+  it('atomically increments and expires fixed windows', async () => {
+    let now = 1_000
+    const cache = new InMemoryCache(() => now)
+
+    await expect(Promise.all(Array.from({ length: 3 }, () => cache.hitFixedWindow('limit', 1000)))).resolves.toMatchObject([
+      { attempts: 1, resetAt: 2000 },
+      { attempts: 2, resetAt: 2000 },
+      { attempts: 3, resetAt: 2000 },
+    ])
+    await expect(cache.fixedWindowState('limit')).resolves.toMatchObject({ attempts: 3 })
+    now = 2_000
+    await expect(cache.hitFixedWindow('limit', 1000)).resolves.toMatchObject({ attempts: 1, resetAt: 3000 })
+    await expect(cache.clearFixedWindow('limit')).resolves.toBe(true)
   })
   it('stores permanent and expiring values', async () => {
     let now = 1_000

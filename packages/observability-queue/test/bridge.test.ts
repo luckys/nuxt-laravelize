@@ -6,7 +6,7 @@ import { currentExecutionContextOptional } from '@nuxt-laravelize/execution-cont
 import { fakeExecutionContext } from '@nuxt-laravelize/execution-context/testing'
 import { installExecutionContextQueuePropagation } from '../../execution-context-queue/src/runtime/propagation'
 import { ObservabilityFake } from '@nuxt-laravelize/observability/testing'
-import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer } from '@nuxt-laravelize/queue/runtime'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobReleasedError, JobRunner, JobSerializer } from '@nuxt-laravelize/queue/runtime'
 import { installQueueObservability, queueTraceMetadata } from '../src/bridge'
 
 class Probe extends Job { static override jobName = 'probe'; static seen: unknown; readonly payload = {}; constructor() { super() } async handle(resolver: Resolver) { Probe.seen = resolver.has(executionContextToken) ? resolver.make(executionContextToken).snapshot() : undefined; await Promise.resolve() } }
@@ -73,5 +73,15 @@ describe('queue observability', () => {
     installQueueObservability(new JobMetadataContributorRegistry(), runner, telemetry, { jobs: [], queues: [] })
     await expect(runner.run(new Probe().serialize())).resolves.toBeUndefined()
     expect(calls).toEqual(['counter.add', 'histogram.create', 'histogram.record'])
+  })
+  it('records delayed releases without classifying them as failures', async () => {
+    const telemetry = new ObservabilityFake(); const registry = new InMemoryJobRegistry(); registry.register(Probe.jobName, Probe); const runner = new JobRunner(createContainer(), registry)
+    installQueueObservability(new JobMetadataContributorRegistry(), runner, telemetry, { jobs: ['probe'], queues: ['critical'] })
+    runner.use('release', async () => { throw new JobReleasedError(1000) })
+
+    await expect(runner.run(new Probe().serialize(), { queue: 'critical', attempt: 1, maxAttempts: 1 })).rejects.toBeInstanceOf(JobReleasedError)
+
+    expect(telemetry.spans.at(-1)).toMatchObject({ status: 'ok', errors: [] })
+    expect(telemetry.metrics).toContainEqual(expect.objectContaining({ name: 'queue.process.jobs', attributes: expect.objectContaining({ result: 'released' }) }))
   })
 })

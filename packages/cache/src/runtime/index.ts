@@ -1,5 +1,5 @@
-export { distributedCacheCapability, distributedOwnerAtomicCacheCapabilities, isDistributedCache } from './Cache'
-export type { Cache, CacheTtl, DistributedCache } from './Cache'
+export { atomicFixedWindowCacheCapabilities, atomicFixedWindowCacheCapability, distributedCacheCapability, distributedOwnerAtomicCacheCapabilities, isAtomicFixedWindowCache, isDistributedCache } from './Cache'
+export type { AtomicFixedWindowCache, Cache, CacheTtl, DistributedCache, FixedWindowState } from './Cache'
 export { CacheLock, LockTimeoutError } from './CacheLock'
 export { InMemoryCache } from './InMemoryCache'
 export { cacheToken } from './tokens'

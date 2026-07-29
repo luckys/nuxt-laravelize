@@ -1,4 +1,4 @@
-import { distributedCacheCapability, distributedOwnerAtomicCacheCapabilities, type CacheTtl, type DistributedCache } from '@nuxt-laravelize/cache/runtime'
+import { atomicFixedWindowCacheCapabilities, atomicFixedWindowCacheCapability, distributedCacheCapability, distributedOwnerAtomicCacheCapabilities, type AtomicFixedWindowCache, type CacheTtl, type DistributedCache, type FixedWindowState } from '@nuxt-laravelize/cache/runtime'
 import { CacheCorruptionError, defaultCacheSerializer, type JsonCacheValue, numericPayloadPrefix } from './JsonCacheSerializer'
 
 /* eslint-disable @stylistic/max-statements-per-line -- compact command adapter methods keep Redis operations auditable */
@@ -22,9 +22,12 @@ const PULL = `local v=redis.call('GET',KEYS[1]); if v then redis.call('DEL',KEYS
 const COMPARE_DELETE = `if redis.call('GET',KEYS[1])==ARGV[1] then return redis.call('DEL',KEYS[1]) end; return 0`
 const COMPARE_EXPIRE = `if redis.call('GET',KEYS[1])~=ARGV[1] then return 0 end; local ttl=tonumber(ARGV[2]); if ttl<=0 then redis.call('DEL',KEYS[1]) else redis.call('PEXPIRE',KEYS[1],ttl) end; return 1`
 const COUNTER = `local raw=redis.call('GET',KEYS[1]); local ttl=-2; local current=0; if raw then ttl=redis.call('PTTL',KEYS[1]); if ttl==-1 or ttl>0 then if string.sub(raw,1,string.len(ARGV[1]))~=ARGV[1] then return redis.error_reply('CACHE_NOT_NUMERIC') end; current=tonumber(string.sub(raw,string.len(ARGV[1])+1)); if not current then return redis.error_reply('CACHE_CORRUPT') end; else raw=false end; end; local amount=tonumber(ARGV[2]); local result=current+amount; if result~=result or result==math.huge or result==-math.huge then return redis.error_reply('CACHE_NONFINITE') end; local serialized=string.format('%.17g',result); if tonumber(serialized)~=result then return redis.error_reply('CACHE_CORRUPT') end; local encoded=ARGV[1]..serialized; if raw and ttl==-1 then redis.call('SET',KEYS[1],encoded); elseif raw and ttl>0 then redis.call('SET',KEYS[1],encoded,'PX',ttl); elseif ARGV[3]=='0' then redis.call('SET',KEYS[1],encoded); elseif tonumber(ARGV[4])>0 then redis.call('SET',KEYS[1],encoded,'PX',ARGV[4]); end; return encoded`
+const FIXED_WINDOW_HIT = `local t=redis.call('TIME'); local now=tonumber(t[1])*1000+math.floor(tonumber(t[2])/1000); local window=tonumber(ARGV[1]); local reset=tonumber(redis.call('HGET',KEYS[1],'reset')); local attempts=tonumber(redis.call('HGET',KEYS[1],'attempts')); if not reset or reset<=now then reset=now+window; attempts=1 else attempts=(attempts or 0)+1 end; redis.call('HSET',KEYS[1],'reset',reset,'attempts',attempts); redis.call('PEXPIREAT',KEYS[1],reset); return {attempts,reset,math.max(1,reset-now)}`
+const FIXED_WINDOW_STATE = `local t=redis.call('TIME'); local now=tonumber(t[1])*1000+math.floor(tonumber(t[2])/1000); local reset=tonumber(redis.call('HGET',KEYS[1],'reset')); local attempts=tonumber(redis.call('HGET',KEYS[1],'attempts')); if not reset or reset<=now or not attempts then return nil end; return {attempts,reset,math.max(1,reset-now)}`
 
-export class RedisCache implements DistributedCache {
+export class RedisCache implements DistributedCache, AtomicFixedWindowCache {
   readonly [distributedCacheCapability] = distributedOwnerAtomicCacheCapabilities
+  readonly [atomicFixedWindowCacheCapability] = atomicFixedWindowCacheCapabilities
   readonly #prefix: string
   readonly #scanCount: number
   readonly #pending = new Map<string, Promise<unknown>>()
@@ -85,6 +88,9 @@ export class RedisCache implements DistributedCache {
   }
 
   decrement(key: string, amount = 1, ttl?: CacheTtl): Promise<number> { assertFiniteAmount(amount); return this.increment(key, -amount, ttl) }
+  async hitFixedWindow(key: string, windowMilliseconds: number): Promise<FixedWindowState> { assertWindow(windowMilliseconds); this.#touch(key); const state = fixedWindowState(await this.client.eval(FIXED_WINDOW_HIT, 1, this.#key(key), windowMilliseconds)); if (!state) throw new CacheCorruptionError('Fixed-window hit returned no state.'); return state }
+  async fixedWindowState(key: string): Promise<FixedWindowState | undefined> { return fixedWindowState(await this.client.eval(FIXED_WINDOW_STATE, 1, this.#key(key))) }
+  async clearFixedWindow(key: string): Promise<boolean> { this.#touch(key); return await this.client.del(this.#key(key)) > 0 }
 
   async #remember<T>(key: string, ttl: CacheTtl | undefined, factory: () => T | Promise<T>): Promise<T> {
     const existing = this.#pending.get(key); if (existing) return await existing as T
@@ -104,4 +110,6 @@ function ttlMilliseconds(ttl: CacheTtl | undefined): number | null { if (ttl ===
 function assertKey(key: string): void { if (typeof key !== 'string' || !key.trim() || key.length > 1024 || key.includes('\0')) throw new Error('Cache key must be a non-empty string of at most 1024 characters without NUL bytes.') }
 function assertPrefix(prefix: string): void { if (!prefix || prefix.length > 256 || prefix.includes('\0')) throw new Error('Redis cache prefix must be a non-empty string of at most 256 characters without NUL bytes.'); if (!prefix.endsWith(':')) throw new Error('Redis cache prefix must end with a colon (:).') }
 function assertFiniteAmount(amount: number): void { if (!Number.isFinite(amount)) throw new Error('Cache counter amount must be finite.') }
+function assertWindow(value: number): void { if (!Number.isSafeInteger(value) || value < 1) throw new TypeError('Fixed window must be a positive safe integer in milliseconds.') }
+function fixedWindowState(value: unknown): FixedWindowState | undefined { if (value === null || value === undefined) return undefined; if (!Array.isArray(value) || value.length !== 3) throw new CacheCorruptionError('Fixed-window operation returned malformed state.'); const attempts = Number(value[0]); const resetAt = Number(value[1]); const retryAfterMilliseconds = Number(value[2]); if (!Number.isSafeInteger(attempts) || attempts < 1 || !Number.isSafeInteger(resetAt) || resetAt < 1 || !Number.isSafeInteger(retryAfterMilliseconds) || retryAfterMilliseconds < 1) throw new CacheCorruptionError('Fixed-window operation returned malformed state.'); return { attempts, resetAt, retryAfterMilliseconds } }
 function escapeGlob(value: string): string { return value.replaceAll('\\', '\\\\').replaceAll('*', '\\*').replaceAll('?', '\\?').replaceAll('[', '\\[') }

@@ -1,7 +1,8 @@
 import { JobSerializer, type Job, type SerializedJob } from './Job'
 import type { JobRunner } from './JobRunner'
 import type { FailedJobCallback, JobHandle, PushOptions, Queue } from './Queue'
-import { isNonRetryableJobError } from './NonRetryableJobError'
+import { isNonRetryableJobError, NonRetryableJobError } from './NonRetryableJobError'
+import { isJobReleasedError } from './JobReleasedError'
 
 interface ResolvedOptions {
   readonly id?: string
@@ -17,6 +18,7 @@ interface PendingJob {
   readonly options: ResolvedOptions
   readonly handle: JobHandle
   attempt: number
+  releases: number
 }
 
 export class InMemoryQueue implements Queue {
@@ -35,6 +37,7 @@ export class InMemoryQueue implements Queue {
       options: resolved,
       handle: { id: resolved.id ?? `memory-${this.#nextId++}`, queue: resolved.queue },
       attempt: 0,
+      releases: 0,
     }
     this.#enqueue(entry, resolved.delay)
     return entry.handle
@@ -90,19 +93,29 @@ export class InMemoryQueue implements Queue {
       await this.runner.run(entry.serialized, { queue: entry.options.queue, attempt: entry.attempt, maxAttempts: entry.options.tries })
     }
     catch (error) {
-      if (!isNonRetryableJobError(error) && entry.attempt < entry.options.tries) {
+      let failure = error
+      if (isJobReleasedError(failure)) {
+        if (entry.releases < failure.maxReleases) {
+          entry.attempt -= 1
+          entry.releases += 1
+          this.#enqueue(entry, failure.delay)
+          return
+        }
+        failure = new NonRetryableJobError('JOB_RELEASE_LIMIT_EXCEEDED', 'Job exceeded its delayed release budget')
+      }
+      if (!isNonRetryableJobError(failure) && entry.attempt < entry.options.tries) {
         this.#enqueue(entry, resolveBackoff(entry.options.backoff, entry.attempt))
         return
       }
       try {
-        await this.runner.failed(entry.serialized, error, { queue: entry.options.queue, attempt: entry.attempt, maxAttempts: entry.options.tries })
+        await this.runner.failed(entry.serialized, failure, { queue: entry.options.queue, attempt: entry.attempt, maxAttempts: entry.options.tries })
       }
       catch {
         // A job failure callback is an isolated observer of the original failure.
       }
       for (const callback of this.#failedCallbacks) {
         try {
-          await callback({ job: entry.original, queue: entry.options.queue, error, attempts: entry.attempt })
+          await callback({ job: entry.original, queue: entry.options.queue, error: failure, attempts: entry.attempt })
         }
         catch { /* Failure observers cannot alter queue completion. */ }
       }
