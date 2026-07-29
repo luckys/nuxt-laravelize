@@ -1,4 +1,4 @@
-export { BullMQConnection } from './BullMQConnection'
+export { BullMQConnection, type BullMQConnectionOptions, type BullMQRedisClient } from './BullMQConnection'
 export { BullMQQueue } from './BullMQQueue'
 export { BullMQWorker, isTerminalBullMQFailure, toBullMQJobError } from './BullMQWorker'
 export { FailureReporter } from './FailureReporter'

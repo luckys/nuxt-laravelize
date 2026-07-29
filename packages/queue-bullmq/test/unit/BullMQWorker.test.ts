@@ -7,6 +7,7 @@ import { FailureReporter } from '../../src/runtime/FailureReporter'
 const bullWorkers = vi.hoisted(() => ({ instances: [] as Array<{
   close: ReturnType<typeof vi.fn>
   emit: (event: string, ...args: unknown[]) => void
+  options: Record<string, unknown>
 }> }))
 
 vi.mock('bullmq', async (importOriginal) => {
@@ -16,7 +17,7 @@ vi.mock('bullmq', async (importOriginal) => {
     Worker: class {
       readonly close = vi.fn(async () => {})
       readonly #listeners = new Map<string, Array<(...args: unknown[]) => void>>()
-      constructor() { bullWorkers.instances.push(this) }
+      constructor(_queue: string, _processor: unknown, readonly options: Record<string, unknown>) { bullWorkers.instances.push(this) }
       on(event: string, listener: (...args: unknown[]) => void) {
         const listeners = this.#listeners.get(event) ?? []
         listeners.push(listener)
@@ -156,6 +157,19 @@ describe('BullMQWorker lifecycle', () => {
     const worker = createWorker()
     await expect(worker.stop()).resolves.toBeUndefined()
     await expect(worker.work()).rejects.toThrow('is stopping')
+  })
+
+  it('forwards the connection prefix to every worker', async () => {
+    const worker = new BullMQWorker(
+      { client: {}, prefix: 'orders:production' } as never,
+      new InMemoryJobRegistry(),
+      { run: vi.fn(), failed: vi.fn() } as unknown as JobRunner,
+    )
+
+    await worker.work('critical', 3)
+
+    expect(bullWorkers.instances[0]!.options).toMatchObject({ connection: {}, concurrency: 3, prefix: 'orders:production' })
+    await worker.stop()
   })
 })
 

@@ -75,6 +75,27 @@ describe('InMemoryQueue', () => {
     vi.useRealTimers()
   })
 
+  it('does not treat an empty queue name as every queue', async () => {
+    vi.useFakeTimers()
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    try {
+      await queue.push(new TestJob({ value: 97 }), { queue: '', delay: 1_000 })
+      await queue.push(new TestJob({ value: 98 }), { queue: 'reports', delay: 1_000 })
+
+      await expect(queue.size('')).resolves.toBe(1)
+      await queue.clear('')
+      await expect(queue.size('')).resolves.toBe(0)
+      await expect(queue.size('reports')).resolves.toBe(1)
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
   it('orders ready jobs by BullMQ-compatible priority and preserves FIFO ties', async () => {
     TestJob.runs = []
     const registry = new InMemoryJobRegistry()

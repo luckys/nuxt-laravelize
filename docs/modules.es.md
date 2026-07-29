@@ -731,7 +731,11 @@ import Redis from 'ioredis'
 import { BullMQConnection, BullMQQueue, BullMQWorker } from '@nuxt-laravelize/queue-bullmq/runtime'
 import { jobSerializerToken } from '@nuxt-laravelize/queue/runtime'
 
-const connection = new BullMQConnection(new Redis(process.env.REDIS_URL!))
+const prefix = process.env.QUEUE_PREFIX
+if (!prefix) throw new Error('QUEUE_PREFIX is required')
+const connection = new BullMQConnection(new Redis(process.env.REDIS_URL!), {
+  prefix,
+})
 const queue = new BullMQQueue(connection, runner, container.make(jobSerializerToken))
 const worker = new BullMQWorker(connection, registry, runner)
 
@@ -743,6 +747,10 @@ await queue.close()
 ```
 
 `worker.stop()` es idempotente: la primera llamada impide nuevos registros mediante `work()`, detiene la toma de jobs en cada worker BullMQ registrado, espera jobs activos y reportes de fallo terminal, e intenta cerrar todos los workers aunque uno falle. Los jobs waiting y delayed permanecen en Redis para otro worker; drenar nunca limpia la queue. El drain no tiene deadline integrado porque forzar el cierre puede volver ambigua una ejecucion activa. Configura el periodo de gracia del supervisor, conserva handlers acotados e idempotentes y llama al `queue.close()` del productor solo despues de que termine el drain.
+
+Configura un `prefix` globalmente unico, estable y acotado cuando aplicaciones o entornos compartan una base Redis. Productores, workers y tooling operacional de una flota deben usar el mismo valor. Esto evita colisiones accidentales, pero no es una frontera de seguridad: aplicaciones que no confian entre si requieren instancias Redis separadas o usuarios ACL distintos con patrones de keys restrictivos. Las bases logicas Redis solo separan colisiones salvo que el acceso este restringido de forma independiente. Los prefixes son visibles en keys, monitorizacion y backups; usa solo identificadores no sensibles de aplicacion/entorno, nunca PII de tenants, credenciales, tokens ni valores controlados por clientes. Los clientes Redis Cluster estan soportados y deben usar un hash tag validado como `{orders-production}` para ubicar las operaciones multi-key de BullMQ en un slot.
+
+Cambiar el prefix crea otro namespace y exige una migracion coordinada. Valida la paridad de productores, workers y tooling, inicia workers con el nuevo prefix antes de cambiar productores, conserva workers y tooling del prefix anterior hasta drenar jobs waiting/delayed y expirar los TTL de deduplicacion relevantes, y solo entonces retira las keys antiguas. La deduplicacion sigue siendo local al prefix y nombre de queue. El scope de tenant debe seguir formando parte de IDs logicos construidos por codigo confiable y nunca se infiere desde metadata propagada.
 
 `FailureReporter.listen()` observa fallos terminales y `report()` notifica a los observadores. Un `BullMQConnection` posee el reporter compartido por defecto, por lo que queues y workers que usan la misma instancia de conexion tambien comparten observaciones de `queue.onFailed()`; pasa un reporter explicito a ambos constructores cuando una composicion personalizada requiera wrappers de conexion separados. El CLI del worker carga un export default `{ worker }` desde `laravelize.queue.config.mjs` (o `--config=path`):
 

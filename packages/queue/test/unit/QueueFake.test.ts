@@ -8,6 +8,12 @@ class PriorityJob extends Job {
   handle() {}
 }
 
+class ReportsJob extends Job {
+  static override readonly queue = 'reports'
+  readonly payload = {}
+  handle() {}
+}
+
 describe('QueueFake priority', () => {
   it('records the effective static priority and push override', async () => {
     const queue = new QueueFake()
@@ -83,5 +89,40 @@ describe('QueueFake deduplication', () => {
       await queue.clear()
       vi.useRealTimers()
     }
+  })
+})
+
+describe('QueueFake recording', () => {
+  it('keeps generated handles unique across full and selective clears', async () => {
+    const queue = new QueueFake()
+    const first = await queue.push(new PriorityJob(), { queue: 'exports' })
+    const second = await queue.push(new ReportsJob())
+
+    await queue.clear('reports')
+    const afterSelectiveClear = await queue.push(new ReportsJob())
+    await queue.clear()
+    const afterFullClear = await queue.push(new PriorityJob(), { queue: 'exports' })
+
+    expect([first.id, second.id, afterSelectiveClear.id, afterFullClear.id]).toEqual(['fake-1', 'fake-2', 'fake-3', 'fake-4'])
+  })
+
+  it('counts and clears the effective static queue', async () => {
+    const queue = new QueueFake()
+    await queue.push(new ReportsJob())
+    await queue.push(new PriorityJob(), { queue: 'exports' })
+
+    await expect(queue.size('reports')).resolves.toBe(1)
+    await queue.clear('reports')
+    expect(queue.pushed.map(item => item.queue)).toEqual(['exports'])
+  })
+
+  it('does not treat an empty queue name as every queue', async () => {
+    const queue = new QueueFake()
+    await queue.push(new PriorityJob(), { queue: '' })
+    await queue.push(new ReportsJob())
+
+    await expect(queue.size('')).resolves.toBe(1)
+    await queue.clear('')
+    expect(queue.pushed.map(item => item.queue)).toEqual(['reports'])
   })
 })

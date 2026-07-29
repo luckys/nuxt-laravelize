@@ -21,6 +21,7 @@ export class BullMQWorker {
     }, {
       connection: this.connection.client,
       concurrency,
+      ...(this.connection.prefix === undefined ? {} : { prefix: this.connection.prefix }),
     })
     worker.on('failed', (job, error) => {
       const report = this.#reportTerminalFailure(job, error, queue)

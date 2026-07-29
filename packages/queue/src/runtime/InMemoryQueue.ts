@@ -69,12 +69,12 @@ export class InMemoryQueue implements Queue {
   sync(job: Job): Promise<void> { return this.runner.run(this.serializer.serialize(job)) }
 
   async size(queueName?: string): Promise<number> {
-    if (queueName) return this.#pending.get(queueName)?.length ?? 0
+    if (queueName !== undefined) return this.#pending.get(queueName)?.length ?? 0
     return [...this.#pending.values()].reduce((total, jobs) => total + jobs.length, 0)
   }
 
   async clear(queueName?: string): Promise<void> {
-    if (queueName) {
+    if (queueName !== undefined) {
       this.#pending.delete(queueName)
       this.#deduplication.delete(queueName)
     }
@@ -83,9 +83,9 @@ export class InMemoryQueue implements Queue {
       this.#deduplication.clear()
       this.#clearDeduplicationTimer()
     }
-    if (queueName) this.#rescheduleDeduplicationExpiry()
+    if (queueName !== undefined) this.#rescheduleDeduplicationExpiry()
     for (const [timer, entry] of this.#timers) {
-      if (!queueName || entry.options.queue === queueName) {
+      if (queueName === undefined || entry.options.queue === queueName) {
         clearTimeout(timer)
         this.#timers.delete(timer)
       }

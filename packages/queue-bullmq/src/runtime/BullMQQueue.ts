@@ -37,14 +37,14 @@ export class BullMQQueue implements Queue {
   sync(job: Job): Promise<void> { return this.runner.run(this.serializer.serialize(job)) }
   onFailed(callback: Parameters<FailureReporter['listen']>[0]): void { this.failures.listen(callback) }
   async size(queue?: string): Promise<number> {
-    if (queue) return this.#queue(queue).count()
+    if (queue !== undefined) return this.#queue(queue).count()
     let count = 0
     for (const item of this.#queues.values()) count += await item.count()
     return count
   }
 
   async clear(queue?: string): Promise<void> {
-    const queues = queue ? [this.#queue(queue)] : [...this.#queues.values()]
+    const queues = queue === undefined ? [...this.#queues.values()] : [this.#queue(queue)]
     await Promise.all(queues.map(async (item) => {
       await item.drain()
       await item.obliterate({ force: true })
@@ -55,7 +55,10 @@ export class BullMQQueue implements Queue {
   #queue(name: string): BullQueue {
     const existing = this.#queues.get(name)
     if (existing) return existing
-    const queue = new BullQueue(name, { connection: this.connection.client })
+    const queue = new BullQueue(name, {
+      connection: this.connection.client,
+      ...(this.connection.prefix === undefined ? {} : { prefix: this.connection.prefix }),
+    })
     this.#queues.set(name, queue)
     return queue
   }

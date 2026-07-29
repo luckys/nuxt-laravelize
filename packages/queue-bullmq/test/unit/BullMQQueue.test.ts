@@ -4,7 +4,17 @@ import { Job, JobSerializer, type JobRunner } from '@nuxt-laravelize/queue/runti
 import { createContainer, createToken } from '@nuxt-laravelize/core/runtime'
 
 const add = vi.fn(async (_name: string, _data: unknown, _options: unknown) => ({ id: 'bull-1' }))
-vi.mock('bullmq', () => ({ Queue: class { add = add; count = vi.fn(); obliterate = vi.fn(); close = vi.fn() } }))
+const constructQueue = vi.fn()
+const drain = vi.fn()
+const obliterate = vi.fn()
+vi.mock('bullmq', () => ({ Queue: class {
+  add = add
+  count = vi.fn()
+  drain = drain
+  obliterate = obliterate
+  close = vi.fn()
+  constructor(name: string, options: unknown) { constructQueue(name, options) }
+} }))
 
 class ProbeJob extends Job {
   static override readonly priority = 12
@@ -13,7 +23,12 @@ class ProbeJob extends Job {
 }
 
 describe('BullMQQueue', () => {
-  beforeEach(() => add.mockClear())
+  beforeEach(() => {
+    add.mockClear()
+    constructQueue.mockClear()
+    drain.mockClear()
+    obliterate.mockClear()
+  })
 
   it('pushes metadata from the required shared serializer', async () => {
     const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
@@ -81,6 +96,45 @@ describe('BullMQQueue', () => {
     const id = `v1-${createHash('sha256').update('tenant-a.report-1').digest('base64url')}`
     expect(add.mock.calls[0]?.[2]).toMatchObject({ deduplication: { id, ttl: 5_000 } })
     expect(JSON.stringify(add.mock.calls[0]?.[2])).not.toContain('tenant-a.report-1')
+  })
+
+  it('forwards the connection prefix to isolate BullMQ queue namespaces', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {}, prefix: 'orders:production' } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+
+    await queue.push(new ProbeJob(), { queue: 'critical' })
+
+    expect(constructQueue).toHaveBeenCalledWith('critical', { connection: {}, prefix: 'orders:production' })
+  })
+
+  it('rejects unsafe or unbounded connection prefixes', async () => {
+    const { BullMQConnection } = await import('../../src/runtime/BullMQConnection')
+
+    expect(new BullMQConnection({} as never, { prefix: '{orders:production}' }).prefix).toBe('{orders:production}')
+    expect(() => new BullMQConnection({} as never, { prefix: '' })).toThrow('prefix must be a safe identifier')
+    expect(() => new BullMQConnection({} as never, { prefix: 'unsafe prefix' })).toThrow('prefix must be a safe identifier')
+    expect(() => new BullMQConnection({} as never, { prefix: 'a'.repeat(129) })).toThrow('prefix must be a safe identifier')
+    expect(() => new BullMQConnection({} as never, { prefix: 123 as never })).toThrow('prefix must be a safe identifier')
+    expect(() => new BullMQConnection({} as never, { prefix: null as never })).toThrow('prefix must be a safe identifier')
+  })
+
+  it('accepts an ioredis Cluster client', async () => {
+    const { BullMQConnection } = await import('../../src/runtime/BullMQConnection')
+    const cluster = {} as import('ioredis').Cluster
+
+    expect(new BullMQConnection(cluster, { prefix: '{orders-production}' }).client).toBe(cluster)
+  })
+
+  it('does not treat an empty queue name as every instantiated queue', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+    await queue.push(new ProbeJob(), { queue: '' })
+    await queue.push(new ProbeJob(), { queue: 'reports' })
+
+    await queue.clear('')
+
+    expect(drain).toHaveBeenCalledOnce()
+    expect(obliterate).toHaveBeenCalledOnce()
   })
 
   it('rejects invalid deduplication before mutating BullMQ', async () => {
