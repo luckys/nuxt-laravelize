@@ -30,7 +30,7 @@ describe.skipIf(!redisUrl)('BullMQ delayed release integration', () => {
     runner.use('release-once', async (_job, _scope, next) => {
       if (release) {
         release = false
-        throw new JobReleasedError(50)
+        throw new JobReleasedError(200)
       }
       await next()
     })
@@ -43,11 +43,17 @@ describe.skipIf(!redisUrl)('BullMQ delayed release integration', () => {
     try {
       ReleasedJob.executions = 0
       await worker.work(queueName)
-      const handle = await queue.push(new ReleasedJob(), { queue: queueName, tries: 1 })
+      const handle = await queue.push(new ReleasedJob(), { queue: queueName, tries: 1, deduplication: { id: 'released-job' } })
       const job = await inspector.getJob(handle.id)
+      await vi.waitFor(async () => expect(await job?.getState()).toBe('delayed'), { timeout: 5000 })
+      const duplicate = await queue.push(new ReleasedJob(), { queue: queueName, tries: 1, deduplication: { id: 'released-job' } })
+      expect(duplicate).toEqual(handle)
       await vi.waitFor(async () => expect(await job?.getState()).toBe('completed'), { timeout: 5000 })
       expect(ReleasedJob.executions).toBe(1)
       expect((await inspector.getJob(handle.id))?.attemptsMade).toBe(1)
+      const afterCompletion = await queue.push(new ReleasedJob(), { queue: queueName, tries: 1, deduplication: { id: 'released-job' } })
+      expect(afterCompletion.id).not.toBe(handle.id)
+      await vi.waitFor(() => expect(ReleasedJob.executions).toBe(2), { timeout: 5000 })
       expect(failures).not.toHaveBeenCalled()
     }
     finally {

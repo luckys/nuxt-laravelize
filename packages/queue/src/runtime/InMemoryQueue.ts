@@ -1,6 +1,6 @@
 import { JobSerializer, type Job, type SerializedJob } from './Job'
 import type { JobRunner } from './JobRunner'
-import { MAX_JOB_PRIORITY, type FailedJobCallback, type JobHandle, type PushOptions, type Queue } from './Queue'
+import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type JobDeduplicationOptions, type JobHandle, type PushOptions, type Queue } from './Queue'
 import { isNonRetryableJobError, NonRetryableJobError } from './NonRetryableJobError'
 import { isJobReleasedError } from './JobReleasedError'
 
@@ -11,6 +11,7 @@ interface ResolvedOptions {
   readonly queue: string
   readonly backoff: number | readonly number[]
   readonly priority: number
+  readonly deduplication?: JobDeduplicationOptions
 }
 
 interface PendingJob {
@@ -24,11 +25,19 @@ interface PendingJob {
   readonly sequence: number
 }
 
+interface DeduplicationReservation {
+  readonly handle: JobHandle
+  readonly expiresAt?: number
+}
+
 export class InMemoryQueue implements Queue {
   readonly #pending = new Map<string, PendingJob[]>()
   readonly #timers = new Map<ReturnType<typeof setTimeout>, PendingJob>()
   readonly #failedCallbacks: FailedJobCallback[] = []
   readonly #scheduledQueues = new Set<string>()
+  readonly #deduplication = new Map<string, Map<string, DeduplicationReservation>>()
+  #deduplicationTimer?: ReturnType<typeof setTimeout>
+  #deduplicationTimerDueAt?: number
   #nextId = 1
   #nextSequence = 1
 
@@ -36,6 +45,8 @@ export class InMemoryQueue implements Queue {
 
   async push(job: Job, options?: PushOptions): Promise<JobHandle> {
     const resolved = resolveOptions(job, options)
+    const duplicate = resolved.deduplication ? this.#deduplicated(resolved.queue, resolved.deduplication.id) : undefined
+    if (duplicate) return duplicate
     const entry: PendingJob = {
       original: job,
       serialized: this.serializer.serialize(job),
@@ -46,6 +57,7 @@ export class InMemoryQueue implements Queue {
       ready: false,
       sequence: this.#nextSequence++,
     }
+    this.#reserveDeduplication(entry)
     this.#enqueue(entry, resolved.delay)
     return entry.handle
   }
@@ -62,8 +74,16 @@ export class InMemoryQueue implements Queue {
   }
 
   async clear(queueName?: string): Promise<void> {
-    if (queueName) this.#pending.delete(queueName)
-    else this.#pending.clear()
+    if (queueName) {
+      this.#pending.delete(queueName)
+      this.#deduplication.delete(queueName)
+    }
+    else {
+      this.#pending.clear()
+      this.#deduplication.clear()
+      this.#clearDeduplicationTimer()
+    }
+    if (queueName) this.#rescheduleDeduplicationExpiry()
     for (const [timer, entry] of this.#timers) {
       if (!queueName || entry.options.queue === queueName) {
         clearTimeout(timer)
@@ -125,6 +145,7 @@ export class InMemoryQueue implements Queue {
         this.#enqueue(entry, resolveBackoff(entry.options.backoff, entry.attempt))
         return
       }
+      this.#releaseDeduplication(entry)
       try {
         await this.runner.failed(entry.serialized, failure, { queue: entry.options.queue, attempt: entry.attempt, maxAttempts: entry.options.tries })
       }
@@ -138,6 +159,82 @@ export class InMemoryQueue implements Queue {
         catch { /* Failure observers cannot alter queue completion. */ }
       }
     }
+    this.#releaseDeduplication(entry)
+  }
+
+  #deduplicated(queue: string, id: string): JobHandle | undefined {
+    const reservations = this.#deduplication.get(queue)
+    const reservation = reservations?.get(id)
+    if (!reservation) return undefined
+    if (reservation.expiresAt !== undefined && reservation.expiresAt <= Date.now()) {
+      reservations!.delete(id)
+      if (reservations!.size === 0) this.#deduplication.delete(queue)
+      return undefined
+    }
+    return reservation.handle
+  }
+
+  #reserveDeduplication(entry: PendingJob): void {
+    const deduplication = entry.options.deduplication
+    if (!deduplication) return
+    const reservations = this.#deduplication.get(entry.options.queue) ?? new Map<string, DeduplicationReservation>()
+    reservations.set(deduplication.id, {
+      handle: entry.handle,
+      ...(deduplication.ttl === undefined ? {} : { expiresAt: Date.now() + deduplication.ttl }),
+    })
+    this.#deduplication.set(entry.options.queue, reservations)
+    if (deduplication.ttl !== undefined) this.#scheduleDeduplicationExpiry(Date.now() + deduplication.ttl)
+  }
+
+  #releaseDeduplication(entry: PendingJob): void {
+    const deduplication = entry.options.deduplication
+    if (!deduplication || deduplication.ttl !== undefined) return
+    const reservations = this.#deduplication.get(entry.options.queue)
+    if (reservations?.get(deduplication.id)?.handle !== entry.handle) return
+    reservations.delete(deduplication.id)
+    if (reservations.size === 0) this.#deduplication.delete(entry.options.queue)
+  }
+
+  #scheduleDeduplicationExpiry(expiresAt: number): void {
+    if (this.#deduplicationTimerDueAt !== undefined && this.#deduplicationTimerDueAt <= expiresAt) return
+    this.#clearDeduplicationTimer()
+    this.#deduplicationTimerDueAt = expiresAt
+    this.#deduplicationTimer = setTimeout(() => {
+      this.#deduplicationTimer = undefined
+      this.#deduplicationTimerDueAt = undefined
+      this.#sweepDeduplication()
+    }, Math.max(0, expiresAt - Date.now()))
+    this.#deduplicationTimer.unref?.()
+  }
+
+  #sweepDeduplication(): void {
+    const now = Date.now()
+    let nextExpiry: number | undefined
+    for (const [queue, reservations] of this.#deduplication) {
+      for (const [id, reservation] of reservations) {
+        if (reservation.expiresAt !== undefined && reservation.expiresAt <= now) reservations.delete(id)
+        else if (reservation.expiresAt !== undefined) nextExpiry = Math.min(nextExpiry ?? reservation.expiresAt, reservation.expiresAt)
+      }
+      if (reservations.size === 0) this.#deduplication.delete(queue)
+    }
+    if (nextExpiry !== undefined) this.#scheduleDeduplicationExpiry(nextExpiry)
+  }
+
+  #rescheduleDeduplicationExpiry(): void {
+    this.#clearDeduplicationTimer()
+    let nextExpiry: number | undefined
+    for (const reservations of this.#deduplication.values()) {
+      for (const reservation of reservations.values()) {
+        if (reservation.expiresAt !== undefined) nextExpiry = Math.min(nextExpiry ?? reservation.expiresAt, reservation.expiresAt)
+      }
+    }
+    if (nextExpiry !== undefined) this.#scheduleDeduplicationExpiry(nextExpiry)
+  }
+
+  #clearDeduplicationTimer(): void {
+    if (this.#deduplicationTimer !== undefined) clearTimeout(this.#deduplicationTimer)
+    this.#deduplicationTimer = undefined
+    this.#deduplicationTimerDueAt = undefined
   }
 
   #removePending(entry: PendingJob): boolean {
@@ -153,6 +250,8 @@ export class InMemoryQueue implements Queue {
 
 function resolveOptions(job: Job, options?: PushOptions): ResolvedOptions {
   const config = job.constructor as typeof Job
+  if (options?.id !== undefined && options.deduplication !== undefined) throw new TypeError('id and deduplication cannot be combined')
+  const deduplication = normalizeDeduplication(options?.deduplication)
   return {
     ...(options?.id ? { id: options.id } : {}),
     tries: integer(options?.tries ?? config.tries, 'tries', 1, 1000),
@@ -160,6 +259,7 @@ function resolveOptions(job: Job, options?: PushOptions): ResolvedOptions {
     queue: options?.queue ?? config.queue,
     backoff: validateBackoff(options?.backoff ?? config.backoff),
     priority: integer(options?.priority ?? config.priority, 'priority', 0, MAX_JOB_PRIORITY),
+    ...(deduplication ? { deduplication } : {}),
   }
 }
 

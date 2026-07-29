@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Job, JobSerializer, type JobRunner } from '@nuxt-laravelize/queue/runtime'
 import { createContainer, createToken } from '@nuxt-laravelize/core/runtime'
@@ -69,6 +70,27 @@ describe('BullMQQueue', () => {
     const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
     const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
     await expect(queue.push(new ProbeJob(), { id: 'outbox:message' })).rejects.toThrow(/must not contain a colon/)
+    expect(add).not.toHaveBeenCalled()
+  })
+
+  it('forwards bounded deduplication using an opaque hashed identifier', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+    await queue.push(new ProbeJob(), { deduplication: { id: 'tenant-a.report-1', ttl: 5_000 } })
+
+    const id = `v1-${createHash('sha256').update('tenant-a.report-1').digest('base64url')}`
+    expect(add.mock.calls[0]?.[2]).toMatchObject({ deduplication: { id, ttl: 5_000 } })
+    expect(JSON.stringify(add.mock.calls[0]?.[2])).not.toContain('tenant-a.report-1')
+  })
+
+  it('rejects invalid deduplication before mutating BullMQ', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
+
+    await expect(queue.push(new ProbeJob(), { deduplication: { id: 'unsafe id' } })).rejects.toThrow('deduplication id must be a safe identifier')
+    await expect(queue.push(new ProbeJob(), { deduplication: { id: 'safe', ttl: 86_400_001 } })).rejects.toThrow('deduplication ttl must be an integer between 1 and 86400000')
+    await expect(queue.push(new ProbeJob(), { deduplication: { id: 'safe', replace: true } as never })).rejects.toThrow('deduplication must contain only id and optional ttl')
+    await expect(queue.push(new ProbeJob(), { id: 'job-1', deduplication: { id: 'safe' } })).rejects.toThrow('id and deduplication cannot be combined')
     expect(add).not.toHaveBeenCalled()
   })
 })

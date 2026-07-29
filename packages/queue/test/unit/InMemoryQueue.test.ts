@@ -178,6 +178,157 @@ describe('InMemoryQueue', () => {
     await expect(queue.push(new TestJob({ value: 1 }), { priority: 2 ** 21 + 1 })).rejects.toThrow('priority must be an integer between 0 and 2097152')
   })
 
+  it('atomically suppresses duplicate admission until the original job terminates', async () => {
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    const [first, duplicate] = await Promise.all([
+      queue.push(new TestJob({ value: 61 }), { deduplication: { id: 'report-61' } }),
+      queue.push(new TestJob({ value: 62 }), { deduplication: { id: 'report-61' } }),
+    ])
+    await vi.waitFor(() => expect(TestJob.runs).toEqual([61]))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const afterCompletion = await queue.push(new TestJob({ value: 63 }), { deduplication: { id: 'report-61' } })
+    await vi.waitFor(() => expect(TestJob.runs).toEqual([61, 63]))
+
+    expect(duplicate).toEqual(first)
+    expect(afterCompletion.id).not.toBe(first.id)
+  })
+
+  it('expires ttl deduplication independently from delayed job completion', async () => {
+    vi.useFakeTimers()
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    try {
+      const first = await queue.push(new TestJob({ value: 71 }), { delay: 1_000, deduplication: { id: 'report-71', ttl: 100 } })
+      await vi.advanceTimersByTimeAsync(99)
+      const duplicate = await queue.push(new TestJob({ value: 72 }), { deduplication: { id: 'report-71', ttl: 100 } })
+      await vi.advanceTimersByTimeAsync(1)
+      const afterExpiry = await queue.push(new TestJob({ value: 73 }), { deduplication: { id: 'report-71', ttl: 100 } })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(duplicate).toEqual(first)
+      expect(afterExpiry.id).not.toBe(first.id)
+      expect(TestJob.runs).toEqual([73])
+      await vi.advanceTimersByTimeAsync(900)
+      expect(TestJob.runs).toEqual([73, 71])
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps deduplication reservations across retry backoff', async () => {
+    vi.useFakeTimers()
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    let attempts = 0
+    runner.use('deduplicated-retry', async (_job, _scope, next) => {
+      if (attempts++ === 0) throw new Error('retry')
+      await next()
+    })
+    const queue = new InMemoryQueue(runner)
+
+    try {
+      const first = await queue.push(new TestJob({ value: 81 }), { tries: 2, backoff: 100, deduplication: { id: 'report-81' } })
+      await vi.advanceTimersByTimeAsync(0)
+      const duplicate = await queue.push(new TestJob({ value: 82 }), { deduplication: { id: 'report-81' } })
+      expect(duplicate).toEqual(first)
+      await vi.advanceTimersByTimeAsync(100)
+      expect(TestJob.runs).toEqual([81])
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps deduplication reservations across middleware releases', async () => {
+    vi.useFakeTimers()
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    let release = true
+    runner.use('deduplicated-release', async (_job, _scope, next) => {
+      if (release) {
+        release = false
+        throw new JobReleasedError(100)
+      }
+      await next()
+    })
+    const queue = new InMemoryQueue(runner)
+
+    try {
+      const first = await queue.push(new TestJob({ value: 91 }), { deduplication: { id: 'report-91' } })
+      await vi.advanceTimersByTimeAsync(0)
+      const duplicate = await queue.push(new TestJob({ value: 92 }), { deduplication: { id: 'report-91' } })
+      expect(duplicate).toEqual(first)
+      await vi.advanceTimersByTimeAsync(100)
+      expect(TestJob.runs).toEqual([91])
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('releases terminal deduplication before failure observers enqueue replacements', async () => {
+    TestJob.runs = []
+    TerminalJob.runs = 0
+    TerminalJob.failures = 0
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    registry.register(TerminalJob.name, TerminalJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+    let replacement: Awaited<ReturnType<typeof queue.push>> | undefined
+    queue.onFailed(async () => {
+      replacement = await queue.push(new TestJob({ value: 93 }), { deduplication: { id: 'report-93' } })
+    })
+
+    const failed = await queue.push(new TerminalJob({}), { deduplication: { id: 'report-93' } })
+    await vi.waitFor(() => expect(TestJob.runs).toEqual([93]))
+
+    expect(replacement?.id).not.toBe(failed.id)
+    expect(TerminalJob.failures).toBe(1)
+  })
+
+  it('actively sweeps expired ttl reservations with one bounded timer', async () => {
+    vi.useFakeTimers()
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    try {
+      await Promise.all(Array.from({ length: 50 }, (_, index) => queue.push(new TestJob({ value: index }), {
+        deduplication: { id: `report-${index}`, ttl: 100 },
+      })))
+      expect(vi.getTimerCount()).toBe(1)
+      await vi.advanceTimersByTimeAsync(100)
+      expect(vi.getTimerCount()).toBe(0)
+    }
+    finally {
+      await queue.clear()
+      vi.useRealTimers()
+    }
+  })
+
+  it('validates bounded deduplication metadata before admission', async () => {
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), new InMemoryJobRegistry()))
+    await expect(queue.push(new TestJob({ value: 1 }), { deduplication: { id: '' } })).rejects.toThrow('deduplication id must be a safe identifier')
+    await expect(queue.push(new TestJob({ value: 1 }), { deduplication: { id: 'valid', ttl: 0 } })).rejects.toThrow('deduplication ttl must be an integer between 1 and 86400000')
+    await expect(queue.push(new TestJob({ value: 1 }), { deduplication: { id: 'valid', replace: true } as never })).rejects.toThrow('deduplication must contain only id and optional ttl')
+    await expect(queue.push(new TestJob({ value: 1 }), { id: 'job-1', deduplication: { id: 'valid' } })).rejects.toThrow('id and deduplication cannot be combined')
+  })
+
   it('creates, contributes, and disposes a scope for terminal failed hooks', async () => {
     const container = createContainer()
     const scope = container.createScope()

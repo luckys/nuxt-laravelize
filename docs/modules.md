@@ -669,11 +669,21 @@ await queue.sync(new SendReport({ reportId: 'report_3' }))
 | `Queue.push()` / `later()` / `sync()` | Enqueues, delays or immediately executes a job. |
 | `Queue.size()` / `clear()` | Inspects or clears all jobs, optionally by queue name. |
 | `Queue.onFailed()` | Registers a terminal-failure observer. |
-| `PushOptions` | Overrides `tries`, `delay`, `queue`, `backoff` and `priority`. |
-| `QueueFake` | Records pushes and their effective priority; use `assertPushed()`, `size()` and `clear()`. |
+| `PushOptions` | Overrides `tries`, `delay`, `queue`, `backoff` and `priority`; `deduplication` suppresses matching queue-local admission. |
+| `QueueFake` | Records admitted pushes and their effective priority while reproducing local deduplication; use `assertPushed()`, `size()` and `clear()`. |
 | `JobReleasedError` | Requests delayed replay without consuming the ordinary failure-attempt budget. Queue adapters handle it; application jobs should not use it as a business error. |
 
 Priorities are queue-local scheduling hints from `0` through `2^21`. `0` is the ordinary unprioritized class and runs before positive priorities; among positive values, lower numbers run first. Equal priorities remain FIFO, delayed jobs compete only after becoming due, and running work is never preempted. `PushOptions.priority` overrides the job static. Retries and delayed middleware releases retain the resolved priority. Priority is transport metadata rather than part of the serialized job and does not provide fairness, uniqueness or exactly-once execution.
+
+Admission deduplication is explicit and queue-local. Pass a safe opaque ID of at most 256 characters and optionally a TTL from 1 ms through 24 hours. `id` and `deduplication` are mutually exclusive because persistent BullMQ job IDs have a different lifetime. Without a TTL, matching pushes return the original handle until that job completes or fails; retries and middleware releases retain the reservation. With a TTL, suppression expires independently even if the original job is delayed or still running. `clear()` removes reservations for the cleared queue. BullMQ uses its atomic native primitive and stores a deterministic SHA-256-derived identifier instead of the supplied value; this key-safe derivation prevents injection and direct disclosure but is not confidentiality for predictable IDs. The in-memory driver and `QueueFake` provide process-local behavior only; because the fake does not execute jobs, its no-TTL reservations remain until `clear()`.
+
+```ts
+await queue.push(new SendReport({ reportId: 'report_1' }), {
+  deduplication: { id: 'tenant-a.report-report_1', ttl: 30_000 },
+})
+```
+
+Deduplication only reduces duplicate admission. It does not replace durable idempotency, tenant authorization or store fencing, and it cannot provide exactly-once effects across retries, crashes or acknowledgement ambiguity. The queue is not an authorization boundary: only trusted producer code may construct deduplication metadata, and that code must include a trusted tenant scope when identities can overlap. Never accept the complete identifier from an untrusted caller or place secrets or personal data in it. Replacement/debounce behavior is intentionally unsupported.
 
 ```ts
 import { QueueFake } from '@nuxt-laravelize/queue/testing'
