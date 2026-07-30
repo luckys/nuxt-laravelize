@@ -8,6 +8,6 @@ export default class AuthorizationServiceProvider implements ServiceProvider {
   register(container: Container): void {
     if (!container.has(authorizationRegistryToken)) container.singleton(authorizationRegistryToken, () => new AuthorizationRegistry())
     if (!container.has(principalResolverToken)) container.singleton(principalResolverToken, () => ({ resolve: () => null }))
-    container.scoped(authorizationToken, resolver => new Authorization(resolver.make(authorizationRegistryToken), () => resolver.make(executionContextToken), resolver.make(principalResolverToken)))
+    container.scoped(authorizationToken, resolver => new Authorization(resolver.make(authorizationRegistryToken), () => resolver.make(executionContextToken), () => resolver.make(principalResolverToken)))
   }
 }

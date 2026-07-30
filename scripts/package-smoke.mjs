@@ -262,7 +262,7 @@ runFixture('features', {
     '@nuxt-laravelize/authorization/runtime/server': ['useAuthorization'],
     '@nuxt-laravelize/authorization/testing': ['AuthorizationFake'],
     '@nuxt-laravelize/authorization-queue': ['default'],
-    '@nuxt-laravelize/authorization-queue/runtime': ['QueueAuthorizationUnavailableError', 'RequireAuthorization'],
+    '@nuxt-laravelize/authorization-queue/runtime': ['QUEUE_DELEGATION_METADATA_KEY', 'QueueAuthorizationUnavailableError', 'QueueDelegationDeniedError', 'QueueDelegationUnavailableError', 'RequireAuthorization', 'installQueueDelegation'],
     '@nuxt-laravelize/audit/runtime/server': ['useAudit'],
     '@nuxt-laravelize/audit/testing': ['AuditFake'],
     '@nuxt-laravelize/audit-drizzle': ['DrizzlePostgresAuditStore', 'DrizzleSQLiteAuditStore', 'TursoAuditStore'],

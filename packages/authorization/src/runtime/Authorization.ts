@@ -5,6 +5,7 @@ import { decision, deny, resolvePrincipal, resolveTrustedQueueContext, type Auth
 
 export interface InspectOptions { readonly resourceType?: string, readonly resource?: unknown, readonly args?: readonly unknown[] }
 export type ExecutionContextProvider = () => ExecutionContext
+export type PrincipalResolverProvider = () => PrincipalResolver
 function immutableSnapshot(context: ExecutionContext): ExecutionContextSnapshot {
   const snapshot = context.snapshot()
   return Object.freeze({
@@ -16,9 +17,11 @@ function immutableSnapshot(context: ExecutionContext): ExecutionContextSnapshot 
 }
 export class Authorization {
   private readonly executionContextProvider: ExecutionContextProvider
+  private readonly principalResolverProvider: PrincipalResolverProvider
 
-  constructor(private readonly registry: AuthorizationRegistry, executionContext: ExecutionContext | ExecutionContextProvider, private readonly principalResolver: PrincipalResolver) {
+  constructor(private readonly registry: AuthorizationRegistry, executionContext: ExecutionContext | ExecutionContextProvider, principalResolver: PrincipalResolver | PrincipalResolverProvider) {
     this.executionContextProvider = typeof executionContext === 'function' ? executionContext : () => executionContext
+    this.principalResolverProvider = typeof principalResolver === 'function' ? principalResolver : () => principalResolver
   }
 
   async inspect(ability: string, options: InspectOptions = {}): Promise<AuthorizationDecision> {
@@ -26,7 +29,7 @@ export class Authorization {
     const snapshot = immutableSnapshot(this.executionContextProvider())
     const queue = snapshot.source.type === 'queue'
     if (!queue && !snapshot.actor) return deny('unauthenticated')
-    const resolution = await this.principalResolver.resolve(snapshot)
+    const resolution = await this.principalResolverProvider().resolve(snapshot)
     const trustedQueueContext = queue ? resolveTrustedQueueContext(resolution) : null
     if (queue && !trustedQueueContext) return deny(resolution != null && resolvePrincipal(resolution, true) != null ? 'untrusted-queue-identity' : resolution != null ? 'untrusted-queue-principal' : 'principal-not-found')
     const principal = queue ? trustedQueueContext!.principal : resolvePrincipal(resolution, false)

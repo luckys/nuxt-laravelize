@@ -13,6 +13,15 @@ describe('Authorization', () => {
     expect(await authorization.denies('report.view', { args: ['other'] })).toBe(true)
     expect(resolver.resolve).toHaveBeenCalledWith(expect.objectContaining({ actor: { type: 'user', id: 'user-1' }, tenantId: 'tenant-1', source: { type: 'test' } }))
   })
+  it('resolves a provider-backed principal resolver for every decision', async () => {
+    const registry = new AuthorizationRegistry().registerAbility('report.view', ({ principal }) => (principal as { id: string }).id === 'current')
+    let current = { resolve: () => ({ id: 'stale' }) }
+    const authorization = new Authorization(registry, context(), () => current)
+
+    expect(await authorization.allows('report.view')).toBe(false)
+    current = { resolve: () => ({ id: 'current' }) }
+    expect(await authorization.allows('report.view')).toBe(true)
+  })
   it('fails closed without an actor or reloadable principal', async () => {
     const registry = new AuthorizationRegistry().registerAbility('report.view', () => true)
     expect(await new Authorization(registry, context(false), resolver).inspect('report.view')).toEqual({ allowed: false, code: 'unauthenticated' })

@@ -4,8 +4,8 @@ import { JOB_DISPATCH_METADATA_KEY, MAX_JOB_METADATA_KEYS, readJobDispatchIdenti
 import type { InMemoryJobRegistry, JobConstructor } from './JobRegistry'
 import { NonRetryableJobError } from './NonRetryableJobError'
 
-export type JobScopeContributor = (serialized: SerializedJob, scope: Container) => void | Promise<void>
 export interface JobExecutionDescriptor { readonly queue?: string, readonly attempt?: number, readonly maxAttempts?: number, readonly phase: 'process' | 'failed', readonly runner?: JobRunner }
+export type JobScopeContributor = (serialized: SerializedJob, scope: Container, descriptor?: JobExecutionDescriptor) => void | Promise<void>
 export type JobExecutionMiddleware = (serialized: SerializedJob, scope: Container, next: () => Promise<void>, descriptor?: JobExecutionDescriptor) => Promise<void>
 interface MiddlewareRegistration { readonly id: string, readonly order: number, readonly sequence: number, readonly middleware: JobExecutionMiddleware }
 
@@ -59,7 +59,7 @@ export class JobRunner {
     const execution = this.prepare(serialized)
     const scope = this.rootContainer.createScope()
     try {
-      for (const contributor of this.#contributors) await contributor(execution, scope)
+      for (const contributor of this.#contributors) await contributor(execution, scope, descriptor)
       const invoke = this.#middleware.reduceRight<() => Promise<void>>(
         (next, registration) => () => registration.middleware(execution, scope, next, descriptor),
         async () => operation(execution, scope),
