@@ -50,6 +50,17 @@ describe('toBullMQJobError', () => {
     expect(toBullMQJobError(error)).toBe(error)
   })
 
+  it('maps runner terminal failures during processing without consuming retries', async () => {
+    const runner = { run: vi.fn().mockRejectedValue(new NonRetryableJobError('QUEUE_AUTHORIZATION_DENIED', 'private authorization detail')) } as unknown as JobRunner
+    const job = { data: { version: 1, name: 'Probe', payload: {} }, attemptsMade: 0, opts: { attempts: 5 } }
+
+    const error = await processBullMQJob(runner, job as never, 'critical').catch(value => value)
+
+    expect(error).toBeInstanceOf(UnrecoverableError)
+    expect(error.message).toBe('[QUEUE_AUTHORIZATION_DENIED] Non-retryable job failure')
+    expect(error.message).not.toContain('private')
+  })
+
   it('does not classify delayed releases as terminal failures', () => {
     expect(isTerminalBullMQFailure({ attemptsMade: 1, opts: { attempts: 1 } }, { name: 'DelayedError' } as Error)).toBe(false)
   })

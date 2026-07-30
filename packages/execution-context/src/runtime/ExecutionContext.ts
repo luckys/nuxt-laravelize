@@ -40,6 +40,14 @@ function optionalLocale(value: unknown): string | undefined {
   }
 }
 
+function dataObject(value: unknown, required: readonly string[], allowed: readonly string[]): Record<string, PropertyDescriptor> {
+  if (!value || typeof value !== 'object' || Object.getPrototypeOf(value) !== Object.prototype) throw new TypeError('Invalid execution context snapshot')
+  const descriptors = Object.getOwnPropertyDescriptors(value)
+  const keys = Reflect.ownKeys(value)
+  if (required.some(key => !Object.prototype.hasOwnProperty.call(descriptors, key)) || keys.some(key => typeof key !== 'string' || !allowed.includes(key)) || Object.values(descriptors).some(descriptor => !('value' in descriptor) || !descriptor.enumerable)) throw new TypeError('Invalid execution context snapshot')
+  return descriptors
+}
+
 export class ExecutionContext {
   readonly #value: ExecutionContextSnapshot
   private constructor(value: ExecutionContextSnapshot) { this.#value = Object.freeze(value) }
@@ -69,7 +77,17 @@ export class ExecutionContext {
   }
 
   static from(snapshot: ExecutionContextSnapshot): ExecutionContext {
-    if (snapshot.version !== 1) throw new TypeError('Unsupported execution context version')
+    const required = ['version', 'executionId', 'correlationId', 'source', 'startedAt']
+    const allowed = [...required, 'causationId', 'actor', 'tenantId', 'locale', 'traceId', 'spanId', 'attributes']
+    const descriptors = dataObject(snapshot, required, allowed)
+    if (descriptors.version?.value !== 1 || allowed.slice(required.length).some(key => descriptors[key] && descriptors[key].value == null)) throw new TypeError('Invalid execution context snapshot')
+    const source = dataObject(descriptors.source?.value, ['type'], ['type', 'name'])
+    if (source.name) text(source.name.value, 'source.name')
+    if (descriptors.actor) dataObject(descriptors.actor.value, ['type', 'id'], ['type', 'id'])
+    if (descriptors.attributes) {
+      const attributes = descriptors.attributes.value
+      dataObject(attributes, [], Object.keys(attributes))
+    }
     return ExecutionContext.create(snapshot)
   }
 

@@ -46,7 +46,7 @@ const i18n = await createServerLocalization(context.snapshot().locale ?? 'en')
 
 `@nuxt-laravelize/authorization` is included in the preset. Its core is H3-independent: resolve `authorizationToken` in HTTP, queues, workflows or CLI scopes, and use the auto-imported `useAuthorization(event)` only at the HTTP boundary. Register global abilities and resource policies once through the singleton `authorizationRegistryToken`; resource types are explicit stable keys and duplicate registrations fail immediately.
 
-The scoped authorizer calls the overrideable `principalResolverToken` to reload the current principal. Propagated or serialized execution-context snapshots are metadata, never credentials. For queue contexts, an ordinary principal result is centrally denied; return `trustQueuePrincipal(principal)` only after the application independently authenticates delegation or the current worker identity. That assertion is application responsibility and must not derive from envelope actor, tenant, attributes, or other claims. The default resolver returns no principal and therefore denies. `inspect` returns a bounded typed decision, while `allows`, `denies`, `authorize`, `any`, and `none` provide convenience behavior. The resource ability name `before` is reserved for the policy hook; the requested action must exist before the hook runs, and `null`/`undefined` means continue. Portable denial and undefined-ability errors contain no H3 dependency; map denials to 403 in HTTP code.
+The scoped authorizer calls the overrideable `principalResolverToken` to reload the current principal. Propagated or serialized execution-context snapshots are metadata, never credentials. For queue contexts, an ordinary principal result is centrally denied and serialized actor/tenant values never reach abilities. Return `trustQueuePrincipal(principal, { actor, tenantId })` only after the application independently authenticates delegation or current worker identity, including the supplied actor and optional tenant. A principal-only wrapper is denied, and trusted values must not be copied from envelope claims without independent verification. The default resolver returns no principal and therefore denies. `inspect` returns a bounded typed decision, while `allows`, `denies`, `authorize`, `any`, and `none` provide convenience behavior. The resource ability name `before` is reserved for the policy hook; the requested action must exist before the hook runs, and `null`/`undefined` means continue. Portable denial and undefined-ability errors contain no H3 dependency; map denials to 403 in HTTP code.
 
 ## Typed routes
 
@@ -698,6 +698,30 @@ const queue = new QueueFake()
 await queue.push(new SendReport({ reportId: 'report_1' }))
 queue.assertPushed(SendReport)
 ```
+
+## Queue authorization
+
+`@nuxt-laravelize/authorization-queue` re-evaluates one registered application ability before selected queue jobs run. Configure selection in trusted worker startup code, not serialized metadata, and register it outside operational middleware with a lower `JobRunner` order. Normal denials become the privacy-bounded terminal code `QUEUE_AUTHORIZATION_DENIED`; resolver, identity-store and ability-handler outages during processing remain retryable failures.
+
+```ts
+import { authorizationRegistryToken } from '@nuxt-laravelize/authorization/runtime'
+import { RequireAuthorization } from '@nuxt-laravelize/authorization-queue/runtime'
+import { jobRunnerToken } from '@nuxt-laravelize/queue/runtime'
+
+const registry = container.make(authorizationRegistryToken)
+registry.registerAbility('queue.invoice.process', async ({ principal, tenantId }) => {
+  if (!tenantId) return false
+  return memberships.currentlyAllows(principal, tenantId, 'invoice.process')
+})
+
+const runner = container.make(jobRunnerToken)
+runner.use('authorize-invoices', new RequireAuthorization(registry, runner, {
+  ability: 'queue.invoice.process',
+  jobs: ['billing.invoice.process.v1'],
+}).handle, -100)
+```
+
+The check runs on every attempt, delayed replay and terminal failed-hook invocation; denied failed hooks do not execute under a revoked identity. Processing outages are wrapped in sanitized retryable `QueueAuthorizationUnavailableError` values whose causes are trusted diagnostic material. Failed hooks are best-effort observers and an authorization outage there cannot be retried by current adapters, so use independent terminal reporters. Actor and tenant fields propagated by `execution-context-queue` are provenance only and never enter the ability. The application `PrincipalResolver` must independently verify a durable delegation or current worker identity, reload current grants and return `trustQueuePrincipal(principal, { actor, tenantId })` with the verified identity binding. Job-name selection is canonicalized through the identical worker registry but provides no identity evidence. For payload resource IDs, configure the optional authoritative `resource` resolver so a registered resource policy receives trusted store data; coarse abilities do not authorize payload contents or unrelated effects. Malformed propagated contexts fail terminally as `INVALID_EXECUTION_CONTEXT`. The package intentionally does not expose `RequirePrincipal` or `RequireTenant` shortcuts without an application-specific authenticated delegation.
 
 ## Queue middleware
 

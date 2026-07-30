@@ -11,6 +11,7 @@ export class JobRegistrationCollisionError extends Error {
 
 export class InMemoryJobRegistry {
   readonly #constructors = new Map<string, JobConstructor>()
+  readonly #canonicalNames = new Map<JobConstructor, string>()
 
   register(name: string, constructor: JobConstructor): void {
     const names = new Set([name, constructor.name, constructor.jobName].filter((value): value is string => Boolean(value)))
@@ -19,6 +20,12 @@ export class InMemoryJobRegistry {
       if (existing && existing !== constructor) throw new JobRegistrationCollisionError(alias)
     }
     for (const alias of names) this.#constructors.set(alias, constructor)
+    if (!this.#canonicalNames.has(constructor)) this.#canonicalNames.set(constructor, constructor.jobName ?? name)
+  }
+
+  canonicalName(name: string): string | undefined {
+    const constructor = this.#constructors.get(name)
+    return constructor ? this.#canonicalNames.get(constructor) : undefined
   }
 
   rehydrate(serialized: SerializedJob): Job {

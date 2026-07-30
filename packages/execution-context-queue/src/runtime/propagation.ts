@@ -1,6 +1,6 @@
 import { ExecutionContext, executionContextToken, type ExecutionContextSnapshot, type IdFactory } from '@nuxt-laravelize/execution-context/runtime'
 import { runWithExecutionContext, type currentExecutionContextOptional as Current } from '@nuxt-laravelize/execution-context/runtime/server'
-import type { JobMetadataContributorRegistry, JobRunner, SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { NonRetryableJobError, type JobMetadataContributorRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
 
 export const EXECUTION_CONTEXT_METADATA_KEY = 'laravelize.execution-context.v1'
 const installations = new WeakMap<JobMetadataContributorRegistry, WeakSet<JobRunner>>()
@@ -16,7 +16,13 @@ export function installExecutionContextQueuePropagation(contributors: JobMetadat
   runner.contributeScope((serialized, scope) => {
     const snapshot = readSnapshot(serialized)
     if (!snapshot) return
-    const parent = ExecutionContext.from(snapshot)
+    let parent: ExecutionContext
+    try {
+      parent = ExecutionContext.from(snapshot)
+    }
+    catch {
+      throw new NonRetryableJobError('INVALID_EXECUTION_CONTEXT', 'Queue execution context metadata is invalid.')
+    }
     scope.override(executionContextToken, parent.derive({ source: { type: 'queue', name: serialized.name } }, idFactory))
   })
   runner.use(async (_serialized, scope, next) => {
@@ -26,7 +32,8 @@ export function installExecutionContextQueuePropagation(contributors: JobMetadat
 }
 function readSnapshot(serialized: SerializedJob): ExecutionContextSnapshot | undefined {
   if (serialized.version !== 2) return undefined
+  if (!Object.prototype.hasOwnProperty.call(serialized.metadata, EXECUTION_CONTEXT_METADATA_KEY)) return undefined
   const value = serialized.metadata[EXECUTION_CONTEXT_METADATA_KEY]
-  if (!value || typeof value !== 'object') return undefined
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NonRetryableJobError('INVALID_EXECUTION_CONTEXT', 'Queue execution context metadata is invalid.')
   return value as ExecutionContextSnapshot
 }

@@ -3,7 +3,7 @@ import { createContainer } from '@nuxt-laravelize/core/runtime'
 import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
 import { currentExecutionContextOptional, runWithExecutionContext } from '@nuxt-laravelize/execution-context/runtime/server'
 import { fakeExecutionContext } from '@nuxt-laravelize/execution-context/testing'
-import { Job, JobMetadataContributorRegistry, JobSerializer, JobRunner, InMemoryJobRegistry, jobSerializerToken } from '@nuxt-laravelize/queue/runtime'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer, jobSerializerToken } from '@nuxt-laravelize/queue/runtime'
 import { EXECUTION_CONTEXT_METADATA_KEY, installExecutionContextQueuePropagation } from '../src/runtime/propagation'
 
 class ProbeJob extends Job {
@@ -75,6 +75,29 @@ describe('queue propagation', () => {
     registry.register('LegacyJob', LegacyJob)
     await new JobRunner(container, registry).run({ version: 1, name: 'LegacyJob', payload: {} })
     expect(LegacyJob.handled).toBe(true)
+  })
+  it('classifies malformed propagated context as a terminal envelope failure', async () => {
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    installExecutionContextQueuePropagation(new JobMetadataContributorRegistry(), runner, currentExecutionContextOptional)
+
+    await expect(runner.run({ version: 2, name: ProbeJob.name, payload: {}, metadata: { [EXECUTION_CONTEXT_METADATA_KEY]: { version: 1, actor: { type: 'user', id: 'unsafe\nactor' } } } })).rejects.toMatchObject({ name: 'NonRetryableJobError', code: 'INVALID_EXECUTION_CONTEXT', message: 'Queue execution context metadata is invalid.' })
+    for (const value of [null, 1, 'context', []]) {
+      await expect(runner.run({ version: 2, name: ProbeJob.name, payload: {}, metadata: { [EXECUTION_CONTEXT_METADATA_KEY]: value } })).rejects.toMatchObject({ code: 'INVALID_EXECUTION_CONTEXT' })
+    }
+    await expect(runner.run({ version: 2, name: ProbeJob.name, payload: {}, metadata: { [EXECUTION_CONTEXT_METADATA_KEY]: { version: 1, source: { type: 'http' } } } })).rejects.toMatchObject({ code: 'INVALID_EXECUTION_CONTEXT' })
+
+    const valid = fakeExecutionContext().snapshot()
+    const malformed = [
+      { ...valid, actor: null },
+      { ...valid, attributes: null },
+      { ...valid, source: { type: 'http', name: null } },
+      Object.defineProperty({ ...valid }, 'tenantId', { enumerable: true, get: () => 'unsafe-tenant' }),
+    ]
+    for (const value of malformed) {
+      await expect(runner.run({ version: 2, name: ProbeJob.name, payload: {}, metadata: { [EXECUTION_CONTEXT_METADATA_KEY]: value } })).rejects.toMatchObject({ code: 'INVALID_EXECUTION_CONTEXT' })
+    }
   })
   it('uses the worker as causation when a job dispatches a nested job', async () => {
     const container = createContainer()

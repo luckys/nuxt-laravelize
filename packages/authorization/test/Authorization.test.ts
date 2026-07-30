@@ -38,10 +38,15 @@ describe('Authorization', () => {
     expect(queueAwareResolver.resolve).toHaveBeenCalledWith(expect.objectContaining({ source: { type: 'queue' }, actor: { type: 'user', id: 'propagated' } }))
   })
   it('accepts an explicitly trusted queue principal resolution', async () => {
-    const registry = new AuthorizationRegistry().registerAbility('report.view', ({ principal }) => (principal as { id: string }).id === 'verified-worker')
-    const queueContext = ExecutionContext.create({ source: { type: 'queue' }, actor: { type: 'user', id: 'propagated' } }, () => 'id')
-    const verifiedResolver = { resolve: () => trustQueuePrincipal({ id: 'verified-worker' }) }
+    const registry = new AuthorizationRegistry().registerAbility('report.view', ({ principal, actor, tenantId }) => (principal as { id: string }).id === 'verified-worker' && actor.id === 'verified-actor' && tenantId === 'verified-tenant')
+    const queueContext = ExecutionContext.create({ source: { type: 'queue' }, actor: { type: 'user', id: 'propagated' }, tenantId: 'forged-tenant' }, () => 'id')
+    const verifiedResolver = { resolve: () => trustQueuePrincipal({ id: 'verified-worker' }, { actor: { type: 'service', id: 'verified-actor' }, tenantId: 'verified-tenant' }) }
     expect(await new Authorization(registry, queueContext, verifiedResolver).inspect('report.view')).toEqual({ allowed: true })
+  })
+  it('rejects a trusted queue principal without a verified actor and tenant binding', async () => {
+    const registry = new AuthorizationRegistry().registerAbility('report.view', () => true)
+    const queueContext = ExecutionContext.create({ source: { type: 'queue' }, actor: { type: 'user', id: 'propagated' }, tenantId: 'forged-tenant' }, () => 'id')
+    expect(await new Authorization(registry, queueContext, { resolve: () => trustQueuePrincipal({ id: 'verified-worker' }) }).inspect('report.view')).toEqual({ allowed: false, code: 'untrusted-queue-identity' })
   })
   it('ignores string queue trust claims and validates branded wrappers', async () => {
     const registry = new AuthorizationRegistry().registerAbility('report.view', () => true)
@@ -57,6 +62,10 @@ describe('Authorization', () => {
     await expect(new Authorization(registry, queueContext, { resolve: () => forged as never }).inspect('report.view')).rejects.toThrow('Invalid trusted queue principal resolution')
     const mutable = { principal: { id: 'forged' }, [brand]: true }
     await expect(new Authorization(registry, queueContext, { resolve: () => mutable as never }).inspect('report.view')).rejects.toThrow('Invalid trusted queue principal resolution')
+    const accessorIdentity = Object.defineProperty({}, 'actor', { enumerable: true, get: () => ({ type: 'service', id: 'forged' }) })
+    expect(() => trustQueuePrincipal({ id: 'verified' }, accessorIdentity as never)).toThrow('Invalid trusted queue identity')
+    const accessorActor = Object.defineProperties({}, { type: { enumerable: true, get: () => 'service' }, id: { enumerable: true, get: () => 'forged' } })
+    expect(() => trustQueuePrincipal({ id: 'verified' }, { actor: accessorActor } as never)).toThrow('Invalid trusted queue actor')
   })
   it('does not confuse ordinary principal properties with the private queue trust brand', async () => {
     const principal = { id: 'user-1', queuePrincipalTrust: 'application-data' }

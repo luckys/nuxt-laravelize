@@ -4,7 +4,7 @@ import { MAX_JOB_METADATA_KEYS, type SerializedJob } from './Job'
 import type { InMemoryJobRegistry } from './JobRegistry'
 
 export type JobScopeContributor = (serialized: SerializedJob, scope: Container) => void | Promise<void>
-export interface JobExecutionDescriptor { readonly queue?: string, readonly attempt?: number, readonly maxAttempts?: number, readonly phase: 'process' | 'failed' }
+export interface JobExecutionDescriptor { readonly queue?: string, readonly attempt?: number, readonly maxAttempts?: number, readonly phase: 'process' | 'failed', readonly runner?: JobRunner }
 export type JobExecutionMiddleware = (serialized: SerializedJob, scope: Container, next: () => Promise<void>, descriptor?: JobExecutionDescriptor) => Promise<void>
 interface MiddlewareRegistration { readonly id: string, readonly order: number, readonly sequence: number, readonly middleware: JobExecutionMiddleware }
 
@@ -18,6 +18,7 @@ export class JobRunner {
   ) {}
 
   contributeScope(contributor: JobScopeContributor): void { this.#contributors.push(contributor) }
+  canonicalJobName(name: string): string | undefined { return this.registry.canonicalName(name) }
   hasMiddleware(id: string): boolean { return this.#middleware.some(item => item.id === id) }
   use(middleware: JobExecutionMiddleware): void
   use(id: string, middleware: JobExecutionMiddleware, order?: number): void
@@ -29,12 +30,12 @@ export class JobRunner {
     this.#middleware.sort((left, right) => left.order - right.order || left.sequence - right.sequence)
   }
 
-  async run(serialized: SerializedJob, descriptor: Omit<JobExecutionDescriptor, 'phase'> = {}): Promise<void> {
-    await this.#execute(serialized, { ...descriptor, phase: 'process' }, async scope => this.registry.rehydrate(serialized).handle(scope))
+  async run(serialized: SerializedJob, descriptor: Omit<JobExecutionDescriptor, 'phase' | 'runner'> = {}): Promise<void> {
+    await this.#execute(serialized, { ...descriptor, phase: 'process', runner: this }, async scope => this.registry.rehydrate(serialized).handle(scope))
   }
 
-  async failed(serialized: SerializedJob, error: unknown, descriptor: Omit<JobExecutionDescriptor, 'phase'> = {}): Promise<void> {
-    await this.#execute(serialized, { ...descriptor, phase: 'failed' }, async () => this.registry.rehydrate(serialized).failed?.(error))
+  async failed(serialized: SerializedJob, error: unknown, descriptor: Omit<JobExecutionDescriptor, 'phase' | 'runner'> = {}): Promise<void> {
+    await this.#execute(serialized, { ...descriptor, phase: 'failed', runner: this }, async () => this.registry.rehydrate(serialized).failed?.(error))
   }
 
   async #execute(serialized: SerializedJob, descriptor: JobExecutionDescriptor, operation: (scope: Container) => void | Promise<void>): Promise<void> {

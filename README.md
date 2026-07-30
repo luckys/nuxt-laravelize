@@ -10,6 +10,7 @@ Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for 
 |---|---|
 | `@nuxt-laravelize/audit` | Secure append-only audit recording enriched by execution context |
 | `@nuxt-laravelize/authorization` | Portable centralized abilities and policies with scoped principals |
+| `@nuxt-laravelize/authorization-queue` | Opt-in per-attempt queue ability authorization with trusted principal reload |
 | `@nuxt-laravelize/audit-drizzle` | Optional PostgreSQL, SQLite, and Turso/libSQL audit stores |
 | `@nuxt-laravelize/ai-sdk` | Opt-in named AI model connections, typed agents, streaming, and testing |
 | `@nuxt-laravelize/agent-sdk` | Opt-in runtime-neutral agent invocation, dispatch, observation, and testing |
@@ -168,6 +169,7 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 | `@nuxt-laravelize/cache-redis` | package root | — |
 | `@nuxt-laravelize/console` | Package root, `/node` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
+| `@nuxt-laravelize/authorization-queue` | Nuxt module, `/runtime` | - |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |
 | `@nuxt-laravelize/execution-context-queue` | `/runtime` | - |
 | `@nuxt-laravelize/encryption` | `/runtime` | - |

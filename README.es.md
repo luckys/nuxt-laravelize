@@ -10,6 +10,7 @@ Nuxt Laravelize es un monorepo pnpm de paquetes enfocados `@nuxt-laravelize/*` p
 |---|---|
 | `@nuxt-laravelize/audit` | Auditoria append-only segura enriquecida por el contexto de ejecucion |
 | `@nuxt-laravelize/authorization` | Habilidades y politicas centralizadas con principal por scope |
+| `@nuxt-laravelize/authorization-queue` | Autorizacion opt-in de abilities por intento con recarga confiable del principal |
 | `@nuxt-laravelize/audit-drizzle` | Stores opcionales para PostgreSQL, SQLite y Turso/libSQL |
 | `@nuxt-laravelize/ai-sdk` | Conexiones IA nombradas opt-in, agentes tipados, streaming y testing |
 | `@nuxt-laravelize/agent-sdk` | API opt-in neutral para invocar, despachar, observar y probar agentes |
@@ -168,6 +169,7 @@ La raiz de cada paquete es el entrypoint del modulo Nuxt salvo que se indique lo
 | `@nuxt-laravelize/cache-redis` | raiz del paquete | — |
 | `@nuxt-laravelize/console` | raiz del paquete, `/node` | `/testing` |
 | `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
+| `@nuxt-laravelize/authorization-queue` | Modulo Nuxt, `/runtime` | - |
 | `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |
 | `@nuxt-laravelize/execution-context-queue` | `/runtime` | - |
 | `@nuxt-laravelize/encryption` | `/runtime` | - |

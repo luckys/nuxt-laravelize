@@ -49,6 +49,10 @@ describe('InMemoryQueue', () => {
     expect(registry.rehydrate({ version: 1, name: 'supplied-name', payload: { value: 1 } })).toBeInstanceOf(StableJob)
     expect(registry.rehydrate({ version: 1, name: StableJob.name, payload: { value: 1 } })).toBeInstanceOf(StableJob)
     expect(registry.rehydrate({ version: 1, name: StableJob.jobName, payload: { value: 1 } })).toBeInstanceOf(StableJob)
+    expect(registry.canonicalName('supplied-name')).toBe(StableJob.jobName)
+    expect(registry.canonicalName(StableJob.name)).toBe(StableJob.jobName)
+    expect(registry.canonicalName(StableJob.jobName)).toBe(StableJob.jobName)
+    expect(registry.canonicalName('missing')).toBeUndefined()
     expect(() => registry.register('supplied-name', TestJob)).toThrow(JobRegistrationCollisionError)
   })
   it('executes registered jobs in a disposable job scope', async () => {

@@ -1,7 +1,7 @@
 import type { ExecutionContext, ExecutionContextSnapshot } from '@nuxt-laravelize/execution-context/runtime'
 import { AbilityNotDefinedError, AuthorizationDeniedError } from './errors'
 import type { AuthorizationRegistry } from './AuthorizationRegistry'
-import { decision, deny, resolvePrincipal, type AuthorizationContext, type AuthorizationDecision, type DecisionInput, type PrincipalResolver } from './types'
+import { decision, deny, resolvePrincipal, resolveTrustedQueueContext, type AuthorizationContext, type AuthorizationDecision, type DecisionInput, type PrincipalResolver } from './types'
 
 export interface InspectOptions { readonly resourceType?: string, readonly resource?: unknown, readonly args?: readonly unknown[] }
 export type ExecutionContextProvider = () => ExecutionContext
@@ -24,11 +24,14 @@ export class Authorization {
   async inspect(ability: string, options: InspectOptions = {}): Promise<AuthorizationDecision> {
     if (options.resource !== undefined && options.resourceType === undefined) throw new TypeError('Authorization resourceType is required when resource is provided')
     const snapshot = immutableSnapshot(this.executionContextProvider())
-    if (!snapshot.actor) return deny('unauthenticated')
+    const queue = snapshot.source.type === 'queue'
+    if (!queue && !snapshot.actor) return deny('unauthenticated')
     const resolution = await this.principalResolver.resolve(snapshot)
-    const principal = resolvePrincipal(resolution, snapshot.source.type === 'queue')
-    if (principal == null) return deny(snapshot.source.type === 'queue' && resolution != null ? 'untrusted-queue-principal' : 'principal-not-found')
-    const context: AuthorizationContext = { principal, actor: snapshot.actor, ...(snapshot.tenantId ? { tenantId: snapshot.tenantId } : {}) }
+    const trustedQueueContext = queue ? resolveTrustedQueueContext(resolution) : null
+    if (queue && !trustedQueueContext) return deny(resolution != null && resolvePrincipal(resolution, true) != null ? 'untrusted-queue-identity' : resolution != null ? 'untrusted-queue-principal' : 'principal-not-found')
+    const principal = queue ? trustedQueueContext!.principal : resolvePrincipal(resolution, false)
+    if (principal == null) return deny('principal-not-found')
+    const context: AuthorizationContext = trustedQueueContext ?? { principal, actor: snapshot.actor!, ...(snapshot.tenantId ? { tenantId: snapshot.tenantId } : {}) }
     const args = options.args ?? []
     if (options.resourceType !== undefined) {
       if (ability === 'before') throw new AbilityNotDefinedError(ability)
@@ -63,4 +66,5 @@ export class Authorization {
   }
 
   async none(abilities: readonly string[], options?: InspectOptions): Promise<boolean> { return !(await this.any(abilities, options)) }
+  usesRegistry(registry: AuthorizationRegistry): boolean { return this.registry === registry }
 }
