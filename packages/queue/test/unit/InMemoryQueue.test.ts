@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobReleasedError, JobRunner, NonRetryableJobError, readJobDispatchIdentity, readJobTags } from '../../src/runtime/index'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobMetadataContributorRegistry, JobRegistrationCollisionError, JobReleasedError, JobRunner, JobSerializer, NonRetryableJobError, readJobDispatchIdentity, readJobTags } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {
   static runs: number[] = []
@@ -100,6 +100,29 @@ describe('InMemoryQueue', () => {
 
     expect(TestJob.runs).toContain(7)
     expect(dispose).toHaveBeenCalledOnce()
+  })
+
+  it('serializes final admission facts from the resolved queue and registry', async () => {
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const contributors = new JobMetadataContributorRegistry()
+    const admissions: Array<{ queue: string, canonicalJobName: string }> = []
+    const serializer = new JobSerializer(contributors)
+    serializer.contributeAdmission((_job, admission) => {
+      admissions.push(admission)
+      return { credential: admission.dispatch.id }
+    })
+    const queue = new InMemoryQueue(runner, serializer)
+
+    await queue.push(new TestJob({ value: 8 }), { queue: 'critical' })
+    await vi.waitFor(() => expect(TestJob.runs).toContain(8))
+    await queue.sync(new TestJob({ value: 9 }))
+
+    expect(admissions).toEqual([
+      expect.objectContaining({ queue: 'critical', canonicalJobName: TestJob.name }),
+      expect.objectContaining({ queue: 'default', canonicalJobName: TestJob.name }),
+    ])
   })
 
   it('clears delayed jobs and their timers', async () => {

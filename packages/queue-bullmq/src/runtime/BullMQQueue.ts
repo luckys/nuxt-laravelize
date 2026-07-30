@@ -22,7 +22,7 @@ export class BullMQQueue implements Queue {
     const delay = integer(options.delay ?? config.delay, 'delay', 0, 86_400_000)
     const priority = integer(options.priority ?? config.priority, 'priority', 0, MAX_JOB_PRIORITY)
     const deduplication = readDeduplication(options.deduplication)
-    const serialized = this.serializer.serialize(job)
+    const serialized = this.#serialize(job, queueName)
     const queued = await this.#queue(queueName).add(config.jobName ?? config.name, serialized, {
       ...(options.id ? { jobId: options.id } : {}),
       attempts,
@@ -35,7 +35,11 @@ export class BullMQQueue implements Queue {
   }
 
   later(delay: number, job: Job, options: PushOptions = {}): Promise<JobHandle> { return this.push(job, { ...options, delay }) }
-  sync(job: Job): Promise<void> { return this.runner.run(this.serializer.serialize(job)) }
+  sync(job: Job): Promise<void> {
+    const queue = (job.constructor as typeof Job).queue
+    return this.runner.run(this.#serialize(job, queue), { queue })
+  }
+
   onFailed(callback: Parameters<FailureReporter['listen']>[0]): void { this.failures.listen(callback) }
   async size(queue?: string): Promise<number> {
     if (queue !== undefined) return this.#queue(queue).count()
@@ -53,6 +57,11 @@ export class BullMQQueue implements Queue {
   }
 
   async close(): Promise<void> { await Promise.all([...this.#queues.values()].map(queue => queue.close())) }
+
+  #serialize(job: Job, queue: string) {
+    return this.serializer.requiresAdmission() ? this.runner.serialize(job, queue, this.serializer) : this.serializer.serialize(job)
+  }
+
   #queue(name: string): BullQueue {
     const existing = this.#queues.get(name)
     if (existing) return existing

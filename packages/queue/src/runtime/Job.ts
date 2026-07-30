@@ -36,6 +36,20 @@ export interface JobDispatchIdentityV1 {
   readonly payloadFingerprint: `sha256:${string}`
 }
 export type DispatchIdFactory = () => string
+export interface JobAdmissionContextV1 {
+  readonly version: 1
+  readonly queue: string
+  readonly serializedJobName: string
+  readonly canonicalJobName: string
+  readonly dispatch: JobDispatchIdentityV1
+}
+const JOB_ADMISSION_TRUST = Symbol('laravelize.queue.admission-trust')
+const JOB_ADMISSION_CONTRIBUTION_TRUST = Symbol('laravelize.queue.admission-contribution-trust')
+interface TrustedJobAdmission {
+  readonly queue: string
+  readonly canonicalizeJobName: (name: string) => string | undefined
+  readonly [JOB_ADMISSION_TRUST]: true
+}
 
 export abstract class Job<TPayload extends Record<string, unknown> = Record<string, unknown>> {
   static readonly jobName?: string
@@ -56,6 +70,25 @@ export abstract class Job<TPayload extends Record<string, unknown> = Record<stri
 }
 
 export type JobMetadataContributor = (job: Job, resolver?: Resolver) => Readonly<Record<string, unknown>> | undefined
+export type JobAdmissionMetadataContributor = (job: Job, admission: JobAdmissionContextV1, resolver?: Resolver) => Readonly<Record<string, unknown>> | undefined
+export class JobAdmissionMetadataContributorRegistry {
+  readonly #contributors: Array<{ readonly id?: string, readonly contributor: JobAdmissionMetadataContributor }> = []
+  contribute(contributor: JobAdmissionMetadataContributor): void
+  contribute(id: string, contributor: JobAdmissionMetadataContributor): void
+  contribute(idOrContributor: string | JobAdmissionMetadataContributor, contributor?: JobAdmissionMetadataContributor): void {
+    const id = typeof idOrContributor === 'string' ? idOrContributor : undefined
+    const value = typeof idOrContributor === 'string' ? contributor : idOrContributor
+    if (!value || (id !== undefined && (!id || this.#contributors.some(item => item.id === id)))) throw new TypeError(`Duplicate or invalid job admission metadata contributor id: ${id ?? ''}`)
+    this.#contributors.push({ ...(id ? { id } : {}), contributor: value })
+  }
+
+  has(id: string): boolean { return this.#contributors.some(item => item.id === id) }
+  size(): number { return this.#contributors.length }
+  contributions(job: Job, admission: JobAdmissionContextV1, resolver: Resolver | undefined, trust: unknown): Readonly<Record<string, unknown>>[] {
+    if (trust !== JOB_ADMISSION_CONTRIBUTION_TRUST) throw new TypeError('Trusted job admission evaluation is required')
+    return this.#contributors.map(({ contributor }) => contributor(job, admission, resolver) ?? {})
+  }
+}
 export class JobMetadataContributorRegistry {
   readonly #contributors: Array<{ readonly id?: string, readonly contributor: JobMetadataContributor }> = []
   contribute(contributor: JobMetadataContributor): void
@@ -77,17 +110,39 @@ export class JobSerializer {
     private readonly contributors = new JobMetadataContributorRegistry(),
     private readonly resolver?: Resolver,
     private readonly dispatchIdFactory: DispatchIdFactory = () => globalThis.crypto.randomUUID(),
+    private readonly admissionContributors = new JobAdmissionMetadataContributorRegistry(),
   ) {}
 
   contribute(contributor: JobMetadataContributor): void { this.contributors.contribute(contributor) }
+  contributeAdmission(contributor: JobAdmissionMetadataContributor): void
+  contributeAdmission(id: string, contributor: JobAdmissionMetadataContributor): void
+  contributeAdmission(idOrContributor: string | JobAdmissionMetadataContributor, contributor?: JobAdmissionMetadataContributor): void {
+    if (typeof idOrContributor === 'string') this.admissionContributors.contribute(idOrContributor, contributor!)
+    else this.admissionContributors.contribute(idOrContributor)
+  }
 
-  serialize(job: Job): SerializedJob {
+  hasAdmission(id: string): boolean { return this.admissionContributors.has(id) }
+  requiresAdmission(): boolean { return this.admissionContributors.size() > 0 }
+
+  serialize(job: Job): SerializedJob { return this.#serialize(job) }
+
+  serializeForAdmission(job: Job, admission: TrustedJobAdmission): SerializedJob {
+    if (!admission || admission[JOB_ADMISSION_TRUST] !== true) throw new TypeError('Trusted job admission is required')
+    return this.#serialize(job, admission)
+  }
+
+  #serialize(job: Job, trustedAdmission?: TrustedJobAdmission): SerializedJob {
     const tags = normalizeJobTags(job.tags())
     const custom = job.serialize !== Job.prototype.serialize ? () => job.serialize() : undefined
     const serialized = serializeJob(job, tags, this.contributors.contributions(job, this.resolver), custom)
     const { payload, fingerprint } = snapshotPayload(serialized.payload)
     const identity = normalizeDispatchIdentity({ version: 1, id: this.dispatchIdFactory(), payloadFingerprint: fingerprint })
     const copiedMetadata = serialized.version === 2 ? copyMetadata(serialized.metadata) : {}
+    if (this.admissionContributors.size() > 0 && trustedAdmission) {
+      const admission = normalizeAdmissionContext(serialized.name, identity, trustedAdmission)
+      const contributions = this.admissionContributors.contributions(job, admission, this.resolver, JOB_ADMISSION_CONTRIBUTION_TRUST)
+      mergeMetadata(copiedMetadata, contributions)
+    }
     const metadata = snapshotPayload(copiedMetadata).payload
     if (Object.prototype.hasOwnProperty.call(metadata, JOB_DISPATCH_METADATA_KEY)) throw new TypeError(`Reserved job metadata key: ${JOB_DISPATCH_METADATA_KEY}`)
     if (Object.keys(metadata).length > MAX_JOB_METADATA_KEYS) throw new TypeError(`Job metadata must contain at most ${MAX_JOB_METADATA_KEYS} keys`)
@@ -120,7 +175,22 @@ export function readJobTags(serialized: SerializedJob): readonly string[] {
 }
 
 function serializeJob(job: Job, tags: readonly string[], contributions: readonly Readonly<Record<string, unknown>>[], fallback?: () => SerializedJob): SerializedJob {
-  const metadata: Record<string, unknown> = {}
+  const constructor = job.constructor as typeof Job
+  const base = fallback?.() ?? { version: 1, name: constructor.jobName ?? constructor.name, payload: job.payload } as const
+  const metadata = base.version === 2 ? copyMetadata(base.metadata) : {}
+  mergeMetadata(metadata, contributions)
+  if (tags.length > 0) {
+    if (Object.prototype.hasOwnProperty.call(metadata, JOB_TAGS_METADATA_KEY)) {
+      const existing = normalizeJobTags(metadata[JOB_TAGS_METADATA_KEY])
+      if (existing.length !== tags.length || existing.some((tag, index) => tag !== tags[index])) throw new TypeError(`Duplicate job metadata key: ${JOB_TAGS_METADATA_KEY}`)
+    }
+    else Object.defineProperty(metadata, JOB_TAGS_METADATA_KEY, { value: tags, enumerable: true, configurable: true, writable: true })
+  }
+  if (Object.keys(metadata).length > MAX_JOB_METADATA_KEYS) throw new TypeError(`Job metadata must contain at most ${MAX_JOB_METADATA_KEYS} keys`)
+  return Object.keys(metadata).length ? { version: 2, name: base.name, payload: base.payload, metadata } : base
+}
+
+function mergeMetadata(metadata: Record<string, unknown>, contributions: readonly Readonly<Record<string, unknown>>[]): void {
   for (const contribution of contributions) {
     if (Object.getPrototypeOf(contribution) !== Object.prototype) throw new TypeError('Job metadata contribution must be a plain object')
     for (const [key, value] of Object.entries(contribution)) {
@@ -129,11 +199,18 @@ function serializeJob(job: Job, tags: readonly string[], contributions: readonly
       Object.defineProperty(metadata, key, { value, enumerable: true, configurable: true, writable: true })
     }
   }
-  if (tags.length > 0) Object.defineProperty(metadata, JOB_TAGS_METADATA_KEY, { value: tags, enumerable: true, configurable: true, writable: true })
-  if (Object.keys(metadata).length > MAX_JOB_METADATA_KEYS) throw new TypeError(`Job metadata must contain at most ${MAX_JOB_METADATA_KEYS} keys`)
-  const constructor = job.constructor as typeof Job
-  const name = constructor.jobName ?? constructor.name
-  return Object.keys(metadata).length ? { version: 2, name, payload: job.payload, metadata } : fallback?.() ?? { version: 1, name, payload: job.payload }
+}
+
+function normalizeAdmissionContext(name: string, dispatch: JobDispatchIdentityV1, admission: TrustedJobAdmission): JobAdmissionContextV1 {
+  const canonicalJobName = admission.canonicalizeJobName(name)
+  if (typeof canonicalJobName !== 'string' || canonicalJobName.length < 1 || canonicalJobName.length > 256 || /[\r\n\0]/.test(canonicalJobName)) throw new TypeError('Job admission canonical name is not registered')
+  return Object.freeze({ version: 1, queue: admission.queue, serializedJobName: name, canonicalJobName, dispatch })
+}
+
+export function trustJobAdmission(queue: string, canonicalizeJobName: (name: string) => string | undefined): TrustedJobAdmission {
+  if (typeof queue !== 'string' || queue.length > 256 || /[\r\n\0]/.test(queue)) throw new TypeError('Invalid job admission queue')
+  if (typeof canonicalizeJobName !== 'function') throw new TypeError('Job admission canonicalizer is required')
+  return Object.freeze({ queue, canonicalizeJobName, [JOB_ADMISSION_TRUST]: true as const })
 }
 
 function copyMetadata(value: Readonly<Record<string, unknown>>): Record<string, unknown> {

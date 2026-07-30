@@ -1,7 +1,7 @@
 import type { Container } from '@nuxt-laravelize/core/runtime'
 
-import { JOB_DISPATCH_METADATA_KEY, MAX_JOB_METADATA_KEYS, readJobDispatchIdentity, snapshotJobPayload, type Job, type SerializedJob } from './Job'
-import type { InMemoryJobRegistry } from './JobRegistry'
+import { JOB_DISPATCH_METADATA_KEY, MAX_JOB_METADATA_KEYS, readJobDispatchIdentity, snapshotJobPayload, trustJobAdmission, type Job, type JobSerializer, type SerializedJob } from './Job'
+import type { InMemoryJobRegistry, JobConstructor } from './JobRegistry'
 import { NonRetryableJobError } from './NonRetryableJobError'
 
 export type JobScopeContributor = (serialized: SerializedJob, scope: Container) => void | Promise<void>
@@ -20,6 +20,10 @@ export class JobRunner {
 
   contributeScope(contributor: JobScopeContributor): void { this.#contributors.push(contributor) }
   canonicalJobName(name: string): string | undefined { return this.registry.canonicalName(name) }
+  serialize(job: Job, queue: string, serializer: JobSerializer): SerializedJob {
+    return serializer.serializeForAdmission(job, trustJobAdmission(queue, name => this.registry.canonicalNameFor(name, job.constructor as JobConstructor)))
+  }
+
   hasMiddleware(id: string): boolean { return this.#middleware.some(item => item.id === id) }
   use(middleware: JobExecutionMiddleware): void
   use(id: string, middleware: JobExecutionMiddleware, order?: number): void

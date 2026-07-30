@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Job } from '../../src/runtime'
+import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer } from '../../src/runtime'
 import { QueueFake } from '../../src/runtime/testing'
 
 class PriorityJob extends Job {
@@ -100,6 +101,26 @@ describe('QueueFake deduplication', () => {
 })
 
 describe('QueueFake recording', () => {
+  it('provides final admission facts through an injected serializer', async () => {
+    const contributors = new JobMetadataContributorRegistry()
+    const queues: string[] = []
+    const serializer = new JobSerializer(contributors)
+    serializer.contributeAdmission((_job, admission) => {
+      queues.push(admission.queue)
+      return { credential: admission.dispatch.id }
+    })
+    const registry = new InMemoryJobRegistry()
+    registry.register(PriorityJob.name, PriorityJob)
+    registry.register(ReportsJob.name, ReportsJob)
+    await expect(new QueueFake(serializer).push(new PriorityJob())).rejects.toThrow('requires a JobRunner')
+    const queue = new QueueFake(serializer, new JobRunner(createContainer(), registry))
+
+    await queue.push(new PriorityJob(), { queue: 'critical' })
+    await queue.sync(new ReportsJob())
+
+    expect(queues).toEqual(['critical', 'reports'])
+    expect(queue.pushed[0]?.serialized).toMatchObject({ metadata: { credential: expect.any(String) } })
+  })
   it('records a validated tag snapshot for admitted jobs', async () => {
     const queue = new QueueFake()
     const tags = ['report:one', 'report:one', 'tenant:trusted']

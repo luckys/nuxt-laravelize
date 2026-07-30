@@ -44,7 +44,7 @@ export class InMemoryQueue implements Queue {
 
   async push(job: Job, options?: PushOptions): Promise<JobHandle> {
     const resolved = resolveOptions(job, options)
-    const serialized = this.serializer.serialize(job)
+    const serialized = this.#serialize(job, resolved.queue)
     const duplicate = resolved.deduplication ? this.#deduplicated(resolved.queue, resolved.deduplication.id) : undefined
     if (duplicate) return duplicate
     const entry: PendingJob = {
@@ -65,7 +65,10 @@ export class InMemoryQueue implements Queue {
     return this.push(job, { ...options, delay: delayMs })
   }
 
-  sync(job: Job): Promise<void> { return this.runner.run(this.serializer.serialize(job)) }
+  sync(job: Job): Promise<void> {
+    const queue = (job.constructor as typeof Job).queue
+    return this.runner.run(this.#serialize(job, queue), { queue })
+  }
 
   async size(queueName?: string): Promise<number> {
     if (queueName !== undefined) return this.#pending.get(queueName)?.length ?? 0
@@ -92,6 +95,10 @@ export class InMemoryQueue implements Queue {
   }
 
   onFailed(callback: FailedJobCallback): void { this.#failedCallbacks.push(callback) }
+
+  #serialize(job: Job, queue: string): SerializedJob {
+    return this.serializer.requiresAdmission() ? this.runner.serialize(job, queue, this.serializer) : this.serializer.serialize(job)
+  }
 
   #enqueue(entry: PendingJob, delay: number): void {
     entry.ready = false

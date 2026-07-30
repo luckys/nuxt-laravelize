@@ -28,6 +28,10 @@ export class InMemoryJobRegistry {
     return constructor ? this.#canonicalNames.get(constructor) : undefined
   }
 
+  canonicalNameFor(name: string, constructor: JobConstructor): string | undefined {
+    return this.#constructors.get(name) === constructor ? this.#canonicalNames.get(constructor) : undefined
+  }
+
   rehydrate(serialized: SerializedJob): Job {
     if (!serialized || typeof serialized !== 'object' || (serialized.version !== 1 && serialized.version !== 2)
       || typeof serialized.name !== 'string' || !serialized.name || !serialized.payload || typeof serialized.payload !== 'object' || Array.isArray(serialized.payload))

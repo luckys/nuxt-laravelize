@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { Job, JobSerializer, type JobRunner } from '@nuxt-laravelize/queue/runtime'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer } from '@nuxt-laravelize/queue/runtime'
 import { createContainer, createToken } from '@nuxt-laravelize/core/runtime'
 
 const add = vi.fn(async (_name: string, _data: unknown, _options: unknown) => ({ id: 'bull-1' }))
@@ -52,6 +52,31 @@ describe('BullMQQueue', () => {
         'laravelize.queue.dispatch.v1': { version: 1, id: expect.any(String), payloadFingerprint: expect.stringMatching(/^sha256:[a-f0-9]{64}$/) },
       },
     })
+  })
+
+  it('serializes admission metadata with the actual queue and canonical job', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const contributors = new JobMetadataContributorRegistry()
+    const admissions: Array<{ queue: string, canonicalJobName: string }> = []
+    const serializer = new JobSerializer(contributors)
+    serializer.contributeAdmission((_job, admission) => {
+      admissions.push(admission)
+      return { credential: admission.dispatch.id }
+    })
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    vi.spyOn(runner, 'run').mockResolvedValue(undefined)
+    const queue = new BullMQQueue({ client: {} } as never, runner, serializer)
+
+    await queue.push(new ProbeJob(), { queue: 'critical' })
+    await queue.sync(new ProbeJob())
+
+    expect(admissions).toEqual([
+      expect.objectContaining({ queue: 'critical', canonicalJobName: ProbeJob.name }),
+      expect.objectContaining({ queue: 'default', canonicalJobName: ProbeJob.name }),
+    ])
+    expect(runner.run).toHaveBeenCalledWith(expect.any(Object), { queue: 'default' })
   })
 
   it('forwards static priority and allows a validated push override', async () => {

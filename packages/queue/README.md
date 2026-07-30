@@ -6,4 +6,6 @@ Declare stable tags with `Job.tags()` and inspect a serialized snapshot with `re
 
 Shared queue serialization assigns each admitted dispatch a new opaque ID, snapshots JSON-safe payload data and stores a deterministic SHA-256 payload fingerprint. `readJobDispatchIdentity()` exposes a defensive copy and `fingerprintJobPayload()` uses the same canonical form. Retries and delayed releases retain one identity. This unkeyed metadata detects accidental corruption but is not producer authentication, confidentiality, replay prevention, deduplication or exactly-once execution.
 
+`JobAdmissionMetadataContributorRegistry` exposes frozen final dispatch facts only through registry-backed queue admission. It is a synchronous extension point for application credential issuers, not a credential implementation or authentication guarantee.
+
 See the complete [English](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.md#queue) or [Spanish](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.es.md#queue) guide for jobs, drivers, retries and testing examples.

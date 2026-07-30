@@ -1,4 +1,5 @@
 import { JobSerializer, readJobDispatchIdentity, readJobTags, type Job, type JobDispatchIdentityV1, type SerializedJob } from '../Job'
+import type { JobRunner } from '../JobRunner'
 import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type JobHandle, type PushOptions, type Queue } from '../Queue'
 
 export interface PushedJob { readonly job: Job, readonly options: PushOptions, readonly priority: number, readonly queue?: string, readonly tags: readonly string[], readonly dispatch: JobDispatchIdentityV1, readonly serialized: SerializedJob }
@@ -6,16 +7,20 @@ export interface PushedJob { readonly job: Job, readonly options: PushOptions, r
 export class QueueFake implements Queue {
   readonly pushed: PushedJob[] = []
   readonly #deduplication = new Map<string, Map<string, { readonly handle: JobHandle, readonly expiresAt?: number }>>()
-  readonly #serializer = new JobSerializer()
   #nextId = 1
   #deduplicationTimer?: ReturnType<typeof setTimeout>
   #deduplicationTimerDueAt?: number
+  constructor(
+    private readonly serializer = new JobSerializer(),
+    private readonly runner?: JobRunner,
+  ) {}
+
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {
     if (options.id !== undefined && options.deduplication !== undefined) throw new TypeError('id and deduplication cannot be combined')
     const priority = options.priority ?? (job.constructor as typeof Job).priority
     if (!Number.isSafeInteger(priority) || priority < 0 || priority > MAX_JOB_PRIORITY) throw new TypeError(`priority must be an integer between 0 and ${MAX_JOB_PRIORITY}`)
     const queue = options.queue ?? (job.constructor as typeof Job).queue
-    const serialized = this.#serializer.serialize(job)
+    const serialized = this.#serialize(job, queue)
     const tags = readJobTags(serialized)
     const dispatch = readJobDispatchIdentity(serialized)!
     const deduplication = normalizeDeduplication(options.deduplication)
@@ -37,7 +42,11 @@ export class QueueFake implements Queue {
   }
 
   later(delay: number, job: Job, options: PushOptions = {}): Promise<JobHandle> { return this.push(job, { ...options, delay }) }
-  async sync(job: Job): Promise<void> { this.#serializer.serialize(job) }
+  async sync(job: Job): Promise<void> {
+    const queue = (job.constructor as typeof Job).queue
+    this.#serialize(job, queue)
+  }
+
   async size(queue?: string): Promise<number> { return queue === undefined ? this.pushed.length : this.pushed.filter(item => item.queue === queue).length }
   async clear(queue?: string): Promise<void> {
     if (queue === undefined) {
@@ -55,6 +64,11 @@ export class QueueFake implements Queue {
   onFailed(_callback: FailedJobCallback): void {}
   assertPushed<T extends Job>(type: new (...args: never[]) => T): void {
     if (!this.pushed.some(item => item.job instanceof type)) throw new Error(`Expected ${type.name} to be pushed.`)
+  }
+
+  #serialize(job: Job, queue: string): SerializedJob {
+    if (this.serializer.requiresAdmission() && !this.runner) throw new TypeError('QueueFake requires a JobRunner for admission metadata')
+    return this.serializer.requiresAdmission() ? this.runner!.serialize(job, queue, this.serializer) : this.serializer.serialize(job)
   }
 
   #scheduleDeduplicationExpiry(expiresAt: number): void {
