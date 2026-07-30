@@ -1,5 +1,6 @@
 import { DelayedError, UnrecoverableError } from 'bullmq'
-import { InMemoryJobRegistry, Job, JobReleasedError, NonRetryableJobError, type JobRunner } from '@nuxt-laravelize/queue/runtime'
+import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { InMemoryJobRegistry, Job, JobReleasedError, JobRunner, JobSerializer, NonRetryableJobError } from '@nuxt-laravelize/queue/runtime'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BullMQWorker, isTerminalBullMQFailure, processBullMQJob, toBullMQJobError } from '../../src/runtime/BullMQWorker'
 import { FailureReporter } from '../../src/runtime/FailureReporter'
@@ -140,10 +141,17 @@ describe('BullMQWorker lifecycle', () => {
     const registry = new InMemoryJobRegistry()
     registry.register(ProbeJob.name, ProbeJob)
     const hook = deferred()
-    const runner = { run: vi.fn(), failed: vi.fn(() => hook.promise) } as unknown as JobRunner
+    const runner = new JobRunner(createContainer(), registry)
+    vi.spyOn(runner, 'failed').mockImplementation(() => hook.promise)
     const failures = new FailureReporter()
-    const observed = vi.fn()
-    failures.listen(observed)
+    const observed: Job[] = []
+    failures.listen(({ job }) => {
+      const payload = job.payload as Record<string, unknown>
+      payload.mutated = true
+    })
+    failures.listen(({ job }) => {
+      observed.push(job)
+    })
     const worker = new BullMQWorker({ client: {} } as never, registry, runner, failures)
     await worker.work('critical')
     bullWorkers.instances[0]!.close.mockImplementation(async () => {
@@ -164,7 +172,28 @@ describe('BullMQWorker lifecycle', () => {
 
     hook.resolve()
     await stopping
-    expect(observed).toHaveBeenCalledOnce()
+    expect(observed).toHaveLength(1)
+    expect(observed[0]?.payload).toEqual({})
+  })
+
+  it('does not expose tampered payloads to terminal failure observers', async () => {
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const failures = new FailureReporter()
+    const observed = vi.fn()
+    failures.listen(observed)
+    const worker = new BullMQWorker({ client: {} } as never, registry, new JobRunner(createContainer(), registry), failures)
+    const serialized = new JobSerializer().serialize(new ProbeJob({}))
+    await worker.work('critical')
+
+    bullWorkers.instances[0]!.emit('failed', {
+      data: { ...serialized, payload: { tampered: true } },
+      attemptsMade: 1,
+      opts: { attempts: 1 },
+    }, new UnrecoverableError('[INVALID_JOB_DISPATCH] Non-retryable job failure'))
+    await worker.stop()
+
+    expect(observed).not.toHaveBeenCalled()
   })
 
   it('stops safely before any queue is registered', async () => {

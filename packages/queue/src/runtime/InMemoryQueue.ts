@@ -15,7 +15,6 @@ interface ResolvedOptions {
 }
 
 interface PendingJob {
-  readonly original: Job
   readonly serialized: SerializedJob
   readonly options: ResolvedOptions
   readonly handle: JobHandle
@@ -49,7 +48,6 @@ export class InMemoryQueue implements Queue {
     const duplicate = resolved.deduplication ? this.#deduplicated(resolved.queue, resolved.deduplication.id) : undefined
     if (duplicate) return duplicate
     const entry: PendingJob = {
-      original: job,
       serialized,
       options: resolved,
       handle: { id: resolved.id ?? `memory-${this.#nextId++}`, queue: resolved.queue },
@@ -155,7 +153,7 @@ export class InMemoryQueue implements Queue {
       }
       for (const callback of this.#failedCallbacks) {
         try {
-          await callback({ job: entry.original, queue: entry.options.queue, error: failure, attempts: entry.attempt })
+          await callback({ job: this.runner.rehydrate(entry.serialized), queue: entry.options.queue, error: failure, attempts: entry.attempt })
         }
         catch { /* Failure observers cannot alter queue completion. */ }
       }

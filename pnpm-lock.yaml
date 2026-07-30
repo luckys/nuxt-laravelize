@@ -1570,6 +1570,9 @@ importers:
 
   packages/queue:
     dependencies:
+      '@noble/hashes':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@nuxt-laravelize/core':
         specifier: workspace:^
         version: link:../core
@@ -3796,6 +3799,10 @@ packages:
 
   '@neon-rs/load@0.0.4':
     resolution: {integrity: sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw==}
+
+  '@noble/hashes@2.2.0':
+    resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
+    engines: {node: '>= 20.19.0'}
 
   '@nodable/entities@3.0.0':
     resolution: {integrity: sha512-8L9xFeTYKhm49xfIypoe2W5wV1m/3Z58kT+7kR9A8OyFxcPduI4VmxaUMQyKYrRjUoLLSXv6EKKID5Tvj9cUVw==}
@@ -11314,6 +11321,8 @@ snapshots:
 
   '@neon-rs/load@0.0.4':
     optional: true
+
+  '@noble/hashes@2.2.0': {}
 
   '@nodable/entities@3.0.0': {}
 

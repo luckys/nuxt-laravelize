@@ -41,12 +41,17 @@ describe('BullMQQueue', () => {
     const connection = { client: {} } as never
     const runner = { run: vi.fn() } as unknown as JobRunner
     await new BullMQQueue(connection, runner, serializer).push(new ProbeJob())
-    expect(add).toHaveBeenCalledWith('ProbeJob', {
+    expect(add.mock.calls[0]?.[0]).toBe('ProbeJob')
+    expect(add.mock.calls[0]?.[1]).toMatchObject({
       version: 2,
       name: 'ProbeJob',
       payload: { value: 1 },
-      metadata: { 'propagated': 'context', 'laravelize.queue.tags.v1': ['report:one', 'tenant:trusted'] },
-    }, expect.any(Object))
+      metadata: {
+        'propagated': 'context',
+        'laravelize.queue.tags.v1': ['report:one', 'tenant:trusted'],
+        'laravelize.queue.dispatch.v1': { version: 1, id: expect.any(String), payloadFingerprint: expect.stringMatching(/^sha256:[a-f0-9]{64}$/) },
+      },
+    })
   })
 
   it('forwards static priority and allows a validated push override', async () => {

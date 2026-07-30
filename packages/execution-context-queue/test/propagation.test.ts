@@ -98,6 +98,8 @@ describe('queue propagation', () => {
     for (const value of malformed) {
       await expect(runner.run({ version: 2, name: ProbeJob.name, payload: {}, metadata: { [EXECUTION_CONTEXT_METADATA_KEY]: value } })).rejects.toMatchObject({ code: 'INVALID_EXECUTION_CONTEXT' })
     }
+    const accessor = Object.defineProperty({}, EXECUTION_CONTEXT_METADATA_KEY, { enumerable: true, get: () => valid })
+    await expect(runner.run({ version: 2, name: ProbeJob.name, payload: {}, metadata: accessor })).rejects.toMatchObject({ code: 'INVALID_EXECUTION_CONTEXT' })
   })
   it('uses the worker as causation when a job dispatches a nested job', async () => {
     const container = createContainer()
@@ -149,6 +151,6 @@ describe('queue propagation', () => {
     installExecutionContextQueuePropagation(contributors, runner, current)
     const serialized = serializer.serialize(new ProbeJob())
     expect(serialized.version).toBe(2)
-    if (serialized.version === 2) expect(Object.keys(serialized.metadata)).toEqual(['laravelize.execution-context.v1', 'laravelize.queue.tags.v1'])
+    if (serialized.version === 2) expect(Object.keys(serialized.metadata)).toEqual(['laravelize.execution-context.v1', 'laravelize.queue.tags.v1', 'laravelize.queue.dispatch.v1'])
   })
 })

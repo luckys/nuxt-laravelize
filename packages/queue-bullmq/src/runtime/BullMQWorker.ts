@@ -56,7 +56,8 @@ export class BullMQWorker {
       // Preserve the worker's original failure.
     }
     try {
-      await this.failures.report({ job: this.registry.rehydrate(serialized), queue, error, attempts: job.attemptsMade })
+      const freshJob = () => this.registry.rehydrate(this.runner.prepare(serialized))
+      await this.failures.report({ job: freshJob(), queue, error, attempts: job.attemptsMade }, freshJob)
     }
     catch {
       // Failure observers must not reject an event-emitter callback.

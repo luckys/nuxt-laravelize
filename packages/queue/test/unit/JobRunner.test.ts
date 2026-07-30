@@ -24,6 +24,13 @@ describe('JobRunner middleware', () => {
     contributors.contribute(() => ({ first: 3 }))
     expect(() => new JobSerializer(contributors).serialize(new Probe())).toThrow('Duplicate job metadata key')
   })
+  it('detaches nested metadata from contributor mutations', () => {
+    const nested = { value: 'original' }
+    const contributors = new JobMetadataContributorRegistry(); contributors.contribute(() => ({ nested }))
+    const serialized = new JobSerializer(contributors).serialize(new Probe())
+    nested.value = 'mutated'
+    expect(serialized).toMatchObject({ metadata: { nested: { value: 'original' } } })
+  })
   it('rejects prototype-mutating metadata keys and always emits own plain metadata', () => {
     for (const key of ['__proto__', 'prototype', 'constructor']) {
       const contributors = new JobMetadataContributorRegistry()
@@ -38,7 +45,7 @@ describe('JobRunner middleware', () => {
   it('rejects malformed v2 envelopes before middleware', async () => {
     const runner = new JobRunner(createContainer(), new InMemoryJobRegistry()); const middleware = vi.fn()
     runner.use(async () => { middleware() })
-    await expect(runner.run({ version: 2, name: 'Probe', payload: {}, metadata: null } as never)).rejects.toThrow('Invalid serialized job envelope')
+    await expect(runner.run({ version: 2, name: 'Probe', payload: {}, metadata: null } as never)).rejects.toMatchObject({ code: 'INVALID_JOB_DISPATCH' })
     expect(middleware).not.toHaveBeenCalled()
   })
   it('serializes bounded tags once alongside contributor metadata', () => {
@@ -58,12 +65,12 @@ describe('JobRunner middleware', () => {
     expect(new Probe().serialize()).toEqual({ version: 1, name: 'Probe', payload: {} })
     expect(() => new TaggedProbe(['unsafe value']).serialize()).toThrow('Job tags must be safe identifiers')
   })
-  it('preserves existing custom serialization without effective metadata', () => {
+  it('adds dispatch identity to the effective custom serialization', () => {
     const custom = new CustomSerializedProbe()
     expect(custom.serialize()).toEqual({ version: 1, name: 'custom.probe', payload: { custom: true } })
-    expect(new JobSerializer().serialize(custom)).toEqual(custom.serialize())
+    expect(new JobSerializer().serialize(custom)).toMatchObject({ version: 2, name: 'custom.probe', payload: { custom: true }, metadata: { 'laravelize.queue.dispatch.v1': { version: 1 } } })
     const contributors = new JobMetadataContributorRegistry(); contributors.contribute(() => ({}))
-    expect(new JobSerializer(contributors).serialize(custom)).toEqual(custom.serialize())
+    expect(new JobSerializer(contributors).serialize(custom)).toMatchObject({ version: 2, name: 'custom.probe', payload: { custom: true } })
   })
   it('reserves tag metadata ownership and validates bounded identifiers', () => {
     const contributors = new JobMetadataContributorRegistry(); contributors.contribute(() => ({ [JOB_TAGS_METADATA_KEY]: ['spoofed'] }))
@@ -81,7 +88,10 @@ describe('JobRunner middleware', () => {
     expect(() => new TaggedProbe([...maximumAggregate, 'a']).serialize()).toThrow('at most 1024 characters in total')
 
     const contributors = new JobMetadataContributorRegistry()
-    contributors.contribute(() => Object.fromEntries(Array.from({ length: MAX_JOB_METADATA_KEYS }, (_, index) => [`key-${index}`, index])))
+    contributors.contribute(() => Object.fromEntries(Array.from({ length: MAX_JOB_METADATA_KEYS - 1 }, (_, index) => [`key-${index}`, index])))
+    expect(new JobSerializer(contributors).serialize(new Probe())).toMatchObject({ version: 2 })
+    expect(new JobSerializer(contributors).serialize(new TaggedProbe(['report:tagged']))).toMatchObject({ version: 2 })
+    contributors.contribute(() => ({ overflow: true }))
     expect(new JobSerializer(contributors).serialize(new Probe())).toMatchObject({ version: 2 })
     expect(() => new JobSerializer(contributors).serialize(new TaggedProbe(['report:tagged']))).toThrow('at most 64 keys')
   })

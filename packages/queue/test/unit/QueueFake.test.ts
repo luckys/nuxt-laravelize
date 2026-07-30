@@ -107,6 +107,8 @@ describe('QueueFake recording', () => {
     tags[0] = 'mutated'
 
     expect(queue.pushed[0]?.tags).toEqual(['report:one', 'tenant:trusted'])
+    expect(queue.pushed[0]?.dispatch).toMatchObject({ version: 1, id: expect.any(String), payloadFingerprint: expect.stringMatching(/^sha256:[a-f0-9]{64}$/) })
+    expect(queue.pushed[0]?.serialized).toMatchObject({ version: 2, metadata: { 'laravelize.queue.dispatch.v1': queue.pushed[0]?.dispatch } })
     await expect(queue.push(new TaggedJob(['unsafe value']))).rejects.toThrow('Job tags must be safe identifiers')
     await expect(queue.later(100, new TaggedJob(['unsafe value']))).rejects.toThrow('Job tags must be safe identifiers')
     await expect(queue.sync(new TaggedJob(['unsafe value']))).rejects.toThrow('Job tags must be safe identifiers')

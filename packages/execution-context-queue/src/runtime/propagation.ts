@@ -33,7 +33,9 @@ export function installExecutionContextQueuePropagation(contributors: JobMetadat
 function readSnapshot(serialized: SerializedJob): ExecutionContextSnapshot | undefined {
   if (serialized.version !== 2) return undefined
   if (!Object.prototype.hasOwnProperty.call(serialized.metadata, EXECUTION_CONTEXT_METADATA_KEY)) return undefined
-  const value = serialized.metadata[EXECUTION_CONTEXT_METADATA_KEY]
+  const descriptor = Object.getOwnPropertyDescriptor(serialized.metadata, EXECUTION_CONTEXT_METADATA_KEY)
+  if (!descriptor || !('value' in descriptor) || !descriptor.enumerable) throw new NonRetryableJobError('INVALID_EXECUTION_CONTEXT', 'Queue execution context metadata is invalid.')
+  const value = descriptor.value
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NonRetryableJobError('INVALID_EXECUTION_CONTEXT', 'Queue execution context metadata is invalid.')
   return value as ExecutionContextSnapshot
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobReleasedError, JobRunner, NonRetryableJobError, readJobTags } from '../../src/runtime/index'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobRegistrationCollisionError, JobReleasedError, JobRunner, NonRetryableJobError, readJobDispatchIdentity, readJobTags } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {
   static runs: number[] = []
@@ -40,6 +40,38 @@ class TerminalJob extends Job {
   }
 
   override failed(): void { TerminalJob.failures += 1 }
+}
+class MutatingRetryJob extends Job<{ nested: { value: number } }> {
+  static attempts = 0
+  static failures = 0
+  static seen: number[] = []
+  static failedValues: number[] = []
+  readonly payload: { nested: { value: number } }
+  constructor(payload: Record<string, unknown>) {
+    super()
+    this.payload = payload as { nested: { value: number } }
+  }
+
+  handle(): void {
+    MutatingRetryJob.attempts += 1
+    MutatingRetryJob.seen.push(this.payload.nested.value)
+    this.payload.nested.value += 1
+    if (MutatingRetryJob.attempts === 1) throw new Error('retry')
+  }
+
+  override failed(): void {
+    MutatingRetryJob.failures += 1
+    MutatingRetryJob.failedValues.push(this.payload.nested.value)
+  }
+}
+class OriginalMutationJob extends Job<{ value: number }> {
+  readonly payload: { value: number }
+  constructor(payload: Record<string, unknown>) {
+    super()
+    this.payload = payload as { value: number }
+  }
+
+  handle(): never { throw new Error('terminal') }
 }
 
 describe('InMemoryQueue', () => {
@@ -170,6 +202,67 @@ describe('InMemoryQueue', () => {
       await queue.clear()
       vi.useRealTimers()
     }
+  })
+  it('reuses one dispatch identity across retry attempts', async () => {
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const identities: string[] = []
+    runner.use('capture-dispatch', async (job, _scope, next) => {
+      identities.push(readJobDispatchIdentity(job)!.id)
+      if (identities.length === 1) {
+        const metadata = job.version === 2 ? job.metadata['laravelize.queue.dispatch.v1'] as { id: string } : undefined
+        if (metadata) metadata.id = 'mutated'
+        throw new Error('retry')
+      }
+      await next()
+    })
+    const queue = new InMemoryQueue(runner)
+
+    await queue.push(new TestJob({ value: 33 }), { tries: 2 })
+    await vi.waitFor(() => expect(identities).toHaveLength(2))
+
+    expect(new Set(identities).size).toBe(1)
+  })
+
+  it('isolates execution payload mutations across retries and failure handling', async () => {
+    MutatingRetryJob.attempts = 0
+    MutatingRetryJob.failures = 0
+    MutatingRetryJob.seen = []
+    MutatingRetryJob.failedValues = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(MutatingRetryJob.name, MutatingRetryJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    await queue.push(new MutatingRetryJob({ nested: { value: 1 } }), { tries: 2 })
+    await vi.waitFor(() => expect(MutatingRetryJob.attempts).toBe(2))
+
+    expect(MutatingRetryJob.failures).toBe(0)
+    expect(MutatingRetryJob.seen).toEqual([1, 1])
+
+    MutatingRetryJob.attempts = 0
+    await queue.push(new MutatingRetryJob({ nested: { value: 1 } }), { tries: 1 })
+    await vi.waitFor(() => expect(MutatingRetryJob.failures).toBe(1))
+    expect(MutatingRetryJob.failedValues).toEqual([1])
+  })
+
+  it('gives terminal observers the admitted payload snapshot', async () => {
+    const registry = new InMemoryJobRegistry()
+    registry.register(OriginalMutationJob.name, OriginalMutationJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+    const observed: number[] = []
+    queue.onFailed(({ job }) => {
+      const observedJob = job as OriginalMutationJob
+      observedJob.payload.value = 50
+    })
+    queue.onFailed(({ job }) => {
+      observed.push((job as OriginalMutationJob).payload.value)
+    })
+    const job = new OriginalMutationJob({ value: 1 })
+
+    await queue.push(job)
+    job.payload.value = 99
+    await vi.waitFor(() => expect(observed).toEqual([1]))
   })
 
   it('keeps middleware releases ineligible when another job schedules the queue', async () => {

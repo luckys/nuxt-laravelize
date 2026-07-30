@@ -33,6 +33,16 @@ describe('queue observability', () => {
       expect(queueTraceMetadata({ version: 2, name: 'probe', payload: {}, metadata } as never)).toEqual({})
     }
   })
+  it('preserves trace metadata at the maximum user metadata bound', () => {
+    const carrier = { traceparent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01' }
+    const contributors = new JobMetadataContributorRegistry()
+    contributors.contribute(() => ({ 'laravelize.trace.v1': carrier, ...Object.fromEntries(Array.from({ length: 62 }, (_, index) => [`k${index}`, index])) }))
+
+    const serialized = new JobSerializer(contributors).serialize(new Probe())
+
+    expect(serialized.version === 2 && Object.keys(serialized.metadata)).toHaveLength(65)
+    expect(queueTraceMetadata(serialized)).toEqual(carrier)
+  })
   it('runs the job exactly once when context activation invokes and then throws', async () => {
     const telemetry = new ObservabilityFake()
     telemetry.withSpan = ((_span, operation) => { operation(); throw new Error('activation') }) as typeof telemetry.withSpan

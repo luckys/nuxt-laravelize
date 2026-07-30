@@ -299,7 +299,7 @@ runFixture('features', {
     '@nuxt-laravelize/filesystem-aws': ['AwsS3Filesystem', 'InMemoryS3UploadIssuanceStore', 'S3UploadConfirmationInProgressError', 'createAwsS3Filesystem'],
     '@nuxt-laravelize/filesystem-aws-redis': ['RedisS3UploadIssuanceStore', 'RedisS3UploadIssuanceCorruptionError'],
     '@nuxt-laravelize/filesystem-cloudflare': ['CloudflareR2Filesystem'],
-    '@nuxt-laravelize/queue/runtime': ['JOB_TAGS_METADATA_KEY', 'JobReleasedError', 'MAX_JOB_METADATA_KEYS', 'MAX_JOB_PRIORITY', 'MAX_JOB_TAG_LENGTH', 'MAX_JOB_TAGS', 'MAX_JOB_TAGS_LENGTH', 'NonRetryableJobError', 'isJobReleasedError', 'isNonRetryableJobError', 'queueToken', 'readJobTags'],
+    '@nuxt-laravelize/queue/runtime': ['fingerprintJobPayload', 'JOB_DISPATCH_METADATA_KEY', 'JOB_TAGS_METADATA_KEY', 'JobReleasedError', 'MAX_JOB_METADATA_KEYS', 'MAX_JOB_PRIORITY', 'MAX_JOB_TAG_LENGTH', 'MAX_JOB_TAGS', 'MAX_JOB_TAGS_LENGTH', 'NonRetryableJobError', 'isJobReleasedError', 'isNonRetryableJobError', 'queueToken', 'readJobDispatchIdentity', 'readJobTags'],
     '@nuxt-laravelize/queue-middleware': ['default'],
     '@nuxt-laravelize/queue-middleware/runtime': ['ExceptionThrottleOpenError', 'ExceptionThrottlePredicateError', 'ExceptionThrottleRecordingError', 'JobOverlapLockLostError', 'RateLimited', 'ThrottlesExceptions', 'WithoutOverlapping'],
     '@nuxt-laravelize/rate-limiter/runtime': ['RateLimiter', 'rateLimiterToken'],

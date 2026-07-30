@@ -1,4 +1,4 @@
-export { JOB_TAGS_METADATA_KEY, Job, JobMetadataContributorRegistry, JobSerializer, MAX_JOB_METADATA_KEYS, MAX_JOB_TAG_LENGTH, MAX_JOB_TAGS, MAX_JOB_TAGS_LENGTH, readJobTags, type JobMetadataContributor, type SerializedJob, type SerializedJobV1, type SerializedJobV2 } from './Job'
+export { fingerprintJobPayload, JOB_DISPATCH_METADATA_KEY, JOB_TAGS_METADATA_KEY, Job, JobMetadataContributorRegistry, JobSerializer, MAX_JOB_METADATA_KEYS, MAX_JOB_TAG_LENGTH, MAX_JOB_TAGS, MAX_JOB_TAGS_LENGTH, readJobDispatchIdentity, readJobTags, type DispatchIdFactory, type JobDispatchIdentityV1, type JobMetadataContributor, type SerializedJob, type SerializedJobV1, type SerializedJobV2 } from './Job'
 export { InMemoryJobRegistry, JobNotRegisteredError, JobRegistrationCollisionError, type JobConstructor } from './JobRegistry'
 export { JobRunner, type JobExecutionDescriptor, type JobExecutionMiddleware, type JobScopeContributor } from './JobRunner'
 export { MAX_JOB_PRIORITY, type FailedJobCallback, type FailedJobInfo, type JobDeduplicationOptions, type JobHandle, type PushOptions, type Queue } from './Queue'

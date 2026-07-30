@@ -3,7 +3,7 @@ import type { Container } from '@nuxt-laravelize/core/runtime'
 import { ExecutionContext, executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
 import type { Observability, PropagationCarrier } from '@nuxt-laravelize/observability/runtime'
 import { safeErrorType, sanitizeCarrier } from '@nuxt-laravelize/observability/runtime'
-import { isJobReleasedError, type JobExecutionDescriptor, type JobMetadataContributorRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { isJobReleasedError, JOB_DISPATCH_METADATA_KEY, MAX_JOB_METADATA_KEYS, type JobExecutionDescriptor, type JobMetadataContributorRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
 
 const KEY = 'laravelize.trace.v1'
 const INSTALLATION = 'laravelize.observability.queue'
@@ -92,7 +92,9 @@ export function queueTraceMetadata(serialized: SerializedJob): PropagationCarrie
   try {
     if (!serialized || serialized.version !== 2) return {}
     const metadata = serialized.metadata
-    if (!metadata || Object.getPrototypeOf(metadata) !== Object.prototype || Object.keys(metadata).length > 64) return {}
+    if (!metadata || Object.getPrototypeOf(metadata) !== Object.prototype) return {}
+    const limit = Object.prototype.hasOwnProperty.call(metadata, JOB_DISPATCH_METADATA_KEY) ? MAX_JOB_METADATA_KEYS + 1 : MAX_JOB_METADATA_KEYS
+    if (Object.keys(metadata).length > limit) return {}
     return sanitizeCarrier(metadata[KEY])
   }
   catch { return {} }
