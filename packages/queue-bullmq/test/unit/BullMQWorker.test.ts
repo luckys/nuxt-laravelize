@@ -1,6 +1,6 @@
-import { DelayedError, UnrecoverableError } from 'bullmq'
+import { DelayedError, UnrecoverableError, type Job as BullJob } from 'bullmq'
 import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, Job, JobReleasedError, JobRunner, JobSerializer, NonRetryableJobError } from '@nuxt-laravelize/queue/runtime'
+import { currentQueueChainStep, InMemoryJobRegistry, Job, JobReleasedError, JobRunner, JobSerializer, nextQueueChainEnvelope, NonRetryableJobError, prepareQueueChain, queueChainJobId, type QueueChainEnvelopeV1 } from '@nuxt-laravelize/queue/runtime'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BullMQWorker, isTerminalBullMQFailure, processBullMQJob, toBullMQJobError } from '../../src/runtime/BullMQWorker'
 import { FailureReporter } from '../../src/runtime/FailureReporter'
@@ -9,16 +9,27 @@ const bullWorkers = vi.hoisted(() => ({ instances: [] as Array<{
   close: ReturnType<typeof vi.fn>
   emit: (event: string, ...args: unknown[]) => void
   options: Record<string, unknown>
+  process: (job: BullJob, token?: string) => Promise<void>
 }> }))
+const bullQueues = vi.hoisted(() => ({
+  add: vi.fn(),
+  close: vi.fn(async () => {}),
+  getJob: vi.fn(),
+}))
 
 vi.mock('bullmq', async (importOriginal) => {
   const actual = await importOriginal<typeof import('bullmq')>()
   return {
     ...actual,
+    Queue: class {
+      readonly add = bullQueues.add
+      readonly close = bullQueues.close
+      readonly getJob = bullQueues.getJob
+    },
     Worker: class {
       readonly close = vi.fn(async () => {})
       readonly #listeners = new Map<string, Array<(...args: unknown[]) => void>>()
-      constructor(_queue: string, _processor: unknown, readonly options: Record<string, unknown>) { bullWorkers.instances.push(this) }
+      constructor(_queue: string, readonly process: (job: BullJob, token?: string) => Promise<void>, readonly options: Record<string, unknown>) { bullWorkers.instances.push(this) }
       on(event: string, listener: (...args: unknown[]) => void) {
         const listeners = this.#listeners.get(event) ?? []
         listeners.push(listener)
@@ -34,9 +45,14 @@ vi.mock('bullmq', async (importOriginal) => {
 })
 
 class ProbeJob extends Job {
-  readonly payload = {}
-  constructor(_payload: Record<string, unknown>) { super() }
-  handle(): void {}
+  static runs: number[] = []
+  readonly payload: Record<string, unknown>
+  constructor(payload: Record<string, unknown>) {
+    super()
+    this.payload = payload
+  }
+
+  handle(): void { ProbeJob.runs.push(Number(this.payload.value ?? 0)) }
 }
 
 describe('toBullMQJobError', () => {
@@ -94,6 +110,77 @@ describe('toBullMQJobError', () => {
     expect(stalled.moveToDelayed).toHaveBeenCalledOnce()
   })
 
+  it('advances a validated chain only after the current step succeeds', async () => {
+    ProbeJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const chain = prepareQueueChain([
+      { job: new ProbeJob({ value: 1 }), options: { queue: 'critical' } },
+      { job: new ProbeJob({ value: 2 }), options: { queue: 'reports' } },
+    ], new JobSerializer(), (job, _queue, serializer) => serializer.serialize(job), () => 'test-chain')
+    const advance = vi.fn().mockResolvedValue(undefined)
+
+    await processBullMQJob(runner, chainJob(chain), 'critical', undefined, Date.now, advance)
+
+    expect(ProbeJob.runs).toEqual([1])
+    expect(advance).toHaveBeenCalledWith(expect.objectContaining({ id: 'test-chain', index: 1 }))
+  })
+
+  it('rejects a chain with a tampered future step before current effects', async () => {
+    ProbeJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const chain = prepareQueueChain([
+      { job: new ProbeJob({ value: 1 }), options: { queue: 'critical' } },
+      { job: new ProbeJob({ value: 2 }), options: { queue: 'reports' } },
+    ], new JobSerializer(), (job, _queue, serializer) => serializer.serialize(job), () => 'test-chain')
+    ;(chain.steps[1]!.serialized.payload as { value: number }).value = 99
+    const advance = vi.fn()
+
+    const failure = await processBullMQJob(runner, chainJob(chain), 'critical', undefined, Date.now, advance).catch(error => error)
+
+    expect(failure).toBeInstanceOf(UnrecoverableError)
+    expect(failure.message).toBe('[INVALID_JOB_CHAIN] Non-retryable job failure')
+    expect(ProbeJob.runs).toEqual([])
+    expect(advance).not.toHaveBeenCalled()
+  })
+
+  it('does not advance a chain when current execution fails', async () => {
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    runner.use('fail-current', async () => {
+      throw new Error('temporary')
+    })
+    const chain = prepareQueueChain([
+      { job: new ProbeJob({ value: 1 }), options: { queue: 'critical' } },
+      { job: new ProbeJob({ value: 2 }), options: { queue: 'reports' } },
+    ], new JobSerializer(), (job, _queue, serializer) => serializer.serialize(job), () => 'test-chain')
+    const advance = vi.fn()
+
+    await expect(processBullMQJob(runner, chainJob(chain), 'critical', undefined, Date.now, advance)).rejects.toThrow('temporary')
+    expect(advance).not.toHaveBeenCalled()
+  })
+
+  it('rejects chain transport metadata that does not match the current step', async () => {
+    ProbeJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const chain = prepareQueueChain([
+      { job: new ProbeJob({ value: 1 }), options: { queue: 'critical', tries: 2 } },
+    ], new JobSerializer(), (job, _queue, serializer) => serializer.serialize(job), () => 'test-chain')
+    const job = { ...chainJob(chain), id: 'injected-id' }
+
+    const failure = await processBullMQJob(runner, job as never, 'critical').catch(error => error)
+
+    expect(failure).toBeInstanceOf(UnrecoverableError)
+    expect(failure.message).toBe('[INVALID_JOB_CHAIN] Non-retryable job failure')
+    expect(ProbeJob.runs).toEqual([])
+  })
+
   it('treats an unrecoverable first attempt as terminal for failure reporting', () => {
     expect(isTerminalBullMQFailure({ attemptsMade: 1, opts: { attempts: 5 } }, new UnrecoverableError('terminal'))).toBe(true)
     expect(isTerminalBullMQFailure({ attemptsMade: 1, opts: { attempts: 5 } }, new Error('temporary'))).toBe(false)
@@ -101,7 +188,36 @@ describe('toBullMQJobError', () => {
 })
 
 describe('BullMQWorker lifecycle', () => {
-  beforeEach(() => bullWorkers.instances.splice(0))
+  beforeEach(() => {
+    bullWorkers.instances.splice(0)
+    bullQueues.add.mockReset()
+    bullQueues.close.mockReset().mockResolvedValue(undefined)
+    bullQueues.getJob.mockReset()
+  })
+
+  it('rejects a handoff when the persisted deterministic successor conflicts', async () => {
+    ProbeJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const worker = new BullMQWorker({ client: {} } as never, registry, runner)
+    const chain = prepareQueueChain([
+      { job: new ProbeJob({ value: 1 }), options: { queue: 'critical' } },
+      { job: new ProbeJob({ value: 2 }), options: { queue: 'reports' } },
+    ], new JobSerializer(), (job, _queue, serializer) => serializer.serialize(job), () => 'test-chain')
+    const next = nextQueueChainEnvelope(chain)!
+    bullQueues.add.mockResolvedValue(chainJob(next))
+    bullQueues.getJob.mockResolvedValue({ ...chainJob(next), data: { version: 1, name: ProbeJob.name, payload: {} } })
+    await worker.work('critical')
+
+    const failure = await bullWorkers.instances[0]!.process(chainJob(chain)).catch(error => error)
+
+    expect(failure).toBeInstanceOf(UnrecoverableError)
+    expect(failure.message).toBe('[QUEUE_CHAIN_HANDOFF_CONFLICT] Non-retryable job failure')
+    expect(bullQueues.getJob).toHaveBeenCalledWith(queueChainJobId(next))
+    expect(ProbeJob.runs).toEqual([1])
+    await worker.stop()
+  })
 
   it('shares one idempotent drain and rejects work after stopping begins', async () => {
     const worker = createWorker()
@@ -222,6 +338,18 @@ function createWorker(): BullMQWorker {
     new InMemoryJobRegistry(),
     { run: vi.fn(), failed: vi.fn() } as unknown as JobRunner,
   )
+}
+
+function chainJob(chain: QueueChainEnvelopeV1) {
+  const current = currentQueueChainStep(chain)
+  const backoff = typeof current.options.backoff === 'number' ? current.options.backoff : current.options.backoff[0] ?? 0
+  return {
+    id: queueChainJobId(chain),
+    name: current.serialized.name,
+    data: chain,
+    attemptsMade: 0,
+    opts: { attempts: current.options.tries, delay: current.options.delay, priority: current.options.priority, backoff: { type: 'fixed', delay: backoff } },
+  } as unknown as BullJob
 }
 
 function deferred() {

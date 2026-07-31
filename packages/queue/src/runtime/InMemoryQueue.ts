@@ -1,8 +1,9 @@
 import { JobSerializer, type Job, type SerializedJob } from './Job'
 import type { JobRunner } from './JobRunner'
-import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type JobDeduplicationOptions, type JobHandle, type PushOptions, type Queue } from './Queue'
+import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type JobDeduplicationOptions, type JobHandle, type PushOptions, type Queue, type QueueChainStep } from './Queue'
 import { isNonRetryableJobError, NonRetryableJobError } from './NonRetryableJobError'
 import { isJobReleasedError } from './JobReleasedError'
+import { currentQueueChainStep, nextQueueChainEnvelope, prepareQueueChain, QUEUE_CHAIN_JOB_ID_PREFIX, queueChainJobId, type QueueChainEnvelopeV1 } from './SequentialChain'
 
 interface ResolvedOptions {
   readonly id?: string
@@ -22,6 +23,7 @@ interface PendingJob {
   releases: number
   ready: boolean
   readonly sequence: number
+  readonly chain?: QueueChainEnvelopeV1
 }
 
 interface DeduplicationReservation {
@@ -61,6 +63,13 @@ export class InMemoryQueue implements Queue {
     return entry.handle
   }
 
+  async chain(steps: readonly QueueChainStep[]): Promise<JobHandle> {
+    const chain = prepareQueueChain(steps, this.serializer, (job, queue, serializer) => this.#serialize(job, queue, serializer))
+    const entry = this.#chainEntry(chain)
+    this.#enqueue(entry, entry.options.delay)
+    return entry.handle
+  }
+
   later(delayMs: number, job: Job, options?: PushOptions): Promise<JobHandle> {
     return this.push(job, { ...options, delay: delayMs })
   }
@@ -96,8 +105,22 @@ export class InMemoryQueue implements Queue {
 
   onFailed(callback: FailedJobCallback): void { this.#failedCallbacks.push(callback) }
 
-  #serialize(job: Job, queue: string): SerializedJob {
-    return this.serializer.requiresAdmission() ? this.runner.serialize(job, queue, this.serializer) : this.serializer.serialize(job)
+  #serialize(job: Job, queue: string, serializer = this.serializer): SerializedJob {
+    return serializer.requiresAdmission() ? this.runner.serialize(job, queue, serializer) : serializer.serialize(job)
+  }
+
+  #chainEntry(chain: QueueChainEnvelopeV1): PendingJob {
+    const step = currentQueueChainStep(chain)
+    return {
+      serialized: step.serialized,
+      options: step.options,
+      handle: { id: queueChainJobId(chain), queue: step.options.queue },
+      attempt: 0,
+      releases: 0,
+      ready: false,
+      sequence: this.#nextSequence++,
+      chain,
+    }
   }
 
   #enqueue(entry: PendingJob, delay: number): void {
@@ -164,6 +187,12 @@ export class InMemoryQueue implements Queue {
         }
         catch { /* Failure observers cannot alter queue completion. */ }
       }
+      return
+    }
+    const next = entry.chain ? nextQueueChainEnvelope(entry.chain) : undefined
+    if (next) {
+      const successor = this.#chainEntry(next)
+      this.#enqueue(successor, successor.options.delay)
     }
     this.#releaseDeduplication(entry)
   }
@@ -256,6 +285,7 @@ export class InMemoryQueue implements Queue {
 
 function resolveOptions(job: Job, options?: PushOptions): ResolvedOptions {
   const config = job.constructor as typeof Job
+  if (options?.id?.startsWith(QUEUE_CHAIN_JOB_ID_PREFIX)) throw new TypeError('job id uses the reserved queue chain prefix')
   if (options?.id !== undefined && options.deduplication !== undefined) throw new TypeError('id and deduplication cannot be combined')
   const deduplication = normalizeDeduplication(options?.deduplication)
   return {

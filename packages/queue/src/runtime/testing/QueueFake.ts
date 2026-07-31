@@ -1,11 +1,14 @@
 import { JobSerializer, readJobDispatchIdentity, readJobTags, type Job, type JobDispatchIdentityV1, type SerializedJob } from '../Job'
 import type { JobRunner } from '../JobRunner'
-import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type JobHandle, type PushOptions, type Queue } from '../Queue'
+import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type JobHandle, type PushOptions, type Queue, type QueueChainStep } from '../Queue'
+import { currentQueueChainStep, prepareQueueChain, QUEUE_CHAIN_JOB_ID_PREFIX, queueChainJobId } from '../SequentialChain'
 
 export interface PushedJob { readonly job: Job, readonly options: PushOptions, readonly priority: number, readonly queue?: string, readonly tags: readonly string[], readonly dispatch: JobDispatchIdentityV1, readonly serialized: SerializedJob }
+export interface PushedChain { readonly id: string, readonly steps: readonly PushedJob[] }
 
 export class QueueFake implements Queue {
   readonly pushed: PushedJob[] = []
+  readonly chains: PushedChain[] = []
   readonly #deduplication = new Map<string, Map<string, { readonly handle: JobHandle, readonly expiresAt?: number }>>()
   #nextId = 1
   #deduplicationTimer?: ReturnType<typeof setTimeout>
@@ -16,6 +19,7 @@ export class QueueFake implements Queue {
   ) {}
 
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {
+    if (options.id?.startsWith(QUEUE_CHAIN_JOB_ID_PREFIX)) throw new TypeError('job id uses the reserved queue chain prefix')
     if (options.id !== undefined && options.deduplication !== undefined) throw new TypeError('id and deduplication cannot be combined')
     const priority = options.priority ?? (job.constructor as typeof Job).priority
     if (!Number.isSafeInteger(priority) || priority < 0 || priority > MAX_JOB_PRIORITY) throw new TypeError(`priority must be an integer between 0 and ${MAX_JOB_PRIORITY}`)
@@ -41,6 +45,24 @@ export class QueueFake implements Queue {
     return handle
   }
 
+  async chain(steps: readonly QueueChainStep[]): Promise<JobHandle> {
+    const chain = prepareQueueChain(steps, this.serializer, (job, queue, serializer) => this.#serialize(job, queue, serializer))
+    const recorded = chain.steps.map((step, index): PushedJob => ({
+      job: steps[index]!.job,
+      options: step.options,
+      priority: step.options.priority,
+      queue: step.options.queue,
+      tags: readJobTags(step.serialized),
+      dispatch: readJobDispatchIdentity(step.serialized)!,
+      serialized: step.serialized,
+    }))
+    const current = currentQueueChainStep(chain)
+    const handle = { id: queueChainJobId(chain), queue: current.options.queue }
+    this.chains.push({ id: chain.id, steps: recorded })
+    this.pushed.push(recorded[0]!)
+    return handle
+  }
+
   later(delay: number, job: Job, options: PushOptions = {}): Promise<JobHandle> { return this.push(job, { ...options, delay }) }
   async sync(job: Job): Promise<void> {
     const queue = (job.constructor as typeof Job).queue
@@ -51,11 +73,13 @@ export class QueueFake implements Queue {
   async clear(queue?: string): Promise<void> {
     if (queue === undefined) {
       this.pushed.length = 0
+      this.chains.length = 0
       this.#deduplication.clear()
       this.#clearDeduplicationTimer()
     }
     else {
       this.pushed.splice(0, this.pushed.length, ...this.pushed.filter(item => item.queue !== queue))
+      this.chains.splice(0, this.chains.length, ...this.chains.filter(item => item.steps[0]?.queue !== queue))
       this.#deduplication.delete(queue)
       this.#rescheduleDeduplicationExpiry()
     }
@@ -66,9 +90,9 @@ export class QueueFake implements Queue {
     if (!this.pushed.some(item => item.job instanceof type)) throw new Error(`Expected ${type.name} to be pushed.`)
   }
 
-  #serialize(job: Job, queue: string): SerializedJob {
-    if (this.serializer.requiresAdmission() && !this.runner) throw new TypeError('QueueFake requires a JobRunner for admission metadata')
-    return this.serializer.requiresAdmission() ? this.runner!.serialize(job, queue, this.serializer) : this.serializer.serialize(job)
+  #serialize(job: Job, queue: string, serializer = this.serializer): SerializedJob {
+    if (serializer.requiresAdmission() && !this.runner) throw new TypeError('QueueFake requires a JobRunner for admission metadata')
+    return serializer.requiresAdmission() ? this.runner!.serialize(job, queue, serializer) : serializer.serialize(job)
   }
 
   #scheduleDeduplicationExpiry(expiresAt: number): void {

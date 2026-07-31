@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { Queue as BullQueue } from 'bullmq'
-import { MAX_JOB_PRIORITY, type Job, type JobDeduplicationOptions, type JobHandle, type PushOptions, type Queue, type JobRunner, type JobSerializer } from '@nuxt-laravelize/queue/runtime'
+import { currentQueueChainStep, MAX_JOB_PRIORITY, prepareQueueChain, QUEUE_CHAIN_JOB_ID_PREFIX, queueChainJobId, type Job, type JobDeduplicationOptions, type JobHandle, type PushOptions, type Queue, type JobRunner, type JobSerializer, type QueueChainStep, type ResolvedQueueChainOptions } from '@nuxt-laravelize/queue/runtime'
 import type { BullMQConnection } from './BullMQConnection'
 import type { FailureReporter } from './FailureReporter'
 
@@ -15,6 +15,7 @@ export class BullMQQueue implements Queue {
 
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {
     if (options.id !== undefined && options.deduplication !== undefined) throw new TypeError('id and deduplication cannot be combined')
+    if (options.id?.startsWith(QUEUE_CHAIN_JOB_ID_PREFIX)) throw new TypeError('job id uses the reserved queue chain prefix')
     if (options.id?.includes(':')) throw new TypeError('BullMQ job id must not contain a colon')
     const config = job.constructor as typeof Job
     const queueName = options.queue ?? config.queue
@@ -32,6 +33,13 @@ export class BullMQQueue implements Queue {
       ...(deduplication ? { deduplication: { id: deduplicationId(deduplication.id), ...(deduplication.ttl === undefined ? {} : { ttl: deduplication.ttl }) } } : {}),
     })
     return { id: String(queued.id ?? ''), queue: queueName }
+  }
+
+  async chain(steps: readonly QueueChainStep[]): Promise<JobHandle> {
+    const chain = prepareQueueChain(steps, this.serializer, (job, queue, serializer) => this.#serialize(job, queue, serializer))
+    const current = currentQueueChainStep(chain)
+    const queued = await this.#queue(current.options.queue).add(current.serialized.name, chain, bullMQOptions(current.options, queueChainJobId(chain)))
+    return { id: String(queued.id ?? ''), queue: current.options.queue }
   }
 
   later(delay: number, job: Job, options: PushOptions = {}): Promise<JobHandle> { return this.push(job, { ...options, delay }) }
@@ -58,8 +66,8 @@ export class BullMQQueue implements Queue {
 
   async close(): Promise<void> { await Promise.all([...this.#queues.values()].map(queue => queue.close())) }
 
-  #serialize(job: Job, queue: string) {
-    return this.serializer.requiresAdmission() ? this.runner.serialize(job, queue, this.serializer) : this.serializer.serialize(job)
+  #serialize(job: Job, queue: string, serializer = this.serializer) {
+    return serializer.requiresAdmission() ? this.runner.serialize(job, queue, serializer) : serializer.serialize(job)
   }
 
   #queue(name: string): BullQueue {
@@ -92,4 +100,14 @@ function readDeduplication(value?: JobDeduplicationOptions): JobDeduplicationOpt
 
 function deduplicationId(id: string): string {
   return `v1-${createHash('sha256').update(id).digest('base64url')}`
+}
+
+export function bullMQOptions(options: ResolvedQueueChainOptions, jobId: string) {
+  return {
+    jobId,
+    attempts: options.tries,
+    delay: options.delay,
+    backoff: { type: 'fixed', delay: readBackoff(options.backoff) },
+    ...(options.priority > 0 ? { priority: options.priority } : {}),
+  }
 }

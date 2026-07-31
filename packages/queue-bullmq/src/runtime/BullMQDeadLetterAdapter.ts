@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto'
 import type { Job as BullJob, Queue } from 'bullmq'
 import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, deadLetterOperationFingerprint, sanitizeDeadLetterError, type DeadLetterAdapter, type DeadLetterDetail, type DeadLetterKey, type DeadLetterListRequest, type DeadLetterMutation, type DeadLetterMutationResult, type DeadLetterOperationReceipt, type DeadLetterOperationStore, type DeadLetterRetry, type DeadLetterSummary } from '@nuxt-laravelize/dead-letter'
+import { currentQueueChainStep, readQueueChainEnvelope } from '@nuxt-laravelize/queue/runtime'
 
 const MAX_PAYLOAD_BYTES = 256 * 1024
 const MAX_LIST_JOBS = 1000
@@ -13,6 +14,19 @@ const stableJson = (value: unknown): string => {
 const immutableOptions = (job: BullJob) => { const options = job.opts ?? {}; return { attempts: options.attempts ?? null, backoff: options.backoff ?? null, delay: options.delay ?? null, lifo: options.lifo ?? null, priority: options.priority ?? null, removeOnComplete: options.removeOnComplete ?? null, removeOnFail: options.removeOnFail ?? null } }
 const fence = (queue: string, job: BullJob) => createHash('sha256').update(stableJson([queue, String(job.id), job.name, job.finishedOn ?? null, job.attemptsMade, job.data, immutableOptions(job), 'failed'])).digest('base64url')
 const terminalAt = (job: BullJob) => new Date(job.finishedOn ?? job.processedOn ?? job.timestamp).toISOString()
+const inspectablePayload = (data: unknown): unknown => {
+  try {
+    const chain = readQueueChainEnvelope(data)
+    if (chain) return currentQueueChainStep(chain).serialized.payload
+    if (data && Object.getPrototypeOf(data) === Object.prototype) {
+      const value = data as Record<string, unknown>
+      if (['kind', 'index', 'steps', 'fingerprint'].some(key => Object.prototype.hasOwnProperty.call(value, key))) throw new DeadLetterInvalidStateError()
+      if ((value.version === 1 || value.version === 2) && typeof value.name === 'string' && value.payload && Object.getPrototypeOf(value.payload) === Object.prototype) return value.payload
+    }
+    return data
+  }
+  catch { throw new DeadLetterInvalidStateError() }
+}
 type ListCursor = { terminalAt: string, id: string }
 const parseCursor = (cursor?: string): ListCursor | undefined => {
   if (!cursor) return undefined
@@ -38,7 +52,7 @@ export class BullMQDeadLetterAdapter implements DeadLetterAdapter {
     const items = matching.slice(0, limit); const last = items.at(-1)
     return { items, ...(matching.length > items.length && last ? { nextCursor: JSON.stringify({ terminalAt: last.terminalAt, id: last.key.id }) } : {}) }
   }
-  async get(key: DeadLetterKey, options?: { includePayload?: boolean, includeErrorSummary?: boolean }): Promise<DeadLetterDetail> { const job = await this.loadFailed(key); const base = this.summary(job, options?.includeErrorSummary); const payload = options?.includePayload ? JSON.parse(stableJson(job.data)) : undefined; if (await job.getState() !== 'failed') throw new DeadLetterNotFoundError(); return { ...base, ...(options?.includePayload ? { payload } : {}) } }
+  async get(key: DeadLetterKey, options?: { includePayload?: boolean, includeErrorSummary?: boolean }): Promise<DeadLetterDetail> { const job = await this.loadFailed(key); const base = this.summary(job, options?.includeErrorSummary); const payload = options?.includePayload ? JSON.parse(stableJson(inspectablePayload(job.data))) : undefined; if (await job.getState() !== 'failed') throw new DeadLetterNotFoundError(); return { ...base, ...(options?.includePayload ? { payload } : {}) } }
   retry(request: DeadLetterRetry) { if (Date.parse(request.availableAt) > this.clock().getTime()) throw new DeadLetterInvalidStateError(); return this.mutate(request) }
   discard(_request: DeadLetterMutation): Promise<DeadLetterMutationResult> { throw new DeadLetterInvalidStateError() }
   private async mutate(request: DeadLetterRetry): Promise<DeadLetterMutationResult> {

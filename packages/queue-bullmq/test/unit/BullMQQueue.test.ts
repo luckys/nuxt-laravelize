@@ -79,6 +79,39 @@ describe('BullMQQueue', () => {
     expect(runner.run).toHaveBeenCalledWith(expect.any(Object), { queue: 'default' })
   })
 
+  it('eagerly prepares a linear chain and admits only its first step', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const admissions: string[] = []
+    const serializer = new JobSerializer()
+    serializer.contributeAdmission((_job, admission) => {
+      admissions.push(admission.queue)
+      return { credential: admission.dispatch.id }
+    })
+    const registry = new InMemoryJobRegistry()
+    registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const queue = new BullMQQueue({ client: {} } as never, runner, serializer)
+
+    const handle = await queue.chain([
+      { job: new ProbeJob(), options: { queue: 'critical', tries: 2 } },
+      { job: new ProbeJob(), options: { queue: 'reports', delay: 100 } },
+    ])
+
+    expect(handle.queue).toBe('critical')
+    expect(admissions).toEqual(['critical', 'reports'])
+    expect(add).toHaveBeenCalledOnce()
+    expect(add.mock.calls[0]?.[1]).toMatchObject({
+      kind: 'nuxt-laravelize.queue-chain',
+      version: 1,
+      index: 0,
+      steps: [
+        { options: { queue: 'critical', tries: 2 } },
+        { options: { queue: 'reports', delay: 100 } },
+      ],
+    })
+    expect(add.mock.calls[0]?.[2]).toMatchObject({ attempts: 2, jobId: expect.stringMatching(/^laravelize-chain-/) })
+  })
+
   it('forwards static priority and allows a validated push override', async () => {
     const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
     const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
@@ -127,6 +160,7 @@ describe('BullMQQueue', () => {
     const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
     const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
     await expect(queue.push(new ProbeJob(), { id: 'outbox:message' })).rejects.toThrow(/must not contain a colon/)
+    await expect(queue.push(new ProbeJob(), { id: 'laravelize-chain-injected-1' })).rejects.toThrow('reserved queue chain prefix')
     expect(add).not.toHaveBeenCalled()
   })
 

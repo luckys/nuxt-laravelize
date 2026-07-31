@@ -2,6 +2,8 @@
 
 Node-only BullMQ queue and worker. Importing `@nuxt-laravelize/queue` never loads BullMQ or ioredis.
 
+Sequential chains persist their eagerly prepared future steps and use deterministic internal successor IDs. Run a worker for every selected queue. A successor publication outage can retry the preceding handler, cross-queue handoff is not atomic, and future delegation credentials can expire before execution. Dead-letter payload inspection exposes only the current business payload and strips all serialized metadata and credentials.
+
 See the complete [English](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.md#bullmq-adapter) or [Spanish](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.es.md#adapter-bullmq) guide for connection, queue and worker examples.
 
 `BullMQDeadLetterAdapter` uses public BullMQ APIs. Lists are metadata-only; payload and error summaries are separate opt-ins. Payloads are JSON-cloned and rejected above bounded size/depth/complexity. Retry fences hash job data and selected immutable options, but remain optimistic because BullMQ cannot atomically combine the final state check, retry, and an external receipt. A durable `DeadLetterOperationStore` is required; reserve occurs before retry, and pending replay is ambiguous and never blindly retried. The memory store is testing-only. This is not a claim of atomic or durable idempotency when the supplied store itself is not durable.

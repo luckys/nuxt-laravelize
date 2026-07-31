@@ -19,12 +19,16 @@ export interface PushOptions {
   readonly deduplication?: JobDeduplicationOptions
 }
 
+export type QueueChainStepOptions = Omit<PushOptions, 'id' | 'deduplication'>
+export interface QueueChainStep { readonly job: Job, readonly options?: QueueChainStepOptions }
+
 export interface JobHandle { readonly id: string, readonly queue: string }
 export interface FailedJobInfo { readonly job: Job, readonly queue: string, readonly error: unknown, readonly attempts: number }
 export type FailedJobCallback = (info: FailedJobInfo) => void | Promise<void>
 
 export interface Queue {
   push(job: Job, options?: PushOptions): Promise<JobHandle>
+  chain(steps: readonly QueueChainStep[]): Promise<JobHandle>
   later(delayMs: number, job: Job, options?: PushOptions): Promise<JobHandle>
   sync(job: Job): Promise<void>
   size(queueName?: string): Promise<number>

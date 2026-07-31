@@ -661,6 +661,10 @@ registry.register(SendReport.name, SendReport)
 await queue.push(new SendReport({ reportId: 'report_1' }))
 await queue.later(60_000, new SendReport({ reportId: 'report_2' }))
 await queue.sync(new SendReport({ reportId: 'report_3' }))
+await queue.chain([
+  { job: new SendReport({ reportId: 'report_4' }) },
+  { job: new SendReport({ reportId: 'report_5' }), options: { queue: 'archive' } },
+])
 ```
 
 | API | Purpose |
@@ -673,10 +677,11 @@ await queue.sync(new SendReport({ reportId: 'report_3' }))
 | `InMemoryJobRegistry.rehydrate()` | Recreates a registered job or throws `JobNotRegisteredError`. |
 | `JobRunner.run()` / `failed()` | Runs a serialized job and its failure hook in a scope. |
 | `Queue.push()` / `later()` / `sync()` | Enqueues, delays or immediately executes a job. |
+| `Queue.chain()` | Eagerly prepares a bounded linear chain and admits each successor only after the preceding step succeeds. |
 | `Queue.size()` / `clear()` | Inspects or clears all jobs, optionally by queue name. |
 | `Queue.onFailed()` | Registers a terminal-failure observer. |
 | `PushOptions` | Overrides `tries`, `delay`, `queue`, `backoff` and `priority`; `deduplication` suppresses matching queue-local admission. |
-| `QueueFake` | Records admitted pushes, their serialized dispatch identity, effective priority and normalized tags while reproducing local deduplication; use `assertPushed()`, `size()` and `clear()`. |
+| `QueueFake` | Records admitted pushes and complete prepared chains, including dispatch identity, effective priority and normalized tags; use `pushed`, `chains`, `assertPushed()`, `size()` and `clear()`. |
 | `JobReleasedError` | Requests delayed replay without consuming the ordinary failure-attempt budget. Queue adapters handle it; application jobs should not use it as a business error. |
 
 Jobs may declare up to 16 diagnostic tags with `tags()`. Each tag is a safe identifier of at most 128 characters, all declarations together are limited to 1024 characters, and duplicates are removed while preserving order. Tags are snapshotted into namespaced versioned metadata at serialization, so retries, delayed releases and dead-letter inspection see the same values. `readJobTags()` returns a frozen defensive copy and treats absent or malformed persisted tag metadata as no tags; producer serialization remains strict. Tags may appear in Redis job data, backups, failed-job tooling and operations dashboards. Never include credentials, tokens, email addresses, raw customer identifiers or unnecessary personal data. Tags are diagnostics only: they do not authorize tenant/principal access, fence effects, deduplicate admission or automatically become metric labels or trace attributes. Indexing and fleet-wide tag queries are intentionally not provided.
@@ -698,6 +703,10 @@ await queue.push(new SendReport({ reportId: 'report_1' }), {
 ```
 
 Deduplication only reduces duplicate admission. It does not replace durable idempotency, tenant authorization or store fencing, and it cannot provide exactly-once effects across retries, crashes or acknowledgement ambiguity. The queue is not an authorization boundary: only trusted producer code may construct deduplication metadata, and that code must include a trusted tenant scope when identities can overlap. Never accept the complete identifier from an untrusted caller or place secrets or personal data in it. Replacement/debounce behavior is intentionally unsupported.
+
+Sequential chains contain from 1 through 100 steps, at most 8000 JSON nodes, 24 levels and a maximum 240 KiB serialized envelope. Every step resolves its own queue, retries, delay, backoff and priority and passes independently through registry-backed final admission before the first broker mutation. Each step therefore receives a distinct dispatch identity, payload fingerprint and, when configured, delegation credential bound to its exact job and queue. Chain steps do not accept caller IDs or deduplication, and ordinary pushes cannot use the reserved `laravelize-chain-` job ID prefix. Only the first step is initially admitted; a successful step publishes the next one, while retries and delayed releases do not advance and terminal failure stops the chain. A versioned SHA-256 chain fingerprint and BullMQ transport checks detect accidental state corruption but are unkeyed and do not authenticate storage. `QueueFake.chains` records the complete prepared chain but only its first step in `pushed`.
+
+The handoff is at-least-once, not transactional execution. BullMQ uses deterministic internal successor IDs to reduce duplicate broker admission when acknowledgement is ambiguous, but a crash or successor-publication outage can rerun the preceding handler, and there is no atomic cross-queue commit. Every handler still requires durable idempotency or fencing. BullMQ workers must be running for every queue named by the chain. Prepared future metadata is persisted with the current chain envelope; dead-letter payload inspection exposes only the current business payload and strips all serialized metadata, but storage operators can still access Redis data. Redis or broker write access is a trusted infrastructure boundary: an attacker with it can recompute unkeyed integrity metadata, inject exact replays or skip ordering while a credential remains valid. Use Redis ACLs/network isolation and application idempotency; this contract does not claim anti-replay. Long-running chains can outlive an eagerly issued delegation credential and then fail closed. Chains intentionally provide no branches, parallel fan-out, result passing, dynamic mutation, catch/finally steps, progress or cancellation; use explicit workflows for those semantics and future durable batches for bounded fan-out.
 
 ```ts
 import { QueueFake } from '@nuxt-laravelize/queue/testing'

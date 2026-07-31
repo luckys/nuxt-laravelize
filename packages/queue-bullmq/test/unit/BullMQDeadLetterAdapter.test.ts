@@ -2,9 +2,15 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterStaleRevisionError, deadLetterOperationFingerprint, type DeadLetterMutationResult } from '@nuxt-laravelize/dead-letter'
 import { MemoryDeadLetterOperationStore } from '@nuxt-laravelize/dead-letter/testing'
+import { Job, JobSerializer, prepareQueueChain } from '@nuxt-laravelize/queue/runtime'
 import { BullMQDeadLetterAdapter } from '../../src/runtime/BullMQDeadLetterAdapter.js'
 
 const job = () => ({ id: 'job-1', name: 'mail.send', data: { secret: true }, opts: { attempts: 4 }, failedReason: 'token=hidden\nstack', attemptsMade: 3, finishedOn: 100, processedOn: 50, timestamp: 0, getState: vi.fn().mockResolvedValue('failed'), retry: vi.fn().mockResolvedValue(undefined), remove: vi.fn().mockResolvedValue(undefined) })
+class ChainPayloadJob extends Job<{ recipient: string }> {
+  readonly payload: { recipient: string }
+  constructor(payload: Record<string, unknown>) { super(); this.payload = payload as { recipient: string } }
+  handle() {}
+}
 describe('BullMQDeadLetterAdapter', () => {
   it('advertises immediate retry without discard or scheduling', () => {
     expect(new BullMQDeadLetterAdapter({} as never, new MemoryDeadLetterOperationStore()).capabilities).toEqual({ retry: true, discard: false, scheduleRetry: false })
@@ -19,6 +25,40 @@ describe('BullMQDeadLetterAdapter', () => {
     expect(() => adapter.discard({ key: summary!.key, revision: summary!.revision, operationId: 'discard-1' })).toThrow(DeadLetterInvalidStateError); expect(failed.remove).not.toHaveBeenCalled()
     const request = { key: summary!.key, revision: summary!.revision, operationId: 'retry-2', availableAt: new Date(0).toISOString() }
     const result = await adapter.retry(request); expect(await adapter.retry(request)).toEqual(result); expect(failed.retry).toHaveBeenCalledOnce()
+  })
+  it('never exposes future chain credentials through payload inspection', async () => {
+    const serializer = new JobSerializer()
+    serializer.contribute(item => ({ credential: item.payload.recipient === 'opaque-1' ? 'current' : 'future-secret' }))
+    const chain = prepareQueueChain([
+      { job: new ChainPayloadJob({ recipient: 'opaque-1' }), options: { queue: 'emails' } },
+      { job: new ChainPayloadJob({ recipient: 'opaque-2' }), options: { queue: 'emails' } },
+    ], serializer, (item, _queue, currentSerializer) => currentSerializer.serialize(item), () => 'chain-1')
+    const failed = { ...job(), data: chain }
+    const queue = { name: 'emails', getJob: vi.fn().mockResolvedValue(failed) }
+    const adapter = new BullMQDeadLetterAdapter(queue as never, new MemoryDeadLetterOperationStore())
+
+    const detail = await adapter.get({ source: 'bullmq', namespace: 'emails', id: 'job-1' }, { includePayload: true })
+
+    expect(detail.payload).toEqual({ recipient: 'opaque-1' })
+    expect(JSON.stringify(detail.payload)).not.toContain('current')
+    expect(JSON.stringify(detail.payload)).not.toContain('future-secret')
+
+    const malformed = structuredClone(chain) as unknown as Record<string, unknown>
+    delete malformed.kind
+    failed.data = malformed as never
+    await expect(adapter.get({ source: 'bullmq', namespace: 'emails', id: 'job-1' }, { includePayload: true })).rejects.toBeInstanceOf(DeadLetterInvalidStateError)
+  })
+  it('strips serialized metadata from ordinary job payload inspection', async () => {
+    const serializer = new JobSerializer()
+    serializer.contribute(() => ({ credential: 'ordinary-secret' }))
+    const failed = { ...job(), data: serializer.serialize(new ChainPayloadJob({ recipient: 'opaque-1' })) }
+    const queue = { name: 'emails', getJob: vi.fn().mockResolvedValue(failed) }
+    const adapter = new BullMQDeadLetterAdapter(queue as never, new MemoryDeadLetterOperationStore())
+
+    const detail = await adapter.get({ source: 'bullmq', namespace: 'emails', id: 'job-1' }, { includePayload: true })
+
+    expect(detail.payload).toEqual({ recipient: 'opaque-1' })
+    expect(JSON.stringify(detail.payload)).not.toContain('ordinary-secret')
   })
   it('filters across the complete bounded failed-job snapshot', async () => {
     const jobs = Array.from({ length: 55 }, (_, index) => ({ ...job(), id: `job-${index}`, name: index === 54 ? 'target' : 'other', finishedOn: index + 1 }))

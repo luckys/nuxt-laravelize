@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobMetadataContributorRegistry, JobRegistrationCollisionError, JobReleasedError, JobRunner, JobSerializer, NonRetryableJobError, readJobDispatchIdentity, readJobTags } from '../../src/runtime/index'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobMetadataContributorRegistry, JobRegistrationCollisionError, JobReleasedError, JobRunner, JobSerializer, MAX_QUEUE_CHAIN_STEPS, NonRetryableJobError, readJobDispatchIdentity, readJobTags } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {
   static runs: number[] = []
@@ -75,6 +75,65 @@ class OriginalMutationJob extends Job<{ value: number }> {
 }
 
 describe('InMemoryQueue', () => {
+  it('executes a bounded chain sequentially across queues with final admission facts', async () => {
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const admissions: Array<{ queue: string, dispatchId: string }> = []
+    const serializer = new JobSerializer()
+    serializer.contributeAdmission((_job, admission) => {
+      admissions.push({ queue: admission.queue, dispatchId: admission.dispatch.id })
+      return { credential: admission.dispatch.id }
+    })
+    const queue = new InMemoryQueue(runner, serializer)
+
+    const handle = await queue.chain([
+      { job: new TestJob({ value: 1 }), options: { queue: 'critical' } },
+      { job: new TestJob({ value: 2 }), options: { queue: 'reports' } },
+      { job: new TestJob({ value: 3 }) },
+    ])
+    await vi.waitFor(() => expect(TestJob.runs).toEqual([1, 2, 3]))
+
+    expect(handle.queue).toBe('critical')
+    expect(admissions.map(item => item.queue)).toEqual(['critical', 'reports', 'default'])
+    expect(new Set(admissions.map(item => item.dispatchId)).size).toBe(3)
+  })
+
+  it('does not advance a chain after a terminal middle-step failure', async () => {
+    TestJob.runs = []
+    TerminalJob.runs = 0
+    TerminalJob.failures = 0
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    registry.register(TerminalJob.name, TerminalJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    await queue.chain([
+      { job: new TestJob({ value: 1 }) },
+      { job: new TerminalJob({}), options: { tries: 5 } },
+      { job: new TestJob({ value: 3 }) },
+    ])
+    await vi.waitFor(() => expect(TerminalJob.failures).toBe(1))
+
+    expect(TestJob.runs).toEqual([1])
+    expect(TerminalJob.runs).toBe(1)
+  })
+
+  it('rejects invalid chains before admitting a job', async () => {
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry()
+    registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+
+    await expect(queue.chain([])).rejects.toThrow('at least 1 step')
+    await expect(queue.chain(Array.from({ length: MAX_QUEUE_CHAIN_STEPS + 1 }, (_, value) => ({ job: new TestJob({ value }) })))).rejects.toThrow(`at most ${MAX_QUEUE_CHAIN_STEPS} steps`)
+    await expect(queue.chain([{ job: new TestJob({ value: 1 }), options: { id: 'unsupported' } as never }])).rejects.toThrow('id and deduplication are not supported')
+
+    expect(TestJob.runs).toEqual([])
+    await expect(queue.size()).resolves.toBe(0)
+  })
+
   it('registers explicit, constructor and stable names while rejecting collisions', () => {
     const registry = new InMemoryJobRegistry()
     registry.register('supplied-name', StableJob)
@@ -504,6 +563,7 @@ describe('InMemoryQueue', () => {
     await expect(queue.push(new TestJob({ value: 1 }), { deduplication: { id: 'valid', ttl: 0 } })).rejects.toThrow('deduplication ttl must be an integer between 1 and 86400000')
     await expect(queue.push(new TestJob({ value: 1 }), { deduplication: { id: 'valid', replace: true } as never })).rejects.toThrow('deduplication must contain only id and optional ttl')
     await expect(queue.push(new TestJob({ value: 1 }), { id: 'job-1', deduplication: { id: 'valid' } })).rejects.toThrow('id and deduplication cannot be combined')
+    await expect(queue.push(new TestJob({ value: 1 }), { id: 'laravelize-chain-injected-1' })).rejects.toThrow('reserved queue chain prefix')
   })
 
   it('creates, contributes, and disposes a scope for terminal failed hooks', async () => {

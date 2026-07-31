@@ -101,6 +101,32 @@ describe('QueueFake deduplication', () => {
 })
 
 describe('QueueFake recording', () => {
+  it('records complete chains without pretending successors were independently pushed', async () => {
+    const registry = new InMemoryJobRegistry()
+    registry.register(PriorityJob.name, PriorityJob)
+    registry.register(ReportsJob.name, ReportsJob)
+    const serializer = new JobSerializer()
+    const admissions: string[] = []
+    serializer.contributeAdmission((_job, admission) => {
+      admissions.push(admission.queue)
+      return { credential: admission.dispatch.id }
+    })
+    const queue = new QueueFake(serializer, new JobRunner(createContainer(), registry))
+
+    const handle = await queue.chain([
+      { job: new PriorityJob(), options: { queue: 'critical' } },
+      { job: new ReportsJob() },
+    ])
+
+    expect(handle.queue).toBe('critical')
+    expect(admissions).toEqual(['critical', 'reports'])
+    expect(queue.chains).toHaveLength(1)
+    expect(queue.chains[0]?.steps.map(step => step.queue)).toEqual(['critical', 'reports'])
+    expect(queue.chains[0]?.steps.every(step => step.serialized.version === 2)).toBe(true)
+    expect(queue.pushed).toHaveLength(1)
+    expect(queue.pushed[0]?.job).toBeInstanceOf(PriorityJob)
+  })
+
   it('provides final admission facts through an injected serializer', async () => {
     const contributors = new JobMetadataContributorRegistry()
     const queues: string[] = []

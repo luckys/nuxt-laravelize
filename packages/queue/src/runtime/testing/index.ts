@@ -1,1 +1,1 @@
-export { QueueFake, type PushedJob } from './QueueFake'
+export { QueueFake, type PushedChain, type PushedJob } from './QueueFake'

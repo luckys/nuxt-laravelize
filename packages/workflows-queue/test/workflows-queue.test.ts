@@ -24,7 +24,7 @@ function setup(now = 100, definition = defineWorkflow({ name: 'order', version: 
       published.push({ delay, job: job as WorkflowJob, options })
       return { id: String(options.id), queue: options.queue ?? 'default' }
     }),
-    sync: vi.fn(), size: vi.fn(), clear: vi.fn(), onFailed: vi.fn(),
+    chain: vi.fn(), sync: vi.fn(), size: vi.fn(), clear: vi.fn(), onFailed: vi.fn(),
   }
   const coordinator = new WorkflowCoordinator(store, manager, queue, resolveWorkflowsQueueOptions({ queue: 'workflows', contentionDelayMs: 7, maxDelayMs: 20 }), () => now)
   return { coordinator, definition, manager, store, queue, published }
