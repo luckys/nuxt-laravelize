@@ -1,12 +1,13 @@
 import { addServerImports, createResolver, defineNuxtModule } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import type { NuxtModule } from 'nuxt/schema'
 
 export interface ModuleOptions {
   key?: string
   previousKeys?: string[]
 }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/encryption', configKey: 'laravelizeEncryption', compatibility: { nuxt: '>=4.3.0 <5' } },
   defaults: { key: '', previousKeys: [] },
   moduleDependencies: { '@nuxt-laravelize/core': {} },
@@ -25,3 +26,5 @@ export default defineNuxtModule<ModuleOptions>({
     ])
   },
 })
+
+export default module

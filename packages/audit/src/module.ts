@@ -1,5 +1,6 @@
 import { addServerImports, createResolver, defineNuxtModule } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import type { NuxtModule } from 'nuxt/schema'
 
 export interface ModuleOptions {
   driver?: 'memory' | 'null'
@@ -7,7 +8,7 @@ export interface ModuleOptions {
   requireTenantId?: boolean
 }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/audit', configKey: 'laravelizeAudit', compatibility: { nuxt: '>=4.3.0 <5' } },
   moduleDependencies: { '@nuxt-laravelize/core': {}, '@nuxt-laravelize/execution-context': {} },
   setup(options, nuxt) {
@@ -23,3 +24,5 @@ export default defineNuxtModule<ModuleOptions>({
     addServerImports({ name: 'useAudit', from: resolver.resolve('./runtime/server/useAudit') })
   },
 })
+
+export default module

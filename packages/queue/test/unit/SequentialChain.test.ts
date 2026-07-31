@@ -11,6 +11,21 @@ class ChainJob extends Job<{ value: unknown }> {
   handle() {}
 }
 
+const bundledJobBrand = Symbol.for('@nuxt-laravelize/queue/job')
+class ForeignBundledJob {
+  static readonly jobName = 'foreign-bundled-job'
+  static readonly tries = 1
+  static readonly delay = 0
+  static readonly queue = 'default'
+  static readonly backoff = 0
+  static readonly priority = 0
+  readonly [bundledJobBrand] = true
+  readonly payload = { value: 'foreign' }
+  handle() {}
+  tags() { return [] }
+  serialize() { return { version: 1 as const, name: ForeignBundledJob.jobName, payload: this.payload } }
+}
+
 const prepare = (values: readonly unknown[]) => prepareQueueChain(
   values.map(value => ({ job: new ChainJob({ value }) })),
   new JobSerializer(),
@@ -57,5 +72,16 @@ describe('sequential chain envelopes', () => {
     }, () => 'test-chain')).toThrow('Queue chain envelope is too large')
 
     expect(serializations).toBe(1)
+  })
+
+  it('accepts jobs created by a duplicated bundled runtime', () => {
+    const chain = prepareQueueChain(
+      [{ job: new ForeignBundledJob() as unknown as Job }],
+      new JobSerializer(),
+      (job, _queue, serializer) => serializer.serialize(job),
+      () => 'foreign-chain',
+    )
+
+    expect(chain.steps[0]?.serialized.name).toBe('foreign-bundled-job')
   })
 })

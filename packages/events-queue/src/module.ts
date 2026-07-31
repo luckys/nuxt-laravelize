@@ -1,7 +1,8 @@
 import { createResolver, defineNuxtModule } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import type { NuxtModule } from 'nuxt/schema'
 
-export default defineNuxtModule({
+const module: NuxtModule = defineNuxtModule({
   meta: { name: '@nuxt-laravelize/events-queue', configKey: 'laravelizeEventsQueue', compatibility: { nuxt: '>=4.3.0 <5' } },
   moduleDependencies: {
     '@nuxt-laravelize/core': {},
@@ -13,3 +14,5 @@ export default defineNuxtModule({
     addLaravelizeProvider(nuxt, resolver.resolve('./runtime/server/EventsQueueServiceProvider'), 'server')
   },
 })
+
+export default module

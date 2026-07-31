@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path'
 import Authorization from '@nuxt-laravelize/authorization'
 import ReliabilityQueue from '@nuxt-laravelize/reliability-queue'
 import { addServerImports, addServerPlugin, addTemplate, createResolver, defineNuxtModule, installModule } from '@nuxt/kit'
+import type { NuxtModule } from 'nuxt/schema'
 import type { ModuleOptions as I18nModuleOptions } from 'nuxt-i18n-micro'
 
 declare module '@nuxt/schema' {
@@ -25,7 +26,16 @@ declare module 'nuxt/schema' {
   }
 }
 
-export default defineNuxtModule({
+const inlineI18nMicroPackages = [
+  '@i18n-micro/core',
+  '@i18n-micro/hmr',
+  '@i18n-micro/path-strategy',
+  '@i18n-micro/route-strategy',
+  '@i18n-micro/types',
+  '@i18n-micro/utils',
+]
+
+const module: NuxtModule = defineNuxtModule({
   meta: { name: '@nuxt-laravelize/nuxt', configKey: 'laravelize', compatibility: { nuxt: '>=4.3.0 <5' } },
   moduleDependencies: {
     '@nuxt-laravelize/audit': {},
@@ -60,6 +70,7 @@ export default defineNuxtModule({
     const h3Entry = createRequire(import.meta.url).resolve('h3')
     const packageRoot = dirname(dirname(createRequire(import.meta.url).resolve('nuxt-i18n-micro')))
     const localizationResolver = createResolver(import.meta.url)
+    const localizationPlugin = localizationResolver.resolve('./runtime/server/locale-context-plugin')
     let localizationLoader: ReturnType<typeof addTemplate> | undefined
     let localizationEnabled = false
     ;(nuxt.hooks as { hook(name: 'nitro:config', callback: (config: { alias?: Record<string, string>, externals?: { inline?: Array<string | RegExp> } }) => void): void }).hook('nitro:config', (nitroConfig) => {
@@ -70,6 +81,8 @@ export default defineNuxtModule({
         nitroConfig.externals ??= {}
         nitroConfig.externals.inline ??= []
         if (!nitroConfig.externals.inline.includes('@nuxt-laravelize/nuxt')) nitroConfig.externals.inline.push('@nuxt-laravelize/nuxt')
+        if (!nitroConfig.externals.inline.includes(localizationPlugin)) nitroConfig.externals.inline.push(localizationPlugin)
+        for (const packageName of inlineI18nMicroPackages) if (!nitroConfig.externals.inline.includes(packageName)) nitroConfig.externals.inline.push(packageName)
         nitroConfig.alias['#laravelize/i18n-plural'] = resolve(nuxt.options.buildDir, 'i18n.plural.mjs')
         nitroConfig.alias['#laravelize/i18n-locale-detector'] = resolve(packageRoot, 'dist/runtime/server/utils/locale-detector.js')
         nitroConfig.alias['#laravelize/i18n-source'] = localizationLoader!.dst
@@ -126,7 +139,7 @@ export default defineNuxtModule({
           write: true,
           getContents: () => `import { useStorage } from 'nitropack/runtime'\nexport const locales = ${JSON.stringify(configuredLocales)}\nconst storageKeys = ${JSON.stringify(storageKeys)}\nexport async function loadDictionary(code) {\n  const key = storageKeys[code]\n  if (!key) return {}\n  const value = await useStorage().getItem(key)\n  if (value == null) return {}\n  if (typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Generated server localization dictionary must be an object')\n  return value\n}\n`,
         })
-        addServerPlugin(localizationResolver.resolve('./runtime/server/locale-context-plugin'))
+        addServerPlugin(localizationPlugin)
         addServerImports([
           { name: 'useServerLocalization', from: localizationResolver.resolve('./runtime/server/useServerLocalization') },
           { name: 'createServerLocalization', from: localizationResolver.resolve('./runtime/server/useServerLocalization') },
@@ -135,3 +148,5 @@ export default defineNuxtModule({
     }
   },
 })
+
+export default module

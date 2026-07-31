@@ -1,7 +1,9 @@
 /* eslint-disable @stylistic/max-statements-per-line */
+import { existsSync } from 'node:fs'
 import { addComponentsDir, addServerHandler, createResolver, defineNuxtModule, extendPages } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
 import { resolveOptions, type DeadLetterOperationsRuntimeOptions } from './runtime/options'
+import type { NuxtModule } from 'nuxt/schema'
 
 export type ModuleOptions = Partial<DeadLetterOperationsRuntimeOptions>
 const normalizePath = (value: string) => value.length > 1 ? value.replace(/\/+$/, '') : value
@@ -33,7 +35,7 @@ export function assertNoPageCollision(pages: readonly PageRoute[], name: string,
   if (inspect(pages)) throw new Error(`[dead-letter-operations] Page collision for ${name} at ${normalizePath(path)}`)
 }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/dead-letter-operations', configKey: 'laravelizeDeadLetterOperations', compatibility: { nuxt: '>=4.3.0 <5' } },
   defaults: { enabled: false, pagePath: '/operations/dead-letters', apiPath: '/api/operations/dead-letters', allowedOrigins: [], pageSize: 25, errorSummaries: false },
   moduleDependencies: { '@nuxt-laravelize/core': {}, '@nuxt-laravelize/authorization': {} },
@@ -49,10 +51,10 @@ export default defineNuxtModule<ModuleOptions>({
     extendPages((pages) => { assertNoPageCollision(pages, 'laravelize-dead-letter-operations', options.pagePath); pages.push({ name: 'laravelize-dead-letter-operations', path: options.pagePath, file: pageFile }) })
     const item = `${options.apiPath}/:source/:namespace/:deadLetterId`
     const routes = [
-      [`${options.apiPath}/bootstrap`, 'GET', 'bootstrap.get'], [`${options.apiPath}`, 'GET', 'list.get'], [item, 'GET', 'detail.get'], [`${item}/payload`, 'GET', 'payload.get'], [`${item}/retry`, 'POST', 'retry.post'], [`${item}/discard`, 'POST', 'discard.post'],
+      [`${options.apiPath}/bootstrap`, 'get', 'bootstrap.get'], [`${options.apiPath}`, 'get', 'list.get'], [item, 'get', 'detail.get'], [`${item}/payload`, 'get', 'payload.get'], [`${item}/retry`, 'post', 'retry.post'], [`${item}/discard`, 'post', 'discard.post'],
     ] as const
     const ownedHandlers = new Set<string>()
-    for (const [route, method, file] of routes) { assertNoServerHandlerCollision(nuxt.options.serverHandlers, route, method); const handler = resolver.resolve(`./runtime/server/api/${file}.ts`); ownedHandlers.add(handler); addServerHandler({ route, method, handler }) }
+    for (const [route, method, file] of routes) { assertNoServerHandlerCollision(nuxt.options.serverHandlers, route, method); const handler = resolveServerHandler(resolver, file); ownedHandlers.add(handler); addServerHandler({ route, method, handler }) }
     nuxt.hook('pages:resolved', pages => assertNoPageCollision(pages, 'laravelize-dead-letter-operations', options.pagePath, pageFile))
     nuxt.hook('nitro:config', (config) => {
       const handlers = (config.handlers ?? []).filter((handler): handler is NonNullable<typeof handler> => handler != null && !ownedHandlers.has(String(handler.handler)))
@@ -64,3 +66,10 @@ export default defineNuxtModule<ModuleOptions>({
     })
   },
 })
+
+export default module
+
+function resolveServerHandler(resolver: ReturnType<typeof createResolver>, file: string): string {
+  const compiled = resolver.resolve(`./runtime/server/api/${file}.js`)
+  return existsSync(compiled) ? compiled : resolver.resolve(`./runtime/server/api/${file}.ts`)
+}

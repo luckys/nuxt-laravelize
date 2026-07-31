@@ -1,6 +1,7 @@
 import { isAbsolute, resolve } from 'node:path'
 import { createJiti } from 'jiti'
 import { addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
+import type { NuxtModule } from 'nuxt/schema'
 import { Schedule, defineSchedule, type NormalizedScheduledTask } from '@nuxt-laravelize/scheduler'
 import { compileNuxtSchedule, mergeNitro2SchedulerConfig, type MutableNitro2Config, type NitroTaskDefinition } from './compiler'
 
@@ -12,7 +13,7 @@ export interface ModuleOptions {
 
 type Declaration = Schedule | readonly Schedule[] | ((schedule: Schedule) => void)
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/scheduler-nuxt', configKey: 'laravelizeScheduler', compatibility: { nuxt: '>=4.4.5 <5' } },
   defaults: { enabled: false, schedules: [], tasks: {} },
   async setup(options, nuxt) {
@@ -22,7 +23,7 @@ export default defineNuxtModule<ModuleOptions>({
     const schedules = await loadScheduleDeclarations(paths, nuxt.options.rootDir)
     const definitions = options.tasks ?? {}
     const source = compileNuxtSchedule(schedules, definitions)
-    const runtimeEntry = createResolver(import.meta.url).resolve('./runtime')
+    const runtimeEntry = createResolver(import.meta.url).resolve('./runtime.mjs')
     const wrappedDefinitions: Record<string, NitroTaskDefinition> = Object.create(null)
     for (const task of source.metadata) {
       const definition = getOwnDefinition(definitions, task.name)
@@ -38,6 +39,8 @@ export default defineNuxtModule<ModuleOptions>({
     ;(nuxt.hooks as { hook(name: 'nitro:config', callback: (config: MutableNitro2Config) => void): void }).hook('nitro:config', config => mergeNitro2SchedulerConfig(config, compiled))
   },
 })
+
+export default module
 
 export async function loadScheduleDeclarations(paths: readonly string[], rootDir: string): Promise<readonly Schedule[]> {
   const jiti = createJiti(import.meta.url)

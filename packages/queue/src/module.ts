@@ -1,8 +1,12 @@
 import { addServerImports, createResolver, defineNuxtModule } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import type { NuxtModule } from 'nuxt/schema'
 
-export default defineNuxtModule({
+export type ModuleOptions = Record<string, never>
+
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/queue', configKey: 'laravelizeQueue', compatibility: { nuxt: '>=4.3.0 <5' } },
+  defaults: {},
   moduleDependencies: { '@nuxt-laravelize/core': {} },
   setup(_options, nuxt) {
     const resolver = createResolver(import.meta.url)
@@ -10,3 +14,5 @@ export default defineNuxtModule({
     addServerImports({ name: 'useQueue', from: resolver.resolve('./runtime/server') })
   },
 })
+
+export default module

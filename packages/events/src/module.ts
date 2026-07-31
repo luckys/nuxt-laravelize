@@ -1,7 +1,8 @@
 import { addServerImports, createResolver, defineNuxtModule } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import type { NuxtModule } from 'nuxt/schema'
 
-export default defineNuxtModule({
+const module: NuxtModule = defineNuxtModule({
   meta: {
     name: '@nuxt-laravelize/events',
     configKey: 'laravelizeEvents',
@@ -19,3 +20,5 @@ export default defineNuxtModule({
     ])
   },
 })
+
+export default module

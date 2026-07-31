@@ -1,4 +1,5 @@
 import { addImportsDir, addPlugin, addServerImports, addServerPlugin, addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
+import type { NuxtModule } from 'nuxt/schema'
 import type { NitroConfig } from 'nitropack/types'
 
 import { discoverProvidersByConvention } from './discovery/byConvention'
@@ -10,7 +11,7 @@ export interface ModuleOptions {
   providers: Array<{ path: string, target: ProviderTarget }>
 }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: {
     name: '@nuxt-laravelize/core',
     configKey: 'laravelizeCore',
@@ -56,3 +57,5 @@ export default defineNuxtModule<ModuleOptions>({
     ])
   },
 })
+
+export default module

@@ -1,5 +1,6 @@
 import { addImportsDir, addServerImports, createResolver, defineNuxtModule } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import type { NuxtModule } from 'nuxt/schema'
 
 export interface ModuleOptions {
   baseURL?: string
@@ -7,7 +8,7 @@ export interface ModuleOptions {
   signingOrigin?: string
 }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/http', configKey: 'laravelizeHttp', compatibility: { nuxt: '>=4.3.0 <5' } },
   defaults: { baseURL: '', signingKey: '', signingOrigin: '' },
   moduleDependencies: { '@nuxt-laravelize/core': {}, '@nuxt-laravelize/validation': {} },
@@ -50,3 +51,5 @@ export default defineNuxtModule<ModuleOptions>({
     ].map(name => ({ name, from: resolver.resolve('./runtime/server') })))
   },
 })
+
+export default module

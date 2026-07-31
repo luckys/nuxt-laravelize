@@ -1,4 +1,4 @@
-import { Job, type JobSerializer, type SerializedJob } from './Job'
+import { isJob, type Job, type JobSerializer, type SerializedJob } from './Job'
 import { MAX_JOB_PRIORITY, type PushOptions, type QueueChainStep } from './Queue'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
@@ -50,7 +50,7 @@ export function prepareQueueChain(
   if (typeof id !== 'string' || !CHAIN_ID.test(id)) throw new TypeError('Queue chain id must be a safe identifier of at most 128 characters')
   const prepared: PreparedQueueChainStep[] = []
   for (const step of steps) {
-    if (!step || Object.getPrototypeOf(step) !== Object.prototype || !hasAllowedDataKeys(step, ['job', 'options']) || !(step.job instanceof Job)) throw new TypeError('Queue chain step is invalid')
+    if (!step || Object.getPrototypeOf(step) !== Object.prototype || !hasAllowedDataKeys(step, ['job', 'options']) || !isJob(step.job)) throw new TypeError('Queue chain step is invalid')
     const options = resolveQueueChainOptions(step.job, step.options)
     prepared.push({ serialized: serialize(step.job, options.queue, serializer), options })
     assertChainSize({ kind: QUEUE_CHAIN_KIND, version: 1, id, index: steps.length - 1, steps: prepared, fingerprint: EMPTY_CHAIN_FINGERPRINT })

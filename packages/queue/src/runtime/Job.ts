@@ -11,6 +11,7 @@ export const MAX_JOB_METADATA_KEYS = 64
 
 const EMPTY_JOB_TAGS: readonly string[] = Object.freeze([])
 const RESERVED_METADATA_KEYS = new Set(['__proto__', 'prototype', 'constructor', JOB_TAGS_METADATA_KEY, JOB_DISPATCH_METADATA_KEY])
+const JOB_BRAND = Symbol.for('@nuxt-laravelize/queue/job')
 const DISPATCH_ID = /^\w[\w.:-]{0,127}$/
 const PAYLOAD_FINGERPRINT = /^sha256:[a-f0-9]{64}$/
 const MAX_PAYLOAD_DEPTH = 64
@@ -59,6 +60,12 @@ export abstract class Job<TPayload extends Record<string, unknown> = Record<stri
   static readonly backoff: number | readonly number[] = 0
   static readonly priority: number = 0
 
+  declare readonly [JOB_BRAND]?: true
+
+  constructor() {
+    Object.defineProperty(this, JOB_BRAND, { value: true, enumerable: false })
+  }
+
   abstract readonly payload: TPayload
   abstract handle(resolver: Resolver): void | Promise<void>
   failed?(error: unknown): void | Promise<void>
@@ -67,6 +74,16 @@ export abstract class Job<TPayload extends Record<string, unknown> = Record<stri
   serialize(): SerializedJob {
     return serializeJob(this, normalizeJobTags(this.tags()), [])
   }
+}
+
+export function isJob(value: unknown): value is Job {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Partial<Job> & { [JOB_BRAND]?: unknown }
+  return candidate[JOB_BRAND] === true
+    && typeof candidate.handle === 'function'
+    && typeof candidate.tags === 'function'
+    && typeof candidate.serialize === 'function'
+    && 'payload' in candidate
 }
 
 export type JobMetadataContributor = (job: Job, resolver?: Resolver) => Readonly<Record<string, unknown>> | undefined

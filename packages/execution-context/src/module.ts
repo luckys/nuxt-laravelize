@@ -1,11 +1,12 @@
 import { addServerImports, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit'
+import type { NuxtModule } from 'nuxt/schema'
 
 export interface ModuleOptions {
   correlationHeader: string
   trustIncomingCorrelationHeader: boolean
 }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/execution-context', configKey: 'laravelizeExecutionContext', compatibility: { nuxt: '>=4.3.0 <5' } },
   moduleDependencies: { '@nuxt-laravelize/core': {} },
   defaults: { correlationHeader: 'x-correlation-id', trustIncomingCorrelationHeader: false },
@@ -20,3 +21,5 @@ export default defineNuxtModule<ModuleOptions>({
     addServerImports({ name: 'useExecutionContext', from: resolver.resolve('./runtime/server/useExecutionContext') })
   },
 })
+
+export default module

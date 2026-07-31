@@ -8,6 +8,21 @@ class BatchJob extends Job<{ value: unknown }> {
   handle() {}
 }
 
+const bundledJobBrand = Symbol.for('@nuxt-laravelize/queue/job')
+class ForeignBundledJob {
+  static readonly jobName = 'foreign-bundled-job'
+  static readonly tries = 1
+  static readonly delay = 0
+  static readonly queue = 'default'
+  static readonly backoff = 0
+  static readonly priority = 0
+  readonly [bundledJobBrand] = true
+  readonly payload = { value: 'foreign' }
+  handle() {}
+  tags() { return [] }
+  serialize() { return { version: 1 as const, name: ForeignBundledJob.jobName, payload: this.payload } }
+}
+
 const prepare = (values: readonly unknown[]) => prepareQueueBatch(
   values.map(value => ({ job: new BatchJob({ value }) })),
   {},
@@ -42,5 +57,17 @@ describe('QueueBatch', () => {
     expect(() => queueBatchSnapshot(0, 0, 0, 0, false)).toThrow('Invalid queue batch counters')
     expect(() => queueBatchSnapshot(101, 0, 0, 0, false)).toThrow('Invalid queue batch counters')
     expect(() => queueBatchSnapshot(1, 1, 1, 0, false)).toThrow('Invalid queue batch counters')
+  })
+
+  it('accepts jobs created by a duplicated bundled runtime', () => {
+    const batch = prepareQueueBatch(
+      [{ job: new ForeignBundledJob() as unknown as Job }],
+      {},
+      new JobSerializer(),
+      (job, _queue, serializer) => serializer.serialize(job),
+      () => 'foreign-batch',
+    )
+
+    expect(batch.children[0]?.serialized.name).toBe('foreign-bundled-job')
   })
 })

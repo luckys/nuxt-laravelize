@@ -56,6 +56,7 @@
     "@nuxt-laravelize/validation": "workspace:^",
     "@nuxt/kit": "^4.4.5",
     "h3": "^1.15.11",
+    "nitropack": "^2.13.4",
     "nuxt-i18n-micro": "^3.21.4"
   },
   "peerDependencies": {

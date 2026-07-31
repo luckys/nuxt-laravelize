@@ -1,9 +1,10 @@
 import { addServerImports, createResolver, defineNuxtModule } from '@nuxt/kit'
 import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import type { NuxtModule } from 'nuxt/schema'
 
 export interface ModuleOptions { driver?: string }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/scout', configKey: 'laravelizeScout', compatibility: { nuxt: '>=4.3.0 <5' } },
   moduleDependencies: { '@nuxt-laravelize/core': {} },
   defaults: { driver: 'memory' },
@@ -18,3 +19,5 @@ export default defineNuxtModule<ModuleOptions>({
     addServerImports(['useScout', 'scoutManagerToken'].map(name => ({ name, from: resolver.resolve('./runtime/server') })))
   },
 })
+
+export default module

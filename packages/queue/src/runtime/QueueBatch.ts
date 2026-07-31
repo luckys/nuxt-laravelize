@@ -2,7 +2,7 @@
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
 import { createToken, type Token } from '@nuxt-laravelize/core/runtime'
-import { Job, type JobSerializer, type SerializedJob } from './Job'
+import { isJob, type Job, type JobSerializer, type SerializedJob } from './Job'
 import { MAX_JOB_PRIORITY, type JobHandle, type PushOptions } from './Queue'
 
 export const MAX_QUEUE_BATCH_ITEMS = 100
@@ -198,7 +198,7 @@ function assertBatchOptions(value?: QueueBatchOptions): void {
 }
 
 function validItem(value: unknown): value is QueueBatchItem {
-  return Boolean(value && Object.getPrototypeOf(value) === Object.prototype && exactAllowedKeys(value as object, ['job', 'options']) && (value as QueueBatchItem).job instanceof Job)
+  return Boolean(value && Object.getPrototypeOf(value) === Object.prototype && exactAllowedKeys(value as object, ['job', 'options']) && isJob((value as QueueBatchItem).job))
 }
 
 function assertSerialized(value: unknown): asserts value is SerializedJob {

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { isAbsolute, resolve } from 'node:path'
 import { addTemplate, defineNuxtModule, updateTemplates } from '@nuxt/kit'
+import type { NuxtModule } from 'nuxt/schema'
 import { createJiti } from 'jiti'
 import type { RouteTree } from './public-runtime'
 import { getRoutesDeclarations } from './kit'
@@ -16,7 +17,7 @@ export function isMissingDefaultDeclaration(path: string, rootDir: string): bool
   return !existsSync(path) && path === resolve(rootDir, 'routes.ts')
 }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: { name: '@nuxt-laravelize/routes', configKey: 'laravelizeRoutes', compatibility: { nuxt: '>=4.3.0 <5' } },
   defaults: { declarations: ['routes.ts'], baseURL: '' },
   async setup(options, nuxt) {
@@ -50,3 +51,5 @@ export default defineNuxtModule<ModuleOptions>({
     })
   },
 })
+
+export default module
