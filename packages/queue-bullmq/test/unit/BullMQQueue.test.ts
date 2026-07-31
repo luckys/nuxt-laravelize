@@ -1,18 +1,30 @@
+/* eslint-disable @stylistic/max-statements-per-line */
 import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer } from '@nuxt-laravelize/queue/runtime'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer, queueBatchChildJobId } from '@nuxt-laravelize/queue/runtime'
 import { createContainer, createToken } from '@nuxt-laravelize/core/runtime'
 
 const add = vi.fn(async (_name: string, _data: unknown, _options: unknown) => ({ id: 'bull-1' }))
 const constructQueue = vi.fn()
 const drain = vi.fn()
 const obliterate = vi.fn()
-vi.mock('bullmq', () => ({ Queue: class {
+const flowAdd = vi.fn(async (flow: { name: string, queueName: string, data: unknown, opts: Record<string, unknown>, children: Array<{ name: string, queueName: string, data: unknown, opts: Record<string, unknown> }> }) => {
+  const queueQualifiedName = `bull:${flow.queueName}`
+  const parentKey = `${queueQualifiedName}:${flow.opts.jobId}`
+  return {
+    job: { id: flow.opts.jobId, name: flow.name, data: flow.data, opts: flow.opts, queueQualifiedName },
+    children: flow.children.map(child => ({ job: { id: child.opts.jobId, name: child.name, data: child.data, opts: child.opts, queueQualifiedName, parentKey } })),
+  }
+})
+const flowClose = vi.fn()
+const getJob = vi.fn()
+vi.mock('bullmq', () => ({ FlowProducer: class { add = flowAdd; close = flowClose }, Queue: class {
   add = add
   count = vi.fn()
   drain = drain
   obliterate = obliterate
   close = vi.fn()
+  getJob = getJob
   constructor(name: string, options: unknown) { constructQueue(name, options) }
 } }))
 
@@ -32,6 +44,9 @@ describe('BullMQQueue', () => {
     constructQueue.mockClear()
     drain.mockClear()
     obliterate.mockClear()
+    flowAdd.mockClear()
+    flowClose.mockClear()
+    getJob.mockReset()
   })
 
   it('pushes metadata from the required shared serializer', async () => {
@@ -112,6 +127,95 @@ describe('BullMQQueue', () => {
     expect(add.mock.calls[0]?.[2]).toMatchObject({ attempts: 2, jobId: expect.stringMatching(/^laravelize-chain-/) })
   })
 
+  it('atomically admits one flat same-queue flow with a hidden retained coordinator', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const registry = new InMemoryJobRegistry(); registry.register(ProbeJob.name, ProbeJob)
+    const serializer = new JobSerializer(); const admissions: string[] = []
+    serializer.contributeAdmission((_job, admission) => { admissions.push(admission.dispatch.id); return {} })
+    const queue = new BullMQQueue({ client: {} } as never, new JobRunner(createContainer(), registry), serializer)
+
+    const handle = await queue.batch([{ job: new ProbeJob(), options: { tries: 2 } }, { job: new ProbeJob(), options: { delay: 10 } }], { queue: 'critical' })
+
+    expect(handle).toMatchObject({ queue: 'critical', id: expect.any(String) })
+    expect(new Set(admissions).size).toBe(2)
+    expect(flowAdd).toHaveBeenCalledOnce()
+    expect(flowAdd.mock.calls[0]?.[0]).toMatchObject({
+      queueName: 'critical',
+      name: '__nuxt_laravelize_batch_coordinator__',
+      opts: { removeOnComplete: { age: 86_400, count: 1000 }, removeOnFail: { age: 86_400, count: 1000 } },
+      children: [
+        { queueName: 'critical', opts: { attempts: 2, ignoreDependencyOnFailure: true, removeOnComplete: { age: 86_400, count: 1000 }, removeOnFail: { age: 604_800, count: 1000 } } },
+        { queueName: 'critical', opts: { delay: 10, ignoreDependencyOnFailure: true, removeOnComplete: { age: 86_400, count: 1000 }, removeOnFail: { age: 604_800, count: 1000 } } },
+      ],
+    })
+    await queue.close()
+    expect(flowClose).toHaveBeenCalledOnce()
+  })
+
+  it('derives bounded durable progress from retained coordinator dependencies and marks cancellation idempotently', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const registry = new InMemoryJobRegistry(); registry.register(ProbeJob.name, ProbeJob)
+    const queue = new BullMQQueue({ client: {} } as never, new JobRunner(createContainer(), registry), new JobSerializer())
+    const handle = await queue.batch([{ job: new ProbeJob() }, { job: new ProbeJob() }, { job: new ProbeJob() }], { queue: 'critical' })
+    const definition = flowAdd.mock.calls[0]![0] as unknown as { data: Record<string, unknown>, name: string, opts: { jobId: string } }
+    const updateData = vi.fn(async (data) => { definition.data = data })
+    const queueQualifiedName = 'bull:critical'
+    const keys = Array.from({ length: 3 }, (_, index) => `${queueQualifiedName}:${queueBatchChildJobId(handle.id, index)}`)
+    const getDependencies = vi.fn(async () => ({ processed: { [keys[0]!]: { status: 'succeeded' }, [keys[1]!]: JSON.stringify({ status: 'cancelled' }) }, ignored: { [keys[2]!]: 'failed' }, unprocessed: [] }))
+    getJob.mockImplementation(async () => ({ id: definition.opts.jobId, name: definition.name, queueQualifiedName, get data() { return definition.data }, getDependencies, updateData }))
+    expect(await queue.batchStatus(handle)).toEqual({ total: 3, pending: 0, succeeded: 1, failed: 1, cancelled: 1, cancellationRequested: false, state: 'cancelled' })
+    expect(getDependencies).toHaveBeenCalledWith()
+    expect(await queue.cancelBatch(handle)).toMatchObject({ cancellationRequested: true, state: 'cancelled' })
+    await queue.cancelBatch(handle)
+    expect(updateData).toHaveBeenCalledOnce()
+  })
+
+  it('fails closed for malformed processed results and forged handles before constructing a queue', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const registry = new InMemoryJobRegistry(); registry.register(ProbeJob.name, ProbeJob)
+    const queue = new BullMQQueue({ client: {} } as never, new JobRunner(createContainer(), registry), new JobSerializer())
+    const handle = await queue.batch([{ job: new ProbeJob() }])
+    const definition = flowAdd.mock.calls[0]![0] as unknown as { data: Record<string, unknown>, name: string, opts: { jobId: string } }
+    const queueQualifiedName = 'bull:default'
+    const key = `${queueQualifiedName}:${queueBatchChildJobId(handle.id, 0)}`
+    getJob.mockResolvedValue({ id: definition.opts.jobId, name: definition.name, queueQualifiedName, data: definition.data, getDependencies: vi.fn(async () => ({ processed: { [key]: 'malformed' } })) })
+    await expect(queue.batchStatus(handle)).rejects.toThrow('processed result')
+    constructQueue.mockClear()
+    await expect(queue.batchStatus({ id: 'unsafe:id', queue: 'attacker' })).rejects.toThrow('Invalid queue batch handle')
+    expect(constructQueue).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing', { processed: {}, ignored: {}, unprocessed: [] }],
+    ['unexpected', { processed: {}, ignored: {}, unprocessed: ['bull:default:unexpected'] }],
+    ['duplicate', null],
+    ['overlapping', null],
+    ['failed category', null],
+  ])('rejects %s retained batch dependency keys', async (variant, supplied) => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const registry = new InMemoryJobRegistry(); registry.register(ProbeJob.name, ProbeJob)
+    const queue = new BullMQQueue({ client: {} } as never, new JobRunner(createContainer(), registry), new JobSerializer())
+    const handle = await queue.batch([{ job: new ProbeJob() }])
+    const definition = flowAdd.mock.calls[0]![0] as unknown as { data: Record<string, unknown>, name: string, opts: { jobId: string } }
+    const queueQualifiedName = 'bull:default'
+    const key = `${queueQualifiedName}:${queueBatchChildJobId(handle.id, 0)}`
+    const dependencies = supplied ?? (variant === 'overlapping'
+      ? { processed: { [key]: { status: 'succeeded' } }, ignored: {}, unprocessed: [key] }
+      : variant === 'duplicate'
+        ? { processed: {}, ignored: {}, unprocessed: [key, key] }
+        : { processed: {}, ignored: {}, unprocessed: [key], failed: ['bull:default:failed-child'] })
+    getJob.mockResolvedValue({ id: definition.opts.jobId, name: definition.name, queueQualifiedName, data: definition.data, getDependencies: vi.fn(async () => dependencies) })
+    await expect(queue.batchStatus(handle)).rejects.toThrow('Invalid BullMQ queue batch')
+  })
+
+  it('fails admission verification when FlowProducer returns altered transport state', async () => {
+    const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
+    const registry = new InMemoryJobRegistry(); registry.register(ProbeJob.name, ProbeJob)
+    flowAdd.mockResolvedValueOnce({ job: { id: 'wrong', name: 'wrong' }, children: [] } as never)
+    const queue = new BullMQQueue({ client: {} } as never, new JobRunner(createContainer(), registry), new JobSerializer())
+    await expect(queue.batch([{ job: new ProbeJob() }])).rejects.toThrow('transport identity mismatch')
+  })
+
   it('forwards static priority and allows a validated push override', async () => {
     const { BullMQQueue } = await import('../../src/runtime/BullMQQueue')
     const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
@@ -161,6 +265,7 @@ describe('BullMQQueue', () => {
     const queue = new BullMQQueue({ client: {} } as never, { run: vi.fn() } as unknown as JobRunner, new JobSerializer())
     await expect(queue.push(new ProbeJob(), { id: 'outbox:message' })).rejects.toThrow(/must not contain a colon/)
     await expect(queue.push(new ProbeJob(), { id: 'laravelize-chain-injected-1' })).rejects.toThrow('reserved queue chain prefix')
+    await expect(queue.push(new ProbeJob(), { id: 'laravelize-batch-injected-1' })).rejects.toThrow('reserved queue batch prefix')
     expect(add).not.toHaveBeenCalled()
   })
 

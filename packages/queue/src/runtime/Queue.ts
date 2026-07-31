@@ -1,4 +1,5 @@
 import type { Job } from './Job'
+import type { QueueBatchHandle, QueueBatchItem, QueueBatchOptions, QueueBatchSnapshot } from './QueueBatch'
 
 export const MAX_JOB_PRIORITY = 2 ** 21
 const MAX_DEDUPLICATION_TTL = 86_400_000
@@ -29,6 +30,9 @@ export type FailedJobCallback = (info: FailedJobInfo) => void | Promise<void>
 export interface Queue {
   push(job: Job, options?: PushOptions): Promise<JobHandle>
   chain(steps: readonly QueueChainStep[]): Promise<JobHandle>
+  batch(items: readonly QueueBatchItem[], options?: QueueBatchOptions): Promise<QueueBatchHandle>
+  batchStatus(handle: QueueBatchHandle): Promise<QueueBatchSnapshot>
+  cancelBatch(handle: QueueBatchHandle): Promise<QueueBatchSnapshot>
   later(delayMs: number, job: Job, options?: PushOptions): Promise<JobHandle>
   sync(job: Job): Promise<void>
   size(queueName?: string): Promise<number>

@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/max-statements-per-line */
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer } from '@nuxt-laravelize/core/runtime'
 import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer } from '../../src/runtime'
@@ -101,6 +102,15 @@ describe('QueueFake deduplication', () => {
 })
 
 describe('QueueFake recording', () => {
+  it('records every fully admitted testing-only batch child and cancels the pending snapshot', async () => {
+    const registry = new InMemoryJobRegistry(); registry.register(PriorityJob.name, PriorityJob); registry.register(ReportsJob.name, ReportsJob)
+    const queue = new QueueFake(new JobSerializer(), new JobRunner(createContainer(), registry))
+    const handle = await queue.batch([{ job: new PriorityJob() }, { job: new ReportsJob(), options: { tries: 2 } }], { queue: 'critical' })
+    expect(queue.batches[0]?.children).toHaveLength(2)
+    expect(queue.pushed.map(item => item.queue)).toEqual(['critical', 'critical'])
+    expect(await queue.batchStatus(handle)).toMatchObject({ total: 2, pending: 2, state: 'running' })
+    expect(await queue.cancelBatch(handle)).toMatchObject({ pending: 0, cancelled: 2, state: 'cancelled' })
+  })
   it('records complete chains without pretending successors were independently pushed', async () => {
     const registry = new InMemoryJobRegistry()
     registry.register(PriorityJob.name, PriorityJob)

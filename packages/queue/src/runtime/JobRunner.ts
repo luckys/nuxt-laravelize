@@ -3,8 +3,10 @@ import type { Container } from '@nuxt-laravelize/core/runtime'
 import { JOB_DISPATCH_METADATA_KEY, MAX_JOB_METADATA_KEYS, readJobDispatchIdentity, snapshotJobPayload, trustJobAdmission, type Job, type JobSerializer, type SerializedJob } from './Job'
 import type { InMemoryJobRegistry, JobConstructor } from './JobRegistry'
 import { NonRetryableJobError } from './NonRetryableJobError'
+import { QueueBatchCancelledError, queueBatchContextToken, type QueueBatchContext } from './QueueBatch'
 
-export interface JobExecutionDescriptor { readonly queue?: string, readonly attempt?: number, readonly maxAttempts?: number, readonly phase: 'process' | 'failed', readonly runner?: JobRunner }
+export interface QueueBatchExecutionDescriptor { readonly id: string, readonly queue: string, readonly isCancellationRequested: () => Promise<boolean> }
+export interface JobExecutionDescriptor { readonly queue?: string, readonly attempt?: number, readonly maxAttempts?: number, readonly batch?: QueueBatchExecutionDescriptor, readonly phase: 'process' | 'failed', readonly runner?: JobRunner }
 export type JobScopeContributor = (serialized: SerializedJob, scope: Container, descriptor?: JobExecutionDescriptor) => void | Promise<void>
 export type JobExecutionMiddleware = (serialized: SerializedJob, scope: Container, next: () => Promise<void>, descriptor?: JobExecutionDescriptor) => Promise<void>
 interface MiddlewareRegistration { readonly id: string, readonly order: number, readonly sequence: number, readonly middleware: JobExecutionMiddleware }
@@ -59,6 +61,7 @@ export class JobRunner {
     const execution = this.prepare(serialized)
     const scope = this.rootContainer.createScope()
     try {
+      if (descriptor.batch) scope.override(queueBatchContextToken, batchContext(descriptor.batch))
       for (const contributor of this.#contributors) await contributor(execution, scope, descriptor)
       const invoke = this.#middleware.reduceRight<() => Promise<void>>(
         (next, registration) => () => registration.middleware(execution, scope, next, descriptor),
@@ -70,6 +73,15 @@ export class JobRunner {
       await scope.dispose()
     }
   }
+}
+
+function batchContext(descriptor: QueueBatchExecutionDescriptor): QueueBatchContext {
+  return Object.freeze({
+    id: descriptor.id,
+    queue: descriptor.queue,
+    isCancellationRequested: descriptor.isCancellationRequested,
+    async throwIfCancellationRequested() { if (await descriptor.isCancellationRequested()) throw new QueueBatchCancelledError() },
+  })
 }
 
 function verifyDispatchIdentity(serialized: SerializedJob): Record<string, unknown> {

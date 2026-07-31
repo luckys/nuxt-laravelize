@@ -1,6 +1,7 @@
+/* eslint-disable @stylistic/max-statements-per-line */
 import { DelayedError, UnrecoverableError, type Job as BullJob } from 'bullmq'
 import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { currentQueueChainStep, InMemoryJobRegistry, Job, JobReleasedError, JobRunner, JobSerializer, nextQueueChainEnvelope, NonRetryableJobError, prepareQueueChain, queueChainJobId, type QueueChainEnvelopeV1 } from '@nuxt-laravelize/queue/runtime'
+import { currentQueueChainStep, InMemoryJobRegistry, Job, JobReleasedError, JobRunner, JobSerializer, nextQueueChainEnvelope, NonRetryableJobError, prepareQueueBatch, prepareQueueChain, queueBatchChildJobId, queueBatchCoordinatorJobId, queueChainJobId, type QueueBatchChildEnvelopeV1, type QueueChainEnvelopeV1 } from '@nuxt-laravelize/queue/runtime'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BullMQWorker, isTerminalBullMQFailure, processBullMQJob, toBullMQJobError } from '../../src/runtime/BullMQWorker'
 import { FailureReporter } from '../../src/runtime/FailureReporter'
@@ -185,6 +186,38 @@ describe('toBullMQJobError', () => {
     expect(isTerminalBullMQFailure({ attemptsMade: 1, opts: { attempts: 5 } }, new UnrecoverableError('terminal'))).toBe(true)
     expect(isTerminalBullMQFailure({ attemptsMade: 1, opts: { attempts: 5 } }, new Error('temporary'))).toBe(false)
   })
+
+  it('returns durable batch outcomes, skips cancelled retries before effects and hides coordinators', async () => {
+    ProbeJob.runs = []
+    const registry = new InMemoryJobRegistry(); registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const prepared = prepareQueueBatch([{ job: new ProbeJob({ value: 7 }) }], { queue: 'critical' }, new JobSerializer(), (job, _queue, serializer) => serializer.serialize(job), () => 'batch-1')
+
+    await expect(processBullMQJob(runner, batchJob(prepared.children[0]!), 'critical', undefined, Date.now, undefined, async () => true)).resolves.toEqual({ status: 'cancelled' })
+    expect(ProbeJob.runs).toEqual([])
+    await expect(processBullMQJob(runner, batchJob(prepared.children[0]!), 'critical', undefined, Date.now, undefined, async () => false)).resolves.toEqual({ status: 'succeeded' })
+    expect(ProbeJob.runs).toEqual([7])
+    const run = vi.spyOn(runner, 'run')
+    await expect(processBullMQJob(runner, { id: queueBatchCoordinatorJobId('batch-1'), name: '__nuxt_laravelize_batch_coordinator__', data: prepared.coordinator, attemptsMade: 0, opts: {} } as never, 'critical')).resolves.toBeUndefined()
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['detached', { parentKey: undefined }],
+    ['wrong parent', { parentKey: 'bull:critical:wrong-parent' }],
+    ['altered dependency option', { ignoreDependencyOnFailure: false }],
+  ])('rejects a %s batch child before effects', async (_case, altered) => {
+    ProbeJob.runs = []
+    const registry = new InMemoryJobRegistry(); registry.register(ProbeJob.name, ProbeJob)
+    const runner = new JobRunner(createContainer(), registry)
+    const prepared = prepareQueueBatch([{ job: new ProbeJob({ value: 8 }) }], { queue: 'critical' }, new JobSerializer(), (job, _queue, serializer) => serializer.serialize(job), () => 'batch-transport')
+    const original = batchJob(prepared.children[0]!) as unknown as Record<string, unknown> & { opts: Record<string, unknown> }
+    const job = 'ignoreDependencyOnFailure' in altered ? { ...original, opts: { ...original.opts, ...altered } } : { ...original, ...altered }
+    const failure = await processBullMQJob(runner, job as never, 'critical', undefined, Date.now, undefined, async () => false).catch(error => error)
+    expect(failure).toBeInstanceOf(UnrecoverableError)
+    expect(failure.message).toBe('[INVALID_JOB_BATCH] Non-retryable job failure')
+    expect(ProbeJob.runs).toEqual([])
+  })
 })
 
 describe('BullMQWorker lifecycle', () => {
@@ -349,6 +382,28 @@ function chainJob(chain: QueueChainEnvelopeV1) {
     data: chain,
     attemptsMade: 0,
     opts: { attempts: current.options.tries, delay: current.options.delay, priority: current.options.priority, backoff: { type: 'fixed', delay: backoff } },
+  } as unknown as BullJob
+}
+
+function batchJob(batch: QueueBatchChildEnvelopeV1) {
+  const backoff = typeof batch.options.backoff === 'number' ? batch.options.backoff : batch.options.backoff[0] ?? 0
+  const queueQualifiedName = 'bull:critical'
+  return {
+    id: queueBatchChildJobId(batch.id, batch.index),
+    name: batch.serialized.name,
+    data: batch,
+    attemptsMade: 0,
+    queueQualifiedName,
+    parentKey: `${queueQualifiedName}:${queueBatchCoordinatorJobId(batch.id)}`,
+    opts: {
+      attempts: batch.options.tries,
+      delay: batch.options.delay,
+      priority: batch.options.priority,
+      backoff: { type: 'fixed', delay: backoff },
+      ignoreDependencyOnFailure: true,
+      removeOnComplete: { age: 86_400, count: 1000 },
+      removeOnFail: { age: 604_800, count: 1000 },
+    },
   } as unknown as BullJob
 }
 

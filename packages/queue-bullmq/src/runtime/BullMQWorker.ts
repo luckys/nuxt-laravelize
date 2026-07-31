@@ -1,8 +1,8 @@
 import { DelayedError, Queue as BullQueue, UnrecoverableError, Worker, type Job as BullJob } from 'bullmq'
-import { currentQueueChainStep, isJobReleasedError, isNonRetryableJobError, nextQueueChainEnvelope, NonRetryableJobError, queueChainJobId, readQueueChainEnvelope, type InMemoryJobRegistry, type JobRunner, type QueueChainEnvelopeV1, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { currentQueueChainStep, isJobReleasedError, isNonRetryableJobError, isQueueBatchCancelledError, nextQueueChainEnvelope, NonRetryableJobError, queueBatchChildJobId, queueBatchCoordinatorJobId, queueChainJobId, readQueueBatchChildEnvelope, readQueueBatchCoordinatorEnvelope, readQueueChainEnvelope, type InMemoryJobRegistry, type JobRunner, type QueueBatchChildEnvelopeV1, type QueueChainEnvelopeV1, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
 import type { BullMQConnection } from './BullMQConnection'
 import type { FailureReporter } from './FailureReporter'
-import { bullMQOptions } from './BullMQQueue'
+import { bullMQOptions, matchesBatchJobOptions, matchesQueueQualifiedName, QUEUE_BATCH_COORDINATOR_KIND_NAME } from './BullMQQueue'
 
 export class BullMQWorker {
   readonly #workers = new Set<Worker>()
@@ -18,9 +18,7 @@ export class BullMQWorker {
 
   async work(queue = 'default', concurrency = 1): Promise<void> {
     if (this.#stopping) throw new Error('BullMQ worker is stopping and cannot accept new queues')
-    const worker = new Worker(queue, async (job, token) => {
-      await processBullMQJob(this.runner, job, queue, token, Date.now, chain => this.#advance(chain))
-    }, {
+    const worker = new Worker(queue, (job, token) => processBullMQJob(this.runner, job, queue, token, Date.now, chain => this.#advance(chain), batch => this.#batchCancellationRequested(batch, queue)), {
       connection: this.connection.client,
       concurrency,
       ...(this.connection.prefix === undefined ? {} : { prefix: this.connection.prefix }),
@@ -53,6 +51,12 @@ export class BullMQWorker {
 
   async #reportTerminalFailure(job: BullJob | undefined, error: Error, queue: string): Promise<void> {
     if (!job || !isTerminalBullMQFailure(job, error)) return
+    try {
+      if (readQueueBatchCoordinatorEnvelope(job.data)) return
+    }
+    catch {
+      return
+    }
     let serialized: SerializedJob
     try {
       serialized = executionJob(this.runner, job, queue).serialized
@@ -85,21 +89,51 @@ export class BullMQWorker {
     const persisted = await queued.getJob(id)
     if (!persisted || !matchesBullMQChainJob(persisted, chain)) throw new NonRetryableJobError('QUEUE_CHAIN_HANDOFF_CONFLICT', 'Queue chain successor conflicts with existing broker state.')
   }
+
+  async #batchCancellationRequested(batch: QueueBatchChildEnvelopeV1, queue: string): Promise<boolean> {
+    const queued = this.#queues.get(queue) ?? new BullQueue(queue, { connection: this.connection.client, ...(this.connection.prefix === undefined ? {} : { prefix: this.connection.prefix }) })
+    this.#queues.set(queue, queued)
+    const parent = await queued.getJob(queueBatchCoordinatorJobId(batch.id))
+    if (!parent) throw new NonRetryableJobError('INVALID_JOB_BATCH', 'Queue batch coordinator is unavailable.')
+    const coordinator = readQueueBatchCoordinatorEnvelope(parent.data)
+    if (!coordinator || coordinator.id !== batch.id || coordinator.queue !== queue || coordinator.total !== batch.total || parent.name !== QUEUE_BATCH_COORDINATOR_KIND_NAME || String(parent.id) !== queueBatchCoordinatorJobId(batch.id)) throw new NonRetryableJobError('INVALID_JOB_BATCH', 'Queue batch coordinator is invalid.')
+    return coordinator.cancellationRequested
+  }
 }
 
 export type QueueChainAdvancer = (chain: QueueChainEnvelopeV1) => Promise<void>
 
-export async function processBullMQJob(runner: JobRunner, job: BullJob, queue: string, token?: string, now: () => number = Date.now, advance?: QueueChainAdvancer): Promise<void> {
+export interface BullMQBatchResult { readonly status: 'succeeded' | 'cancelled' }
+export type QueueBatchCancellationReader = (batch: QueueBatchChildEnvelopeV1) => Promise<boolean>
+
+export async function processBullMQJob(runner: JobRunner, job: BullJob, queue: string, token?: string, now: () => number = Date.now, advance?: QueueChainAdvancer, cancellationRequested?: QueueBatchCancellationReader): Promise<BullMQBatchResult | undefined> {
   try {
+    const coordinator = readQueueBatchCoordinatorEnvelope(job.data)
+    if (coordinator) {
+      if (job.name !== QUEUE_BATCH_COORDINATOR_KIND_NAME || String(job.id) !== queueBatchCoordinatorJobId(coordinator.id) || coordinator.queue !== queue) throw new NonRetryableJobError('INVALID_JOB_BATCH', 'Queue batch coordinator transport is invalid.')
+      return
+    }
     const execution = executionJob(runner, job, queue)
-    await runner.run(execution.serialized, { queue, attempt: job.attemptsMade + 1, maxAttempts: job.opts.attempts ?? 1 })
+    if (execution.batch) {
+      if (!cancellationRequested) throw new NonRetryableJobError('INVALID_JOB_BATCH', 'Queue batch cancellation state is unavailable.')
+      if (await cancellationRequested(execution.batch)) return { status: 'cancelled' }
+    }
+    await runner.run(execution.serialized, {
+      queue,
+      attempt: job.attemptsMade + 1,
+      maxAttempts: job.opts.attempts ?? 1,
+      ...(execution.batch ? { batch: { id: execution.batch.id, queue, isCancellationRequested: () => cancellationRequested!(execution.batch!) } } : {}),
+    })
     const next = execution.chain ? nextQueueChainEnvelope(execution.chain) : undefined
     if (next) {
       if (!advance) throw new Error('Queue chain handoff is unavailable')
       await advance(next)
     }
+    if (execution.batch) return { status: 'succeeded' }
   }
   catch (error) {
+    const batch = safelyReadBatch(job.data)
+    if (batch && isQueueBatchCancelledError(error) && cancellationRequested && await cancellationRequested(batch)) return { status: 'cancelled' }
     if (isJobReleasedError(error)) {
       const state = job as BullJob & { attemptsStarted?: number, stalledCounter?: number }
       const attemptsStarted = state.attemptsStarted ?? job.attemptsMade + 1
@@ -112,19 +146,46 @@ export async function processBullMQJob(runner: JobRunner, job: BullJob, queue: s
   }
 }
 
-function executionJob(runner: JobRunner, job: BullJob, queue: string): { readonly serialized: SerializedJob, readonly chain?: QueueChainEnvelopeV1 } {
+function executionJob(runner: JobRunner, job: BullJob, queue: string): { readonly serialized: SerializedJob, readonly chain?: QueueChainEnvelopeV1, readonly batch?: QueueBatchChildEnvelopeV1 } {
   let chain: QueueChainEnvelopeV1 | undefined
+  const batchLike = Boolean(job.data && typeof job.data === 'object' && Object.prototype.hasOwnProperty.call(job.data, 'kind') && String((job.data as { kind?: unknown }).kind).includes('queue-batch'))
   try {
     chain = readQueueChainEnvelope(job.data)
-    if (!chain) return { serialized: job.data as SerializedJob }
+    if (!chain) {
+      const batch = readQueueBatchChildEnvelope(job.data)
+      if (!batch) return { serialized: job.data as SerializedJob }
+      runner.prepare(batch.serialized)
+      if (!matchesBullMQBatchJob(job, batch, queue)) throw new TypeError('Queue batch transport mismatch')
+      return { serialized: batch.serialized, batch }
+    }
     for (const step of chain.steps) runner.prepare(step.serialized)
     const current = currentQueueChainStep(chain)
     if (current.options.queue !== queue || !matchesBullMQChainJob(job, chain)) throw new TypeError('Queue chain transport mismatch')
     return { serialized: current.serialized, chain }
   }
   catch {
+    if (batchLike) throw new NonRetryableJobError('INVALID_JOB_BATCH', 'Queue batch envelope is invalid.')
     throw new NonRetryableJobError('INVALID_JOB_CHAIN', 'Queue chain envelope is invalid.')
   }
+}
+
+function safelyReadBatch(value: unknown): QueueBatchChildEnvelopeV1 | undefined {
+  try {
+    return readQueueBatchChildEnvelope(value)
+  }
+  catch {
+    return undefined
+  }
+}
+
+function matchesBullMQBatchJob(job: BullJob, batch: QueueBatchChildEnvelopeV1, queue: string): boolean {
+  if (!matchesQueueQualifiedName(job.queueQualifiedName, queue)) return false
+  const expectedParentKey = `${job.queueQualifiedName}:${queueBatchCoordinatorJobId(batch.id)}`
+  return String(job.id) === queueBatchChildJobId(batch.id, batch.index)
+    && job.name === batch.serialized.name
+    && job.parentKey === expectedParentKey
+    && matchesBatchJobOptions(job.opts, batch.options)
+    && queue.length <= 256
 }
 
 function matchesBullMQChainJob(job: BullJob, chain: QueueChainEnvelopeV1): boolean {
@@ -139,7 +200,7 @@ function matchesBullMQChainJob(job: BullJob, chain: QueueChainEnvelopeV1): boole
   catch { return false }
 }
 
-function matchesBullMQOptions(job: BullJob, options: ReturnType<typeof currentQueueChainStep>['options']): boolean {
+function matchesBullMQOptions(job: BullJob, options: { readonly tries: number, readonly delay: number, readonly priority: number, readonly backoff: number | readonly number[] }): boolean {
   const backoff = job.opts.backoff
   const backoffDelay = typeof backoff === 'number' ? backoff : backoff?.delay ?? 0
   const expectedBackoff = typeof options.backoff === 'number' ? options.backoff : options.backoff[0] ?? 0

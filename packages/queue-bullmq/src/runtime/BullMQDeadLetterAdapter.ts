@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto'
 import type { Job as BullJob, Queue } from 'bullmq'
 import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, deadLetterOperationFingerprint, sanitizeDeadLetterError, type DeadLetterAdapter, type DeadLetterDetail, type DeadLetterKey, type DeadLetterListRequest, type DeadLetterMutation, type DeadLetterMutationResult, type DeadLetterOperationReceipt, type DeadLetterOperationStore, type DeadLetterRetry, type DeadLetterSummary } from '@nuxt-laravelize/dead-letter'
-import { currentQueueChainStep, readQueueChainEnvelope } from '@nuxt-laravelize/queue/runtime'
+import { currentQueueChainStep, readQueueBatchChildEnvelope, readQueueBatchCoordinatorEnvelope, readQueueChainEnvelope } from '@nuxt-laravelize/queue/runtime'
 
 const MAX_PAYLOAD_BYTES = 256 * 1024
 const MAX_LIST_JOBS = 1000
@@ -18,9 +18,12 @@ const inspectablePayload = (data: unknown): unknown => {
   try {
     const chain = readQueueChainEnvelope(data)
     if (chain) return currentQueueChainStep(chain).serialized.payload
+    const batch = readQueueBatchChildEnvelope(data)
+    if (batch) return batch.serialized.payload
+    if (readQueueBatchCoordinatorEnvelope(data)) throw new DeadLetterInvalidStateError()
     if (data && Object.getPrototypeOf(data) === Object.prototype) {
       const value = data as Record<string, unknown>
-      if (['kind', 'index', 'steps', 'fingerprint'].some(key => Object.prototype.hasOwnProperty.call(value, key))) throw new DeadLetterInvalidStateError()
+      if (['kind', 'index', 'steps', 'serialized', 'total', 'fingerprint'].some(key => Object.prototype.hasOwnProperty.call(value, key))) throw new DeadLetterInvalidStateError()
       if ((value.version === 1 || value.version === 2) && typeof value.name === 'string' && value.payload && Object.getPrototypeOf(value.payload) === Object.prototype) return value.payload
     }
     return data
@@ -58,10 +61,16 @@ export class BullMQDeadLetterAdapter implements DeadLetterAdapter {
   private async mutate(request: DeadLetterRetry): Promise<DeadLetterMutationResult> {
     const hash = await deadLetterOperationFingerprint('retry', request); const replay = await this.operations.get(request.operationId)
     if (replay) return this.replayReceipt(replay, hash)
-    const reservation = await this.operations.reserve(request.operationId, hash); if (reservation === 'exists') { const raced = await this.operations.get(request.operationId); if (!raced) throw new DeadLetterAmbiguousError(); return this.replayReceipt(raced, hash) }
     let job: BullJob
     try { job = await this.loadFailed(request.key) }
-    catch (error) { if (error instanceof DeadLetterNotFoundError) { await this.operations.finalize(request.operationId, hash, { status: 'failed', failureCode: 'not_found' }); throw error } throw new DeadLetterAmbiguousError() }
+    catch (error) {
+      if (!(error instanceof DeadLetterNotFoundError)) throw new DeadLetterAmbiguousError()
+      const raced = await this.operations.get(request.operationId)
+      if (raced) return this.replayReceipt(raced, hash)
+      throw error
+    }
+    assertBatchChildRetryUnsupported(job.data)
+    const reservation = await this.operations.reserve(request.operationId, hash); if (reservation === 'exists') { const raced = await this.operations.get(request.operationId); if (!raced) throw new DeadLetterAmbiguousError(); return this.replayReceipt(raced, hash) }
     if (fence(this.queue.name, job) !== request.revision) { await this.operations.finalize(request.operationId, hash, { status: 'failed', failureCode: 'stale_revision' }); throw new DeadLetterStaleRevisionError() }
     try { const current = await this.loadFailed(request.key); if (fence(this.queue.name, current) !== request.revision) { await this.operations.finalize(request.operationId, hash, { status: 'failed', failureCode: 'invalid_state' }); throw new DeadLetterInvalidStateError() }; await current.retry() }
     catch (error) { if (error instanceof DeadLetterInvalidStateError) throw error; throw new DeadLetterAmbiguousError() }
@@ -73,4 +82,17 @@ export class BullMQDeadLetterAdapter implements DeadLetterAdapter {
   private async loadFailed(key: DeadLetterKey): Promise<BullJob> { const job = await this.load(key); if (await job.getState() !== 'failed') throw new DeadLetterNotFoundError(); return job }
   private replayReceipt(receipt: DeadLetterOperationReceipt, hash: string): DeadLetterMutationResult { if (receipt.fingerprint !== hash) throw new DeadLetterOperationConflictError(); if (receipt.status === 'committed' && receipt.result) return receipt.result; if (receipt.status === 'failed') throwFailure(receipt); throw new DeadLetterAmbiguousError() }
   private summary(job: BullJob, includeError = false): DeadLetterSummary { const error = includeError ? sanitizeDeadLetterError(job.failedReason) : undefined; return { key: { source: this.source, namespace: this.queue.name, id: String(job.id) }, type: job.name, disposition: 'active', attempts: job.attemptsMade, terminalAt: terminalAt(job), ...(error ? { error } : {}), revision: fence(this.queue.name, job) } }
+}
+
+function assertBatchChildRetryUnsupported(data: unknown): void {
+  try {
+    if (readQueueBatchChildEnvelope(data) || readQueueBatchCoordinatorEnvelope(data)) throw new DeadLetterInvalidStateError()
+  }
+  catch { throw new DeadLetterInvalidStateError() }
+  if (!data || Object.getPrototypeOf(data) !== Object.prototype) return
+  const value = data as Record<string, unknown>
+  const kind = typeof value.kind === 'string' ? value.kind : ''
+  const childLike = ['id', 'index', 'total', 'serialized', 'fingerprint'].every(key => Object.prototype.hasOwnProperty.call(value, key))
+  const coordinatorLike = ['id', 'queue', 'total', 'cancellationRequested', 'fingerprint'].every(key => Object.prototype.hasOwnProperty.call(value, key))
+  if (kind.includes('queue-batch') || childLike || coordinatorLike) throw new DeadLetterInvalidStateError()
 }

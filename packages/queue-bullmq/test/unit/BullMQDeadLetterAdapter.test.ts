@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterStaleRevisionError, deadLetterOperationFingerprint, type DeadLetterMutationResult } from '@nuxt-laravelize/dead-letter'
 import { MemoryDeadLetterOperationStore } from '@nuxt-laravelize/dead-letter/testing'
-import { Job, JobSerializer, prepareQueueChain } from '@nuxt-laravelize/queue/runtime'
+import { Job, JobSerializer, prepareQueueBatch, prepareQueueChain } from '@nuxt-laravelize/queue/runtime'
 import { BullMQDeadLetterAdapter } from '../../src/runtime/BullMQDeadLetterAdapter.js'
 
 const job = () => ({ id: 'job-1', name: 'mail.send', data: { secret: true }, opts: { attempts: 4 }, failedReason: 'token=hidden\nstack', attemptsMade: 3, finishedOn: 100, processedOn: 50, timestamp: 0, getState: vi.fn().mockResolvedValue('failed'), retry: vi.fn().mockResolvedValue(undefined), remove: vi.fn().mockResolvedValue(undefined) })
@@ -26,6 +26,19 @@ describe('BullMQDeadLetterAdapter', () => {
     const request = { key: summary!.key, revision: summary!.revision, operationId: 'retry-2', availableAt: new Date(0).toISOString() }
     const result = await adapter.retry(request); expect(await adapter.retry(request)).toEqual(result); expect(failed.retry).toHaveBeenCalledOnce()
   })
+  it('replays a committed retry after the job has left failed state', async () => {
+    let state = 'failed'
+    const current = { ...job(), getState: vi.fn(async () => state), retry: vi.fn(async () => { state = 'waiting' }) }
+    const operations = new MemoryDeadLetterOperationStore()
+    const adapter = new BullMQDeadLetterAdapter({ name: 'emails', getJob: vi.fn().mockResolvedValue(current) } as never, operations, () => new Date(200))
+    const key = { source: 'bullmq', namespace: 'emails', id: 'job-1' }
+    const revision = (await adapter.get(key)).revision
+    const request = { key, revision, operationId: 'stateful-retry', availableAt: new Date(0).toISOString() }
+    const first = await adapter.retry(request)
+    expect(state).toBe('waiting')
+    await expect(adapter.retry(request)).resolves.toEqual(first)
+    expect(current.retry).toHaveBeenCalledOnce()
+  })
   it('never exposes future chain credentials through payload inspection', async () => {
     const serializer = new JobSerializer()
     serializer.contribute(item => ({ credential: item.payload.recipient === 'opaque-1' ? 'current' : 'future-secret' }))
@@ -47,6 +60,27 @@ describe('BullMQDeadLetterAdapter', () => {
     delete malformed.kind
     failed.data = malformed as never
     await expect(adapter.get({ source: 'bullmq', namespace: 'emails', id: 'job-1' }, { includePayload: true })).rejects.toBeInstanceOf(DeadLetterInvalidStateError)
+  })
+  it('exposes only the current batch child business payload and fails closed on tampering', async () => {
+    const serializer = new JobSerializer(); serializer.contribute(() => ({ credential: 'batch-secret' }))
+    const batch = prepareQueueBatch([{ job: new ChainPayloadJob({ recipient: 'opaque-batch' }) }], { queue: 'emails' }, serializer, (item, _queue, current) => current.serialize(item), () => 'batch-1')
+    const failed = { ...job(), data: batch.children[0] }
+    const adapter = new BullMQDeadLetterAdapter({ name: 'emails', getJob: vi.fn().mockResolvedValue(failed) } as never, new MemoryDeadLetterOperationStore())
+    await expect(adapter.get({ source: 'bullmq', namespace: 'emails', id: 'job-1' }, { includePayload: true })).resolves.toMatchObject({ payload: { recipient: 'opaque-batch' } })
+    failed.data = { ...batch.children[0], total: 2 } as never
+    await expect(adapter.get({ source: 'bullmq', namespace: 'emails', id: 'job-1' }, { includePayload: true })).rejects.toBeInstanceOf(DeadLetterInvalidStateError)
+  })
+  it.each(['valid', 'malformed'])('rejects %s batch child retry before reserving an operation', async (variant) => {
+    const batch = prepareQueueBatch([{ job: new ChainPayloadJob({ recipient: 'opaque-batch' }) }], { queue: 'emails' }, new JobSerializer(), (item, _queue, current) => current.serialize(item), () => 'batch-retry')
+    const data = variant === 'valid' ? batch.children[0] : { ...batch.children[0], total: 2 }
+    const failed = { ...job(), data }
+    const operations = new MemoryDeadLetterOperationStore()
+    const reserve = vi.spyOn(operations, 'reserve')
+    const adapter = new BullMQDeadLetterAdapter({ name: 'emails', getJob: vi.fn().mockResolvedValue(failed) } as never, operations)
+    const request = { key: { source: 'bullmq', namespace: 'emails', id: 'job-1' }, revision: 'unused', operationId: `batch-${variant}`, availableAt: new Date(0).toISOString() }
+    await expect(adapter.retry(request)).rejects.toBeInstanceOf(DeadLetterInvalidStateError)
+    expect(reserve).not.toHaveBeenCalled()
+    expect(failed.retry).not.toHaveBeenCalled()
   })
   it('strips serialized metadata from ordinary job payload inspection', async () => {
     const serializer = new JobSerializer()
@@ -99,6 +133,6 @@ describe('BullMQDeadLetterAdapter', () => {
   it('keeps a raced pending reservation ambiguous', async () => {
     const request = { key: { source: 'bullmq', namespace: 'emails', id: 'job-1' }, revision: 'revision', operationId: 'race-pending', availableAt: new Date(0).toISOString() }; const hash = await deadLetterOperationFingerprint('retry', request)
     const operations = { get: vi.fn().mockResolvedValueOnce(undefined).mockResolvedValueOnce({ fingerprint: hash, status: 'pending' }), reserve: vi.fn().mockResolvedValue('exists'), finalize: vi.fn() }
-    await expect(new BullMQDeadLetterAdapter({ name: 'emails' } as never, operations).retry(request)).rejects.toBeInstanceOf(DeadLetterAmbiguousError)
+    await expect(new BullMQDeadLetterAdapter({ name: 'emails', getJob: vi.fn().mockResolvedValue(job()) } as never, operations).retry(request)).rejects.toBeInstanceOf(DeadLetterAmbiguousError)
   })
 })

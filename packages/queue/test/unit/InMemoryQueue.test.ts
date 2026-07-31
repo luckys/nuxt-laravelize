@@ -1,6 +1,7 @@
+/* eslint-disable @stylistic/arrow-parens, @stylistic/max-statements-per-line */
 import { describe, expect, it, vi } from 'vitest'
 import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobMetadataContributorRegistry, JobRegistrationCollisionError, JobReleasedError, JobRunner, JobSerializer, MAX_QUEUE_CHAIN_STEPS, NonRetryableJobError, readJobDispatchIdentity, readJobTags } from '../../src/runtime/index'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobMetadataContributorRegistry, JobRegistrationCollisionError, JobReleasedError, JobRunner, JobSerializer, MAX_QUEUE_CHAIN_STEPS, NonRetryableJobError, queueBatchContextToken, readJobDispatchIdentity, readJobTags } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {
   static runs: number[] = []
@@ -73,8 +74,41 @@ class OriginalMutationJob extends Job<{ value: number }> {
 
   handle(): never { throw new Error('terminal') }
 }
+class CooperativeBatchJob extends Job {
+  static started: (() => void) | undefined
+  static proceed: Promise<void> = Promise.resolve()
+  readonly payload = {}
+  constructor(_payload: Record<string, unknown>) { super() }
+  async handle(resolver: Resolver) { CooperativeBatchJob.started?.(); await CooperativeBatchJob.proceed; await resolver.make(queueBatchContextToken).throwIfCancellationRequested() }
+}
 
 describe('InMemoryQueue', () => {
+  it('tracks volatile batch progress, continues siblings after failure and cooperatively cancels active work', async () => {
+    TestJob.runs = []; TerminalJob.runs = 0; TerminalJob.failures = 0
+    const registry = new InMemoryJobRegistry(); registry.register(TestJob.name, TestJob); registry.register(TerminalJob.name, TerminalJob); registry.register(CooperativeBatchJob.name, CooperativeBatchJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry)); const failed = vi.fn(); queue.onFailed(failed)
+    const first = await queue.batch([{ job: new TerminalJob({}) }, { job: new TestJob({ value: 2 }) }], { queue: 'critical' })
+    await vi.waitFor(async () => expect((await queue.batchStatus(first)).pending).toBe(0))
+    expect(await queue.batchStatus(first)).toMatchObject({ total: 2, succeeded: 1, failed: 1, cancelled: 0, state: 'finished' })
+    expect(TestJob.runs).toEqual([2]); expect(failed).toHaveBeenCalledOnce()
+
+    let start!: () => void; const started = new Promise<void>(resolve => { start = resolve }); let proceed!: () => void
+    CooperativeBatchJob.started = start; CooperativeBatchJob.proceed = new Promise<void>(resolve => { proceed = resolve })
+    const active = await queue.batch([{ job: new CooperativeBatchJob({}) }])
+    await started; await queue.cancelBatch(active); proceed()
+    await vi.waitFor(async () => expect((await queue.batchStatus(active)).state).toBe('cancelled'))
+    expect(failed).toHaveBeenCalledOnce()
+  })
+
+  it('cancels delayed batch children before effects and rejects reserved ordinary ids', async () => {
+    TestJob.runs = []
+    const registry = new InMemoryJobRegistry(); registry.register(TestJob.name, TestJob)
+    const queue = new InMemoryQueue(new JobRunner(createContainer(), registry))
+    const handle = await queue.batch([{ job: new TestJob({ value: 9 }), options: { delay: 10_000 } }])
+    expect(await queue.cancelBatch(handle)).toMatchObject({ pending: 0, cancelled: 1, state: 'cancelled' })
+    expect(TestJob.runs).toEqual([])
+    await expect(queue.push(new TestJob({ value: 1 }), { id: 'laravelize-batch-injected' })).rejects.toThrow('reserved queue batch prefix')
+  })
   it('executes a bounded chain sequentially across queues with final admission facts', async () => {
     TestJob.runs = []
     const registry = new InMemoryJobRegistry()

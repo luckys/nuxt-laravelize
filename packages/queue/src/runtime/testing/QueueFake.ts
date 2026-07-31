@@ -2,13 +2,16 @@ import { JobSerializer, readJobDispatchIdentity, readJobTags, type Job, type Job
 import type { JobRunner } from '../JobRunner'
 import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type JobHandle, type PushOptions, type Queue, type QueueChainStep } from '../Queue'
 import { currentQueueChainStep, prepareQueueChain, QUEUE_CHAIN_JOB_ID_PREFIX, queueChainJobId } from '../SequentialChain'
+import { prepareQueueBatch, QUEUE_BATCH_JOB_ID_PREFIX, queueBatchSnapshot, type QueueBatchHandle, type QueueBatchItem, type QueueBatchOptions, type QueueBatchSnapshot } from '../QueueBatch'
 
 export interface PushedJob { readonly job: Job, readonly options: PushOptions, readonly priority: number, readonly queue?: string, readonly tags: readonly string[], readonly dispatch: JobDispatchIdentityV1, readonly serialized: SerializedJob }
 export interface PushedChain { readonly id: string, readonly steps: readonly PushedJob[] }
+export interface PushedBatch { readonly id: string, readonly queue: string, readonly children: readonly PushedJob[], cancellationRequested: boolean }
 
 export class QueueFake implements Queue {
   readonly pushed: PushedJob[] = []
   readonly chains: PushedChain[] = []
+  readonly batches: PushedBatch[] = []
   readonly #deduplication = new Map<string, Map<string, { readonly handle: JobHandle, readonly expiresAt?: number }>>()
   #nextId = 1
   #deduplicationTimer?: ReturnType<typeof setTimeout>
@@ -20,6 +23,7 @@ export class QueueFake implements Queue {
 
   async push(job: Job, options: PushOptions = {}): Promise<JobHandle> {
     if (options.id?.startsWith(QUEUE_CHAIN_JOB_ID_PREFIX)) throw new TypeError('job id uses the reserved queue chain prefix')
+    if (options.id?.startsWith(QUEUE_BATCH_JOB_ID_PREFIX)) throw new TypeError('job id uses the reserved queue batch prefix')
     if (options.id !== undefined && options.deduplication !== undefined) throw new TypeError('id and deduplication cannot be combined')
     const priority = options.priority ?? (job.constructor as typeof Job).priority
     if (!Number.isSafeInteger(priority) || priority < 0 || priority > MAX_JOB_PRIORITY) throw new TypeError(`priority must be an integer between 0 and ${MAX_JOB_PRIORITY}`)
@@ -63,6 +67,32 @@ export class QueueFake implements Queue {
     return handle
   }
 
+  async batch(items: readonly QueueBatchItem[], options?: QueueBatchOptions): Promise<QueueBatchHandle> {
+    const prepared = prepareQueueBatch(items, options, this.serializer, (job, queue, serializer) => this.#serialize(job, queue, serializer))
+    const children = prepared.children.map((child, index): PushedJob => ({
+      job: items[index]!.job,
+      options: { ...child.options, queue: prepared.handle.queue },
+      priority: child.options.priority,
+      queue: prepared.handle.queue,
+      tags: readJobTags(child.serialized),
+      dispatch: readJobDispatchIdentity(child.serialized)!,
+      serialized: child.serialized,
+    }))
+    this.batches.push({ id: prepared.handle.id, queue: prepared.handle.queue, children, cancellationRequested: false })
+    this.pushed.push(...children)
+    return prepared.handle
+  }
+
+  async batchStatus(handle: QueueBatchHandle): Promise<QueueBatchSnapshot> {
+    const batch = this.#batch(handle)
+    return queueBatchSnapshot(batch.children.length, 0, 0, batch.cancellationRequested ? batch.children.length : 0, batch.cancellationRequested)
+  }
+
+  async cancelBatch(handle: QueueBatchHandle): Promise<QueueBatchSnapshot> {
+    this.#batch(handle).cancellationRequested = true
+    return this.batchStatus(handle)
+  }
+
   later(delay: number, job: Job, options: PushOptions = {}): Promise<JobHandle> { return this.push(job, { ...options, delay }) }
   async sync(job: Job): Promise<void> {
     const queue = (job.constructor as typeof Job).queue
@@ -74,12 +104,14 @@ export class QueueFake implements Queue {
     if (queue === undefined) {
       this.pushed.length = 0
       this.chains.length = 0
+      this.batches.length = 0
       this.#deduplication.clear()
       this.#clearDeduplicationTimer()
     }
     else {
       this.pushed.splice(0, this.pushed.length, ...this.pushed.filter(item => item.queue !== queue))
       this.chains.splice(0, this.chains.length, ...this.chains.filter(item => item.steps[0]?.queue !== queue))
+      this.batches.splice(0, this.batches.length, ...this.batches.filter(item => item.queue !== queue))
       this.#deduplication.delete(queue)
       this.#rescheduleDeduplicationExpiry()
     }
@@ -93,6 +125,12 @@ export class QueueFake implements Queue {
   #serialize(job: Job, queue: string, serializer = this.serializer): SerializedJob {
     if (serializer.requiresAdmission() && !this.runner) throw new TypeError('QueueFake requires a JobRunner for admission metadata')
     return serializer.requiresAdmission() ? this.runner!.serialize(job, queue, serializer) : serializer.serialize(job)
+  }
+
+  #batch(handle: QueueBatchHandle): PushedBatch {
+    const batch = this.batches.find(item => item.id === handle.id && item.queue === handle.queue)
+    if (!batch) throw new TypeError('Queue batch was not found')
+    return batch
   }
 
   #scheduleDeduplicationExpiry(expiresAt: number): void {

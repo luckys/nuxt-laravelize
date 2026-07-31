@@ -4,6 +4,7 @@ import { MAX_JOB_PRIORITY, normalizeDeduplication, type FailedJobCallback, type 
 import { isNonRetryableJobError, NonRetryableJobError } from './NonRetryableJobError'
 import { isJobReleasedError } from './JobReleasedError'
 import { currentQueueChainStep, nextQueueChainEnvelope, prepareQueueChain, QUEUE_CHAIN_JOB_ID_PREFIX, queueChainJobId, type QueueChainEnvelopeV1 } from './SequentialChain'
+import { isQueueBatchCancelledError, prepareQueueBatch, QUEUE_BATCH_JOB_ID_PREFIX, queueBatchChildJobId, queueBatchSnapshot, type QueueBatchChildEnvelopeV1, type QueueBatchHandle, type QueueBatchItem, type QueueBatchOptions, type QueueBatchSnapshot } from './QueueBatch'
 
 interface ResolvedOptions {
   readonly id?: string
@@ -24,7 +25,10 @@ interface PendingJob {
   ready: boolean
   readonly sequence: number
   readonly chain?: QueueChainEnvelopeV1
+  readonly batch?: QueueBatchChildEnvelopeV1
 }
+
+interface MemoryBatch { readonly handle: QueueBatchHandle, readonly total: number, cancellationRequested: boolean, succeeded: number, failed: number, cancelled: number }
 
 interface DeduplicationReservation {
   readonly handle: JobHandle
@@ -37,6 +41,7 @@ export class InMemoryQueue implements Queue {
   readonly #failedCallbacks: FailedJobCallback[] = []
   readonly #scheduledQueues = new Set<string>()
   readonly #deduplication = new Map<string, Map<string, DeduplicationReservation>>()
+  readonly #batches = new Map<string, MemoryBatch>()
   #deduplicationTimer?: ReturnType<typeof setTimeout>
   #deduplicationTimerDueAt?: number
   #nextId = 1
@@ -70,6 +75,33 @@ export class InMemoryQueue implements Queue {
     return entry.handle
   }
 
+  async batch(items: readonly QueueBatchItem[], options?: QueueBatchOptions): Promise<QueueBatchHandle> {
+    const prepared = prepareQueueBatch(items, options, this.serializer, (job, queue, serializer) => this.#serialize(job, queue, serializer))
+    const record: MemoryBatch = { handle: prepared.handle, total: prepared.children.length, cancellationRequested: false, succeeded: 0, failed: 0, cancelled: 0 }
+    const entries = prepared.children.map(child => this.#batchEntry(child, prepared.handle.queue))
+    this.#batches.set(prepared.handle.id, record)
+    for (const entry of entries) this.#enqueue(entry, entry.options.delay)
+    return prepared.handle
+  }
+
+  async batchStatus(handle: QueueBatchHandle): Promise<QueueBatchSnapshot> {
+    const batch = this.#memoryBatch(handle)
+    return queueBatchSnapshot(batch.total, batch.succeeded, batch.failed, batch.cancelled, batch.cancellationRequested)
+  }
+
+  async cancelBatch(handle: QueueBatchHandle): Promise<QueueBatchSnapshot> {
+    const batch = this.#memoryBatch(handle)
+    batch.cancellationRequested = true
+    for (const jobs of this.#pending.values()) {
+      for (const entry of [...jobs]) {
+        if (entry.batch?.id !== handle.id || !this.#removePending(entry)) continue
+        this.#clearEntryTimer(entry)
+        this.#settleBatch(entry, 'cancelled')
+      }
+    }
+    return this.batchStatus(handle)
+  }
+
   later(delayMs: number, job: Job, options?: PushOptions): Promise<JobHandle> {
     return this.push(job, { ...options, delay: delayMs })
   }
@@ -88,10 +120,12 @@ export class InMemoryQueue implements Queue {
     if (queueName !== undefined) {
       this.#pending.delete(queueName)
       this.#deduplication.delete(queueName)
+      for (const [id, batch] of this.#batches) if (batch.handle.queue === queueName) this.#batches.delete(id)
     }
     else {
       this.#pending.clear()
       this.#deduplication.clear()
+      this.#batches.clear()
       this.#clearDeduplicationTimer()
     }
     if (queueName !== undefined) this.#rescheduleDeduplicationExpiry()
@@ -120,6 +154,19 @@ export class InMemoryQueue implements Queue {
       ready: false,
       sequence: this.#nextSequence++,
       chain,
+    }
+  }
+
+  #batchEntry(batch: QueueBatchChildEnvelopeV1, queue: string): PendingJob {
+    return {
+      serialized: batch.serialized,
+      options: { ...batch.options, queue },
+      handle: { id: queueBatchChildJobId(batch.id, batch.index), queue },
+      attempt: 0,
+      releases: 0,
+      ready: false,
+      sequence: this.#nextSequence++,
+      batch,
     }
   }
 
@@ -155,12 +202,25 @@ export class InMemoryQueue implements Queue {
 
   async #run(entry: PendingJob): Promise<void> {
     if (!this.#removePending(entry)) return
+    if (entry.batch && this.#batches.get(entry.batch.id)?.cancellationRequested) {
+      this.#settleBatch(entry, 'cancelled')
+      return
+    }
     entry.attempt += 1
     try {
-      await this.runner.run(entry.serialized, { queue: entry.options.queue, attempt: entry.attempt, maxAttempts: entry.options.tries })
+      await this.runner.run(entry.serialized, {
+        queue: entry.options.queue,
+        attempt: entry.attempt,
+        maxAttempts: entry.options.tries,
+        ...(entry.batch ? { batch: { id: entry.batch.id, queue: entry.options.queue, isCancellationRequested: async () => this.#batches.get(entry.batch!.id)?.cancellationRequested ?? true } } : {}),
+      })
     }
     catch (error) {
       let failure = error
+      if (entry.batch && isQueueBatchCancelledError(failure) && this.#batches.get(entry.batch.id)?.cancellationRequested) {
+        this.#settleBatch(entry, 'cancelled')
+        return
+      }
       if (isJobReleasedError(failure)) {
         if (entry.releases < failure.maxReleases) {
           entry.attempt -= 1
@@ -187,6 +247,7 @@ export class InMemoryQueue implements Queue {
         }
         catch { /* Failure observers cannot alter queue completion. */ }
       }
+      this.#settleBatch(entry, 'failed')
       return
     }
     const next = entry.chain ? nextQueueChainEnvelope(entry.chain) : undefined
@@ -195,6 +256,28 @@ export class InMemoryQueue implements Queue {
       this.#enqueue(successor, successor.options.delay)
     }
     this.#releaseDeduplication(entry)
+    this.#settleBatch(entry, 'succeeded')
+  }
+
+  #settleBatch(entry: PendingJob, outcome: 'succeeded' | 'failed' | 'cancelled'): void {
+    if (!entry.batch) return
+    const batch = this.#batches.get(entry.batch.id)
+    if (!batch) return
+    batch[outcome] += 1
+  }
+
+  #memoryBatch(handle: QueueBatchHandle): MemoryBatch {
+    const batch = this.#batches.get(handle.id)
+    if (!batch || batch.handle.queue !== handle.queue) throw new TypeError('Queue batch was not found')
+    return batch
+  }
+
+  #clearEntryTimer(entry: PendingJob): void {
+    for (const [timer, scheduled] of this.#timers) {
+      if (scheduled !== entry) continue
+      clearTimeout(timer)
+      this.#timers.delete(timer)
+    }
   }
 
   #deduplicated(queue: string, id: string): JobHandle | undefined {
@@ -286,6 +369,7 @@ export class InMemoryQueue implements Queue {
 function resolveOptions(job: Job, options?: PushOptions): ResolvedOptions {
   const config = job.constructor as typeof Job
   if (options?.id?.startsWith(QUEUE_CHAIN_JOB_ID_PREFIX)) throw new TypeError('job id uses the reserved queue chain prefix')
+  if (options?.id?.startsWith(QUEUE_BATCH_JOB_ID_PREFIX)) throw new TypeError('job id uses the reserved queue batch prefix')
   if (options?.id !== undefined && options.deduplication !== undefined) throw new TypeError('id and deduplication cannot be combined')
   const deduplication = normalizeDeduplication(options?.deduplication)
   return {
