@@ -12,6 +12,7 @@ const module: NuxtModule<WorkflowsQueueOptions, WorkflowsQueueOptions, false> = 
     const resolved = resolveWorkflowsQueueOptions(options)
     const provider = addTemplate({
       filename: 'laravelize/workflows-queue-provider.mjs',
+      write: true,
       getContents: () => `import Provider from ${JSON.stringify(resolver.resolve('./runtime/server/WorkflowsQueueServiceProvider'))}\nexport default class ConfiguredWorkflowsQueueProvider extends Provider { constructor() { super(${JSON.stringify(resolved)}) } }`,
     })
     addLaravelizeProvider(nuxt, provider.dst, 'server')
