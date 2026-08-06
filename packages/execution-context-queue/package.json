@@ -2,10 +2,46 @@
   "name": "@nuxt-laravelize/execution-context-queue",
   "version": "0.2.0",
   "description": "Execution context propagation across Laravelize queues",
-  "license": "MIT", "type": "module", "sideEffects": false, "files": ["dist"], "main": "./dist/module.mjs",
-  "exports": { ".": { "types": "./dist/types.d.mts", "import": "./dist/module.mjs" }, "./runtime": { "types": "./dist/public-runtime.d.mts", "import": "./dist/public-runtime.mjs" }, "./package.json": "./package.json" },
-  "scripts": { "build": "nuxt-module-build build && unbuild --config public.build.config.ts", "test": "nuxt-module-build prepare && vitest run", "typecheck": "nuxt-module-build prepare && vue-tsc --noEmit", "prepack": "pnpm run build", "pack:test": "pnpm pack --pack-destination ../../.pack" },
-  "dependencies": { "@nuxt-laravelize/core": "workspace:^", "@nuxt-laravelize/execution-context": "workspace:^", "@nuxt-laravelize/queue": "workspace:^", "@nuxt/kit": "^4.4.5" },
-  "peerDependencies": { "nuxt": ">=4.3.0 <5" },
-  "devDependencies": { "@nuxt/module-builder": "^1.0.2", "nuxt": "^4.4.5", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5", "vue-tsc": "^3.2.8" }
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/module.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    },
+    "./runtime": {
+      "types": "./dist/public-runtime.d.mts",
+      "import": "./dist/public-runtime.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "nuxt-module-build build && unbuild --config public.build.config.ts",
+    "test": "nuxt-module-build prepare && vitest run",
+    "typecheck": "nuxt-module-build prepare && vue-tsc --noEmit",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "dependencies": {
+    "@nuxt-laravelize/core": "workspace:^",
+    "@nuxt-laravelize/execution-context": "workspace:^",
+    "@nuxt-laravelize/queue": "workspace:^",
+    "@nuxt/kit": "^4.5.2"
+  },
+  "peerDependencies": {
+    "nuxt": ">=4.3.0 <5"
+  },
+  "devDependencies": {
+    "@nuxt/module-builder": "^1.0.3",
+    "nuxt": "^4.5.2",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5",
+    "vue-tsc": "^3.2.8"
+  }
 }

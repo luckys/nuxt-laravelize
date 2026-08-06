@@ -84,7 +84,7 @@ export class ConsoleRunner {
       return EXIT_FAILURE
     }
     let logger: Logger | undefined
-    let exitCode = EXIT_FAILURE
+    let exitCode: number | undefined
     let primaryFailure = false
     try {
       if (this.#process.signal.aborted) throw new Error('Command aborted during scope creation.')
@@ -126,7 +126,7 @@ export class ConsoleRunner {
         exitCode = EXIT_FAILURE
       }
     }
-    return exitCode
+    return exitCode ?? EXIT_FAILURE
   }
 
   #observed(observability: Observability, name: string, operation: () => Promise<number>): Promise<number> {

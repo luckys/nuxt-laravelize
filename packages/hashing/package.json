@@ -5,11 +5,19 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/module.mjs",
   "exports": {
-    ".": { "types": "./dist/types.d.mts", "import": "./dist/module.mjs" },
-    "./runtime": { "types": "./dist/public-runtime.d.mts", "import": "./dist/public-runtime.mjs" },
+    ".": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    },
+    "./runtime": {
+      "types": "./dist/public-runtime.d.mts",
+      "import": "./dist/public-runtime.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -21,13 +29,15 @@
   },
   "dependencies": {
     "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt/kit": "^4.4.5"
+    "@nuxt/kit": "^4.5.2"
   },
-  "peerDependencies": { "nuxt": ">=4.3.0 <5" },
+  "peerDependencies": {
+    "nuxt": ">=4.3.0 <5"
+  },
   "devDependencies": {
-    "@nuxt/module-builder": "^1.0.2",
+    "@nuxt/module-builder": "^1.0.3",
     "@types/node": "latest",
-    "nuxt": "^4.4.5",
+    "nuxt": "^4.5.2",
     "typescript": "^5.9.3",
     "unbuild": "^3.6.1",
     "vitest": "^4.1.5",

@@ -26,7 +26,7 @@ if (redisUrl) {
   catch (error) {
     a.disconnect()
     b.disconnect()
-    throw new Error(`Redis integration connection failed: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(`Redis integration connection failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
   }
 }
 

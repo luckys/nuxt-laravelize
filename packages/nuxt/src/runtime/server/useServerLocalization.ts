@@ -6,6 +6,7 @@ interface RuntimeI18nConfig {
   fallbackLocale?: string | readonly string[]
   localeCookie?: string | false | null | Record<string, unknown>
   autoDetectLanguage?: boolean
+  translationPayloadMode?: 'premerged' | 'source'
 }
 
 function fallbackLocales(value: RuntimeI18nConfig): readonly string[] {
@@ -19,17 +20,21 @@ function detectionLocales(source: ServerLocalizationSource): Array<{ code: strin
 }
 
 async function nitro(): Promise<{ config: RuntimeI18nConfig, source: ServerLocalizationSource, detectCurrentLocale: (event: H3Event, config: Record<string, unknown>, defaultLocale?: string) => string }> {
-  const [strategy, pluralModule, detector, generated] = await Promise.all([
+  const [strategy, pluralModule, detector, generated, payloadSource] = await Promise.all([
     import('#i18n-internal/strategy'),
     import('#laravelize/i18n-plural'),
     import('#laravelize/i18n-locale-detector'),
     import('#laravelize/i18n-source'),
+    import('#i18n-internal/payload-source'),
   ])
   const config = strategy.getI18nConfig() as RuntimeI18nConfig
+  const dictionaryPath = config.translationPayloadMode === 'source'
+    ? (code: string) => `${code}.json`
+    : (code: string) => `index/${code}/data.json`
   return {
     config,
     detectCurrentLocale: detector.detectCurrentLocale,
-    source: { locales: generated.locales, defaultLocale: config.defaultLocale ?? 'en', fallbackLocales: fallbackLocales(config), plural: pluralModule.plural as ServerPlural, loadDictionary: generated.loadDictionary },
+    source: { locales: generated.locales, defaultLocale: config.defaultLocale ?? 'en', fallbackLocales: fallbackLocales(config), plural: pluralModule.plural as ServerPlural, loadDictionary: code => payloadSource.readPayload(dictionaryPath(code)) },
   }
 }
 

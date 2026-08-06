@@ -31,7 +31,6 @@ async function consume(observability: Observability, serialized: SerializedJob, 
   try { span = observability.startSpan('queue.process', { kind: 'consumer', attributes, ...(options.trustTraceContext && parent.traceparent ? { parent } : { root: true }) }) }
   catch { await next(); return }
   const started = performance.now()
-  let ended = false
   let result = 'completed'
   try {
     let invoked = false
@@ -82,10 +81,8 @@ async function consume(observability: Observability, serialized: SerializedJob, 
     catch {}
     try { histogram?.record(performance.now() - started, { queue, job }) }
     catch {}
-    if (!ended) {
-      ended = true; try { span.end() }
-      catch {}
-    }
+    try { span.end() }
+    catch {}
   }
 }
 export function queueTraceMetadata(serialized: SerializedJob): PropagationCarrier {

@@ -225,7 +225,7 @@ function assertBatchBounds(value: unknown): void {
   }
   catch (error) {
     if (error instanceof TypeError && (error.message.includes('too large') || error.message.includes('too complex'))) throw error
-    throw new TypeError('Invalid queue batch envelope')
+    throw new TypeError('Invalid queue batch envelope', { cause: error })
   }
 }
 function measure(value: unknown, state: { nodes: number }, depth: number): void {

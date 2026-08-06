@@ -42,18 +42,18 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt/kit": "^4.4.5",
+    "@nuxt/kit": "^4.5.2",
     "awilix": "^12.0.5"
   },
   "peerDependencies": {
     "nuxt": ">=4.3.0 <5"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "^1.0.2",
+    "@nuxt/module-builder": "^1.0.3",
     "@types/node": "latest",
     "h3": "^1.15.11",
-    "nitropack": "^2.13.1",
-    "nuxt": "^4.4.5",
+    "nitropack": "^2.13.4",
+    "nuxt": "^4.5.2",
     "typescript": "^5.9.3",
     "unbuild": "^3.6.1",
     "vitest": "^4.1.5",

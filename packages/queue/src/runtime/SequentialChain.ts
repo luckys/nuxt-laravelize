@@ -142,7 +142,7 @@ function assertChainSize(value: QueueChainEnvelopeV1): void {
   }
   catch (error) {
     if (error instanceof TypeError && (error.message === 'Queue chain envelope is too large' || error.message === 'Queue chain envelope is too complex')) throw error
-    throw new TypeError('Invalid queue chain envelope')
+    throw new TypeError('Invalid queue chain envelope', { cause: error })
   }
 }
 

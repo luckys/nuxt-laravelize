@@ -6,5 +6,5 @@ export default defineBuildConfig({
   declaration: true,
   clean: false,
   rollup: { emitCJS: false },
-  externals: ['#laravelize/i18n-plural', '#i18n-internal/strategy', '#laravelize/i18n-locale-detector', '#laravelize/i18n-source'],
+  externals: ['#laravelize/i18n-plural', '#i18n-internal/strategy', '#i18n-internal/payload-source', '#laravelize/i18n-locale-detector', '#laravelize/i18n-source'],
 })

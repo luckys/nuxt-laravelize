@@ -209,7 +209,7 @@ export class AwsS3Filesystem implements Filesystem {
         await this.#issuanceStore.release(reservation)
       }
       catch (releaseError) {
-        throw new AggregateError([error, releaseError], 'Upload confirmation failed and its reservation could not be released.')
+        throw new AggregateError([error, releaseError], 'Upload confirmation failed and its reservation could not be released.', { cause: releaseError })
       }
       throw error
     }

@@ -446,8 +446,8 @@ export function materializeCanonicalJson(value: unknown, subject = 'JSON value')
     return cloneJson(value as JsonValue)
   }
   catch (error) {
-    if (error instanceof TypeError && error.message === 'must contain only finite JSON numbers') throw new TypeError(`${subject} ${error.message}`)
-    throw new TypeError(`${subject} must contain only enumerable plain JSON data properties`)
+    if (error instanceof TypeError && error.message === 'must contain only finite JSON numbers') throw new TypeError(`${subject} ${error.message}`, { cause: error })
+    throw new TypeError(`${subject} must contain only enumerable plain JSON data properties`, { cause: error })
   }
 }
 
