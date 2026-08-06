@@ -1,27 +1,127 @@
-# @nuxt-laravelize/dead-letter-operations
+# `@nuxt-laravelize/dead-letter-operations`
 
-Consola Nuxt opcional y fail-closed para `@nuxt-laravelize/dead-letter`. Esta desactivada por defecto y nunca forma parte del preset Laravelize.
+[English](./README.md) | Espanol
+
+Dashboard dead-letter opcional y fail-closed (fuera del preset)
+
+## Instalacion
+
+```bash
+pnpm add @nuxt-laravelize/dead-letter-operations
+```
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/dead-letter-operations'],
+})
+```
+
+
+## Uso especifico del package
+
+
+### Activa la consola de operaciones fail-closed
+
+El dashboard es opt-in, usa origins canonicos exactos y paths literales no solapados, y no registra ningun adapter ni ability permisiva. Configura el registry de autorizacion y el registry de adapters desde codigo de la aplicacion.
 
 ```ts
 export default defineNuxtConfig({
   modules: ['@nuxt-laravelize/dead-letter-operations'],
   laravelizeDeadLetterOperations: {
     enabled: true,
-    allowedOrigins: ['https://operaciones.example.com'],
+    allowedOrigins: ['https://operations.example.com'],
     pagePath: '/operations/dead-letters',
     apiPath: '/api/operations/dead-letters',
-    pageSize: 25,
-    errorSummaries: false,
   },
 })
 ```
 
-La aplicacion debe registrar adapters durante el boot en un service provider propio resolviendo `deadLetterAdapterRegistryToken`. El paquete no registra adapters ni abilities permisivas. Registra en Authorization: `dead-letters.list`, `dead-letters.view`, `dead-letters.view-payload`, `dead-letters.view-error-summary`, `dead-letters.retry`, `dead-letters.discard` y `dead-letters.retry-inbox` para reintentos del inbox de reliability. Las policies reciben contexto congelado `{ source }` para listados y `{ key }` para operaciones de item. Una ability ausente deniega el acceso.
+## Entrypoints publicos
 
-El payload se obtiene con una peticion separada y nunca se renderiza por SSR. Las mutaciones exigen Origin exacto, POST JSON, `X-Laravelize-Operations: 1`, revision, confirmacion e ID de operacion del cliente. No existen endpoints bulk. Las pistas de tenant no se exponen.
+Usa solo estos entrypoints publicos. Las rutas no listadas son internals y pueden cambiar sin aviso.
 
-Authorization recibe argumentos de contexto congelados: el source validado para listados y la clave exacta para cada item. Las abilities ausentes deniegan acceso. Las capabilities del bootstrap son solo pistas globales; el detalle devuelve capabilities especificas de la clave y cada endpoint vuelve a autorizar. Si se pierde una respuesta de mutacion, la consola conserva la peticion y el ID exactos sin reintentar automaticamente: el operador debe refrescar, reintentar la misma operacion o abandonarla explicitamente antes de confirmar una nueva.
+| Entrypoint | Uso |
+|---|---|
+| `package root` | Entrypoint publico de este package. |
+| `./runtime` | Entrypoint publico de este package. |
+| `./runtime/server` | Entrypoint publico de este package. |
 
-Los origins deben ser HTTPS canonicos exactos; HTTP solo se acepta en loopback para desarrollo/tests. Protege esta interfaz global de operador con autenticacion y controles de red de la aplicacion.
+## Reliability y webhooks
 
-[English](./README.md)
+`@nuxt-laravelize/reliability` proporciona envelopes JSON-safe versionados, procesamiento outbox con leases y deduplicacion inbox. El preset incluye `@nuxt-laravelize/reliability-queue` para registrar handlers fiables y `ReliableMessageJob`, pero no liga stores volatiles en produccion. Cada aplicacion debe ligar stores Inbox y Outbox durables y compartidos; `reliability-drizzle` es opcional. Webhooks sigue siendo opt-in. La entrega es **at least once**: reintentos, expiracion del lease, crashes y ambiguedad del acknowledgement (el efecto se confirmo pero se perdio su confirmacion) pueden repetir mensajes, asi que cada handler debe ser idempotente.
+
+La gestion dead-letter es opt-in mediante `@nuxt-laravelize/dead-letter`; el preset no instala adaptadores administrativos. La aplicacion debe autorizar listar/ver/payload/resumen-de-error/reintentar/descartar y exigir un permiso reforzado para inbox. Payload, resumenes de error y pista de tenant son opt-in y nunca autorizan. Las capacidades omitidas del adapter se deniegan. Reliability admite reintentos programados y descarte; BullMQ solo reintento inmediato. Reintentar inbox puede repetir efectos. Los recibos son metadatos acotados de idempotencia/auditoria, no historial completo. La evidencia activa se conserva por defecto. El fencing BullMQ es optimista; su adapter lista snapshots acotados de hasta 1000 jobs fallidos retenidos y rechaza fuentes mayores, que requieren una cola o retencion mas estrecha. No hay acciones masivas.
+
+Instala `@nuxt-laravelize/dead-letter-operations` por separado para el dashboard opcional. Esta desactivado por defecto y ausente del preset. Al activarlo debes definir al menos un `allowedOrigins` canonico exacto, paths literales no solapados, adapters desde un provider de la aplicacion y las abilities dead-letter centrales. La API fija autoriza cada endpoint, expone payload solo en su endpoint dedicado, nunca expone pistas de tenant, protege mutaciones JSON con CSRF y revision, y devuelve 503 sin adapters. Consulta el README del paquete.
+
+```bash
+pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
+# Adapter Drizzle durable opcional:
+pnpm add @nuxt-laravelize/reliability-drizzle drizzle-orm
+```
+
+El snapshot del execution context del envelope solo es procedencia de correlacion. **NO DEBE** autorizar tenant, actor, rol ni recurso. Reautentica y reautoriza contra estado actual y confiable dentro del consumer.
+
+```ts
+import { createEnvelope } from '@nuxt-laravelize/reliability'
+import { DrizzlePostgresReliabilityStore } from '@nuxt-laravelize/reliability-drizzle/postgres'
+
+const store = new DrizzlePostgresReliabilityStore(db)
+const envelope = createEnvelope({
+  type: 'invoice.paid.v1',
+  payload: { invoiceId: 'inv_1' },
+})
+
+await db.transaction(async (tx) => {
+  await markInvoicePaid(tx, 'inv_1')
+  await store.appendWith(tx, envelope, {
+    availableAt: new Date(Date.now() + 60_000).toISOString(),
+  })
+})
+```
+
+`availableAt` es el primer instante elegible para claim y usa `occurredAt` por defecto; agendar nunca cambia cuando ocurrio el evento. Ambos valores requieren timestamps ISO canonicos. Repetir un append con el mismo ID, envelope normalizado y disponibilidad es idempotente. Reutilizar un ID con contenido o disponibilidad diferente lanza `OutboxMessageConflictError` en vez de descartar silenciosamente un mensaje.
+
+La escritura de negocio y `appendWith(tx, envelope, options)` **deben usar la misma transaccion y conexion de base de datos**. Agregar antes o despues reintroduce el dual-write gap y puede perder un evento o publicar estado revertido. Aplica la migracion base seguida por la migracion de append availability del dialecto. El schedule inmutable permanece estable mientras la disponibilidad mutable avanza durante reintentos. El store en memoria de `/testing` es acotado, volatil y solo sirve para tests/desarrollo; produccion requiere store durable compartido, IDs de owner estables, leases/reintentos acotados, heartbeat/renovacion del lease para trabajo que pueda superarlo, monitorizacion de mensajes dead y operaciones de retencion/reconciliacion. Drizzle sigue siendo opcional.
+
+Aplica la migracion de tiempo terminal del dialecto (`0004` PostgreSQL o `0005` SQLite/Turso) y ejecuta pasadas acotadas con `store.prune({ namespace: 'outbox', completedBefore, states: ['delivered'], types: ['laravelize.workflow.wake.v1'], limit: 500 })`. La retencion usa `terminal_at` autoritativo, nunca el tiempo del envelope ni de elegibilidad; filas terminales legacy permanecen null hasta un backfill explicito del operador. Las filas dead requieren seleccion explicita y normalmente deben conservarse como evidencia. El pruning acorta la deduplicacion durable por ID, por lo que la retencion debe superar clock skew y la ventana maxima de replay.
+
+Ejecuta la entrega outbox como proceso supervisado. Su modulo de configuracion exporta un `OutboxWorker`; SIGINT/SIGTERM detienen la entrada, drenan trabajo en curso y cierran recursos. Usa `--once` para una pasada operativa, tambien desde un scheduler; nunca ejecutes `run()` desde el scheduler.
+
+```bash
+pnpm exec outbox-work --config ./outbox-worker.config.js
+pnpm exec outbox-work --once --config ./outbox-worker.config.js
+pnpm exec webhook-work --config ./webhook-worker.config.js
+```
+
+`@nuxt-laravelize/webhooks` ofrece `OutgoingWebhookProcessor`, verificacion HMAC del body raw y `WebhookInboxReceiver`. Su transport es **solo para Node** porque usa DNS, crypto, buffers y fetch de servidor de Node. Resuelve secrets de firma al entregar; el outbox solo guarda `secretId`. Los constructores de produccion exigen stores outbox/inbox durables.
+
+```ts
+import { OutgoingWebhookProcessor, createWebhookEnvelope } from '@nuxt-laravelize/webhooks'
+
+await store.append(createWebhookEnvelope({
+  url: 'https://hooks.example.com/orders',
+  secretId: 'customer-42-current',
+  body: { orderId: 'order_1' },
+}))
+
+const webhooks = new OutgoingWebhookProcessor(store, {
+  owner: 'webhooks-worker-1',
+  resolveSecret: secrets.resolve,
+  production: true,
+})
+await webhooks.runOnce()
+```
+
+Las URLs salientes exigen HTTPS por puerto 443, rechazan credenciales y direcciones privadas/reservadas, desactivan redirects y limitan timeouts. Los transports personalizados deben conservar esas restricciones de redirect, timeout, DNS/IP y TLS. El riesgo SSRF se reduce, no se elimina: la validacion DNS y la conexion posterior no estan fijadas atomicamente, dejando un residual DNS-rebinding/TOCTOU. Para destinos no confiables, exige un proxy egress con allowlist o pinning de direccion a nivel de conexion, ademas de politica de red saliente. Verifica firmas entrantes contra los bytes raw exactos, limita la tolerancia temporal, autentica/autoriza ownership del endpoint por separado y conserva la deduplicacion inbox al menos durante la ventana de reintentos del sender.
+
+## Compatibilidad y limites
+
+Respeta las advertencias de entrega at-least-once, durabilidad, autorizacion, aislamiento de tenant y secretos que aparecen en la seccion de referencia. Los ejemplos no sustituyen la autenticacion, autorizacion ni validacion del servidor.
+
+La referencia compartida de APIs y decisiones de seguridad esta en la [guia de modulos](../../docs/modules.es.md#reliability-y-webhooks). Esta pagina resume el contrato de este package y mantiene ejemplos copy-pasteables.
+
+## Paquetes relacionados
+
+[`@nuxt-laravelize/dead-letter`](../dead-letter/README.es.md), [`@nuxt-laravelize/authorization`](../authorization/README.es.md).

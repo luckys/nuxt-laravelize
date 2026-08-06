@@ -1,5 +1,67 @@
-# @nuxt-laravelize/broadcasting-pusher
+# `@nuxt-laravelize/broadcasting-pusher`
 
-Inject `PusherBroadcaster` as core's `broadcasterToken`. Credentials are server secrets and must remain in private runtime config. `fetch` is injectable for testing/runtimes.
+[Espanol](./README.es.md) | English
 
-For authenticated channels, create an application-owned, authenticated POST endpoint accepting `socket_id` and `channel_name`; authorize the current user through core's `ChannelRegistry` using the canonical `private-*` or `presence-*` name, deny a null result, then call `authorizeChannel`. Presence channels require `{ user_id, user_info? }`; private channels reject member data. Encrypted channels are currently unsupported and rejected. Validate request fields and never trust user identity supplied by the client. This package intentionally provides no route or websocket client infrastructure.
+Injectable server-side Pusher Channels adapter
+
+## Install
+
+```bash
+pnpm add @nuxt-laravelize/broadcasting-pusher @nuxt-laravelize/broadcasting
+```
+
+## Package-specific usage
+
+
+### Send broadcasts through Pusher Channels
+
+This is a server adapter only. Keep the app secret in private server configuration, inject the broadcaster into the base broadcasting module, and configure browser subscriptions separately.
+
+```ts
+import { PusherBroadcaster } from '@nuxt-laravelize/broadcasting-pusher'
+import { broadcasterToken } from '@nuxt-laravelize/broadcasting/runtime'
+
+container.instance(broadcasterToken, new PusherBroadcaster({
+  appId: process.env.PUSHER_APP_ID,
+  key: process.env.PUSHER_KEY,
+  secret: process.env.PUSHER_SECRET,
+  cluster: process.env.PUSHER_CLUSTER,
+}))
+```
+
+## Public entrypoints
+
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
+
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
+
+## Broadcasting
+
+`@nuxt-laravelize/broadcasting` is included in the preset and bridges dispatched `ShouldBroadcast` events to public, private, or presence channels. Every event must implement `broadcastWith()` explicitly; event properties are never reflected, preventing accidental payload leakage. Register private and presence authorization rules with the request-scoped `useBroadcastChannels(event)` registry. The preset fails closed by default; the bounded memory driver must be enabled explicitly for development or tests.
+
+```ts
+import { PrivateChannel } from '@nuxt-laravelize/broadcasting/runtime'
+
+class OrderUpdated {
+  constructor(readonly orderId: string, readonly internalNote: string) {}
+  broadcastOn() { return new PrivateChannel(`orders.${this.orderId}`) }
+  broadcastAs() { return 'order.updated' }
+  broadcastWith() { return { orderId: this.orderId } }
+}
+
+useBroadcastChannels(event).channel('orders.{orderId}', (user, { orderId }) => userCanView(user, orderId))
+```
+
+`@nuxt-laravelize/broadcasting-pusher` is an opt-in **server adapter**. Inject `PusherBroadcaster` through `broadcasterToken` and keep credentials in private runtime config. It does not provide or install a browser WebSocket client or Laravel Echo; choose and configure client subscriptions separately.
+
+## Compatibility and boundaries
+
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
+
+The shared API and security reference lives in the [module guide](../../docs/modules.md#broadcasting). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/broadcasting`](../broadcasting/README.md).

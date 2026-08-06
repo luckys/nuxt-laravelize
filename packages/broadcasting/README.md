@@ -1,19 +1,62 @@
-# @nuxt-laravelize/broadcasting
+# `@nuxt-laravelize/broadcasting`
 
-Server-only broadcasting. Events implementing `ShouldBroadcast` are discovered through the events package's `listenAny` hook; the events package remains unchanged.
+[Espanol](./README.es.md) | English
 
-```ts
-class OrderUpdated implements ShouldBroadcast {
-  constructor(readonly order: { id: string }, readonly socket?: string) {}
-  broadcastOn() { return new PrivateChannel(`orders.${this.order.id}`) }
-  broadcastAs() { return 'order.updated' }
-  broadcastWith() { return { id: this.order.id } }
-  broadcastWhen() { return true }
-}
+Server-side Laravel-style broadcasting for Nuxt
+
+## Install
+
+```bash
+pnpm add @nuxt-laravelize/broadcasting
 ```
 
-`broadcastWith()` is mandatory at runtime. Events without an explicit payload are ignored; broadcasting never reflects arbitrary event properties, which could expose sensitive data.
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/broadcasting'],
+})
+```
 
-Private and presence channel objects canonicalize names to `private-*` and `presence-*`. Register authorization against that same canonical name, for example `useBroadcastChannels(event).channel('private-orders.{order}', ...)`. Unmatched and false results are denied. Return an object for presence member data. Core does not expose an authorization HTTP route or websocket client: authenticate the user in your own server endpoint, call the registry, then use your transport adapter to create its signed response.
 
-The default driver fails closed. `driver: 'memory'` is explicit, bounded, volatile, and intended only for development/tests. Override `broadcasterToken` in an application provider for production. Payloads must be finite, acyclic JSON objects made from plain objects/arrays/primitives; `socket` is metadata and excluded from inferred payloads.
+## Package-specific usage
+
+The package exposes a small, explicit surface. Configure its dependencies from an application provider or adapter and test its boundaries before promoting it to production.
+
+## Public entrypoints
+
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
+
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
+| `./runtime` | Public entrypoint for this package. |
+| `./testing` | Public entrypoint for this package. |
+
+## Broadcasting
+
+`@nuxt-laravelize/broadcasting` is included in the preset and bridges dispatched `ShouldBroadcast` events to public, private, or presence channels. Every event must implement `broadcastWith()` explicitly; event properties are never reflected, preventing accidental payload leakage. Register private and presence authorization rules with the request-scoped `useBroadcastChannels(event)` registry. The preset fails closed by default; the bounded memory driver must be enabled explicitly for development or tests.
+
+```ts
+import { PrivateChannel } from '@nuxt-laravelize/broadcasting/runtime'
+
+class OrderUpdated {
+  constructor(readonly orderId: string, readonly internalNote: string) {}
+  broadcastOn() { return new PrivateChannel(`orders.${this.orderId}`) }
+  broadcastAs() { return 'order.updated' }
+  broadcastWith() { return { orderId: this.orderId } }
+}
+
+useBroadcastChannels(event).channel('orders.{orderId}', (user, { orderId }) => userCanView(user, orderId))
+```
+
+`@nuxt-laravelize/broadcasting-pusher` is an opt-in **server adapter**. Inject `PusherBroadcaster` through `broadcasterToken` and keep credentials in private runtime config. It does not provide or install a browser WebSocket client or Laravel Echo; choose and configure client subscriptions separately.
+
+## Compatibility and boundaries
+
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
+
+The shared API and security reference lives in the [module guide](../../docs/modules.md#broadcasting). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/broadcasting-pusher`](../broadcasting-pusher/README.md), [`@nuxt-laravelize/notifications-broadcast`](../notifications-broadcast/README.md).

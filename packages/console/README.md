@@ -1,32 +1,50 @@
 # `@nuxt-laravelize/console`
 
-Portable typed console commands using the Laravelize application container.
+[Espanol](./README.es.md) | English
+
+Typed, dependency-injected console command runtime for Nuxt Laravelize
+
+## Install
+
+```bash
+pnpm add @nuxt-laravelize/console
+```
+
+## Package-specific usage
+
+The package exposes a small, explicit surface. Configure its dependencies from an application provider or adapter and test its boundaries before promoting it to production.
+
+## Public entrypoints
+
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
+
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
+| `./node` | Public entrypoint for this package. |
+| `./testing` | Public entrypoint for this package. |
+
+## Console
+
+`@nuxt-laravelize/console` registers typed commands without a global command facade. `CommandRegistry` rejects duplicate names; argument and option schemas own parsing, defaults, aliases, validation, and help. `ConsoleRunner` creates one Laravelize application scope per invocation, binds a `cli` execution context, propagates abort signals, records bounded logs/spans, normalizes exit codes, and always disposes the scope. The portable entrypoint never reads process globals. Use `/node` for TTY/process adapters and `/testing` for deterministic terminal, prompt, and process fakes. Prompts fail closed unless an interactive adapter is installed.
 
 ```ts
-import { createToken, LaravelizeApplication } from '@nuxt-laravelize/core/runtime'
-import { argument, CommandRegistry, ConsoleRunner, defineCommand, option, type CommandHandler } from '@nuxt-laravelize/console'
-import { FakeProcess, FakeTerminal } from '@nuxt-laravelize/console/testing'
-
-type Arguments = { name: string }
-type Options = { loud: boolean }
-const greetHandler = createToken<CommandHandler<Arguments, Options>>('app.greet')
-
 const registry = new CommandRegistry().register(defineCommand({
-  name: 'greet',
-  description: 'Greet a person.',
-  arguments: { name: argument.string() },
-  options: { loud: option.boolean({ short: 'l' }) },
-  handler: greetHandler,
+  name: 'reports:send',
+  arguments: { report: argument.string() },
+  options: { queue: option.string({ short: 'q' }) },
+  handler: sendReportHandlerToken,
 }))
 
-const application = new LaravelizeApplication([AppServiceProvider])
-const terminal = new FakeTerminal()
-const process = new FakeProcess(['greet', 'Ada', '--loud'])
 const exitCode = await new ConsoleRunner({ application, registry, terminal, process }).run()
 ```
 
-Bind each command handler token in an application service provider. Every invocation receives a fresh container scope with `executionContextToken` set to source `cli`, plus `terminalToken`, `processToken`, `promptToken`, and `abortSignalToken`. Registered logging and observability services are used automatically. Unexpected errors are not printed; commands should write intentional user-facing detail through the terminal.
+## Compatibility and boundaries
 
-The default prompt implementation always rejects. Install an explicit `Prompt`, or use `runNodeConsole` from `@nuxt-laravelize/console/node`, which provides TTY-aware Node adapters and maps `SIGINT` to an abort signal. Node-specific APIs are not imported by the portable package entrypoint.
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
 
-Option values beginning with `-` must use inline long-option syntax, such as `--tag=-draft` or `--count=-1`. This keeps a following option token from being consumed accidentally as another option's value.
+The shared API and security reference lives in the [module guide](../../docs/modules.md#console). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/core`](../core/README.md), [`@nuxt-laravelize/execution-context`](../execution-context/README.md), [`@nuxt-laravelize/testing`](../testing/README.md).

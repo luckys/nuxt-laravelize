@@ -1,38 +1,118 @@
-# @nuxt-laravelize/cache-redis
+# `@nuxt-laravelize/cache-redis`
 
-Optional Node-only Redis/Valkey adapter for `@nuxt-laravelize/cache`, using ioredis 5.x.
+[Espanol](./README.es.md) | English
 
-```sh
-pnpm add @nuxt-laravelize/cache @nuxt-laravelize/cache-redis ioredis
+Redis and Valkey cache adapter for Nuxt Laravelize
+
+## Install
+
+```bash
+pnpm add @nuxt-laravelize/cache-redis ioredis
 ```
+
+## Package-specific usage
+
+
+### Use Redis or Valkey as the shared cache
+
+Create one `RedisCache` with a mandatory application prefix and register it through `cacheToken`. The package does not own connection startup or shutdown, so the application can supervise the client lifecycle.
 
 ```ts
 import Redis from 'ioredis'
 import { RedisCache } from '@nuxt-laravelize/cache-redis'
+import { cacheToken } from '@nuxt-laravelize/cache/runtime'
 
-const redis = new Redis(process.env.REDIS_URL!)
-const cache = new RedisCache(redis, { prefix: 'my-app:cache:' })
-// The application owns connection shutdown.
-await redis.quit()
+const redis = new Redis(process.env.REDIS_URL)
+container.instance(cacheToken, new RedisCache(redis, { prefix: 'orders:production:' }))
+
+await useCache(event).put('invoice:42', { status: 'paid' }, 60)
 ```
 
-The prefix defaults to `laravelize:cache:` and must be non-empty and end in `:`. The delimiter prevents a flush for a namespace such as `tenant:1:` from overlapping `tenant:10:`. On a standalone Redis/Valkey connection, `flush()` uses escaped `SCAN` plus bounded `UNLINK` (or `DEL`) batches and never calls `KEYS` or `FLUSHDB`; it is non-atomic, so concurrent writes may survive or be removed. Single-key operations and scripts are compatible with ioredis Cluster, but `flush()` explicitly rejects Cluster clients because one-node `SCAN` cannot provide a complete prefix flush.
+## Public entrypoints
 
-TTL numbers are seconds and absolute `Date` values use the client clock. TTLs are rounded up to whole milliseconds before being sent to Redis. Invalid dates, non-finite values, and positive results outside JavaScript's safe-integer/Redis-supported range are rejected. Nonpositive TTL behavior depends on the cache operation; notably, `add()` returns `false` without changing an existing value or its TTL.
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
 
-`remember()` coalesces factories only within one `RedisCache` instance. After a factory completes it uses conditional `SET NX`, so a value written by another adapter or process while the factory was pending remains cached; the original caller still receives its own factory result. Mutations through the same adapter invalidate its pending population attempt. This is race protection, not a distributed lock: factories in different processes may run concurrently.
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
 
-Values use a strict, versioned JSON-safe serializer. It accepts only null, booleans, finite numbers, strings, arrays, and plain objects; malformed or unsafe values fail closed. The default serializer is exported for diagnostics, but `RedisCache` intentionally does not accept a custom serializer because compare operations and atomic counters require its exact encoding.
+## Cache
 
-Counters use Redis Lua's IEEE-754 double arithmetic and serialize results with enough significant digits to round-trip as a JavaScript `Number`. Fractional calculations therefore have normal binary floating-point semantics; arbitrary decimal exactness is not guaranteed.
+`@nuxt-laravelize/cache` provides a portable async cache contract, Laravel-style convenience operations and a default in-memory driver.
 
-Locks use renewable owner leases without fencing tokens. Redis/Valkey failover or replication lag can violate mutual exclusion; use a fenced coordination system when stale holders could cause unsafe writes.
-`RedisCache` advertises the `DistributedCache` owner-atomic capability used by scheduler integrations; local cache drivers do not advertise it.
-
-## Release verification
-
-Run the real Redis behavioral suite against a reachable disposable Redis/Valkey instance before release. The command fails when `REDIS_URL` is missing or connectivity cannot be established:
-
-```sh
-REDIS_URL='redis://localhost:6379' pnpm test:redis
+```bash
+pnpm add @nuxt-laravelize/cache
 ```
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/cache'],
+})
+```
+
+The complete preset already registers this module.
+
+Use the auto-imported `useCache(event)` in Nitro handlers. Numeric TTL values are seconds; a `Date` is an absolute expiration; omitting TTL stores forever.
+
+```ts
+export default defineEventHandler(async (event) => {
+  const cache = useCache(event)
+  const users = await cache.remember('users:active', 60, () => loadActiveUsers())
+  return { users }
+})
+```
+
+| API | Purpose |
+|---|---|
+| `get(key, default?)` / `has(key)` | Reads a value or checks a non-expired key. |
+| `put(key, value, ttl?)` / `forever()` | Stores a value temporarily or permanently. Non-positive TTL removes it. |
+| `add(key, value, ttl?)` | Atomically stores only when the key is absent. |
+| `pull(key, default?)` | Reads and removes a value. |
+| `forget(key)` / `flush()` | Removes one key or all keys. |
+| `forgetIf(key, expected)` | Atomically removes a key only when its value still matches. |
+| `remember(key, ttl, factory)` | Loads and caches a missing value; concurrent in-process calls share one factory promise. |
+| `rememberForever(key, factory)` | Memoizes without expiration. |
+| `increment()` / `decrement()` | Atomically changes a numeric value and creates a missing counter from zero. |
+| `cacheToken` | Resolves the configured `Cache` implementation from the container. |
+| `CacheFake` | In-memory test fake with `assertHas()`, `assertMissing()` and `reset()`. |
+
+```ts
+await cache.add('locks:report', ownerId, 30)
+await cache.increment('login-attempts:user_1', 1, 60)
+const token = await cache.pull<string>('password-reset:user_1')
+```
+
+`InMemoryCache` is appropriate for tests, development and one long-lived process. It lazily removes accessed expirations and opportunistically sweeps untouched expired values during writes. It does not coordinate across workers, instances, regions or serverless invocations. Bind a shared adapter to `cacheToken` for distributed caching or cross-process atomic operations. Cache is an optimization boundary: do not make domain correctness depend on cached data.
+
+`undefined` is reserved for a cache miss and cannot be stored; use `null` when absence is itself the cached value. Mutations invalidate an in-flight `remember()` write so stale loaders cannot overwrite newer values.
+
+### Atomic locks
+
+Create an owner-safe lock with `useCacheLock(event, name, ttlSeconds)`. `run()` executes immediately when acquired and returns `undefined` when busy. `block()` polls until acquisition or throws `LockTimeoutError`.
+
+```ts
+export default defineEventHandler(async (event) => {
+  return await useCacheLock(event, 'reports:daily', 30).block(5, async () => {
+    return await generateDailyReport()
+  })
+})
+```
+
+Each lock exposes an opaque `owner` token. Pass that token as the fourth `useCacheLock()` argument to restore and release ownership from another process. Normal `release()` uses atomic compare-and-delete and cannot delete a lock reacquired by another owner after expiration. Reserve `forceRelease()` for administrative recovery because it intentionally ignores ownership.
+
+Call `lock.renew(ttlSeconds?)` to atomically extend a lease only while its owner still matches. The `Cache.expireIf` capability is optional for backward compatibility with custom adapters; renewal fails closed with `false` when it is unavailable and is never emulated with a racy read and write. Cache locks have no fencing token, and Redis/Valkey failover or replication lag can violate mutual exclusion.
+
+For shared Node deployments, install `@nuxt-laravelize/cache-redis` with ioredis 5. It supports Redis and Valkey, uses a mandatory scoped prefix, and leaves connection startup/shutdown to the application. It is intentionally not included in the `@nuxt-laravelize/nuxt` preset. Its prefix-only `flush()` uses escaped `SCAN` plus bounded `UNLINK`/`DEL`, is non-atomic, and must be run against every primary in Redis Cluster.
+
+Distributed locks require shared cache adapters to implement both `add()` and `forgetIf()` atomically. Lock TTL must exceed the protected operation; expiration prevents permanent deadlocks but does not cancel a callback that runs too long.
+
+## Compatibility and boundaries
+
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
+
+The shared API and security reference lives in the [module guide](../../docs/modules.md#cache). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/cache`](../cache/README.md).

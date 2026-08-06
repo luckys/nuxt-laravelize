@@ -1,58 +1,118 @@
-# @nuxt-laravelize/workflows
+# `@nuxt-laravelize/workflows`
 
-A storage-portable, persisted **linear** workflow/saga engine. This initial release deliberately does not expose DAGs, signals, or parallel steps.
+[Espanol](./README.es.md) | English
 
-## Delivery and safety model
+Portable persisted linear workflows and sagas
 
-Handlers and compensations have **at-least-once invocation**. A worker can crash after an external effect but before committing its snapshot, so a later worker invokes the handler again with the same stable `idempotencyKey`. Handlers must make external effects idempotent (for example, pass that key to a payment provider or enforce it in the same transactional database). The engine does not and cannot promise exactly-once external effects.
+## Install
 
-Store writes are authoritative. An attempt-start transition is persisted before every handler or compensation invocation, and every result, retry deadline, cancellation, and state transition is persisted with a revision check. An interrupted `running` attempt is consumed and becomes a retry or terminal failure after its lease expires. Claims carry a unique lease token; commits require the claimed revision, token, an authoritative current time, and an unexpired lease, fencing stale workers. Long handlers renew only lease expiry without changing revision or `updatedAt`. A production store must implement all revision/lease operations atomically, including merging cooperative cancellation into commits and renewal.
-
-Custom stores return authoritative receipts, but every persisted snapshot and receipt is validated. `create(created: true)` must return the exact requested snapshot; idempotent replay remains authoritative only for the same definition/start/input tuple. `claim` may change only `revision` (`+1`), `updatedAt` (the supplied `now`), and the requested lease. Renewal may only replace lease expiry, except for the exact concurrent cancellation race. Cancellation preserves state, steps, and lease while changing its flag, revision, and timestamp. `commit` must return the exact submitted identity, state, steps, and timestamp; revision is `+1`, except `+2` when atomically merging a concurrent false-to-true cancellation. A released lease must be absent. A retained lease must keep its token, remain unexpired, and may only extend its expiry. The manager rejects malformed state or receipt drift with `WorkflowStoreContractError` before invoking another effect or trusting cancellation. A rejected receipt cannot undo an accepted write in an external nontransactional store, so recovery may have to wait for its retained claim lease to expire.
-
-`InMemoryWorkflowStore` is explicitly volatile and intended only for tests and local development.
-
-Recovery discovery is an optional store capability, so existing custom `WorkflowStore` implementations remain compatible. `RecoverableWorkflowStore.discoverRecoverable()` returns cursor-paginated non-terminal IDs ordered by `(updatedAt, id)`. Every query requires an `updatedBefore` boundary so one scan remains finite while workflows change concurrently; a later scan discovers changes beyond that boundary. The in-memory store and official Drizzle stores implement this capability.
-
-## Example
-
-```ts
-import { defineStep, defineWorkflow, InMemoryWorkflowStore, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
-
-const order = defineWorkflow({
-  name: 'place-order', version: '1',
-  steps: [defineStep({
-    name: 'charge', maxAttempts: 3,
-    run: ({ input, idempotencyKey }) => charge(input, idempotencyKey),
-    compensate: ({ stepOutput, idempotencyKey }) => refund(stepOutput, idempotencyKey),
-  })],
-})
-const registry = new WorkflowRegistry().register(order)
-const manager = new WorkflowManager(new InMemoryWorkflowStore(), registry)
-const started = await manager.start(order, { orderId: 'o-1' }, 'place-order:o-1')
-await manager.run(started.id)
+```bash
+pnpm add @nuxt-laravelize/workflows
 ```
 
-`startKey` is scoped to workflow name and version. Repeating a start with canonically identical JSON input returns the existing snapshot; different input throws `StartKeyConflictError`. Object key order does not affect canonical identity.
+## Package-specific usage
 
-## Definition and snapshot versions
+The package exposes a small, explicit surface. Configure its dependencies from an application provider or adapter and test its boundaries before promoting it to production.
 
-Definitions resolve by the exact, case-sensitive `(name, version)` tuple. Versions are opaque 1–64 character ASCII strings with alphanumeric ends and `[A-Za-z0-9._-]` interiors. `latest`, `default`, and `current` are reserved case-insensitively. There is no fallback, range, or latest resolution. Treat published tuples as immutable and assign a new version for any handler or step change. `WorkflowRegistry.versions(name)` returns registration order. Workflow and step names use the same bounded grammar. Registered definitions, step records, and step arrays are frozen; handler closures remain usable.
+## Public entrypoints
 
-New snapshots carry the required source field `snapshotFormatVersion: 1`. `status(id)` is a diagnostic read: it normalizes a legacy missing field and rejects unknown formats without requiring the definition to be deployed. Execution additionally exact-resolves the definition, including for terminal or waiting snapshots, before mutation. Definition identity, input, and every stable step/idempotency identity are immutable after creation. A missing valid exact definition is an operational error: redeploy that historical definition; never fall back to another version.
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
 
-For rolling deployments: (1) register old and new string versions together, (2) deploy that registry to APIs, workers, and reconcilers, and (3) switch new starts. Retain every historical version while any persisted row or outstanding queue job/wake can reference it. Before removal, either prove those references no longer exist or archive/delete terminal rows and drain/prune outstanding jobs/wakes under an explicit retention policy. Automatic or arbitrary in-flight definition migration is intentionally unsupported.
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
 
-### Breaking persisted-row upgrade
+## Workflows and sagas
 
-The strict invariant audit must validate **every persisted row**, not only distinct identifiers. Before upgrading:
+`@nuxt-laravelize/workflows` implements persisted, linear workflows with versioned definitions, fenced renewable leases, retries, restart-safe attempts, cooperative in-flight cancellation, and reverse-order compensation.
 
-1. Stop every starter, worker, reconciler, and other workflow writer; take and verify a backup.
-2. Validate each row with the new snapshot validator and the exact historical definition deployed for its case-sensitive `(workflowName, workflowVersion)` tuple. Audit relational/JSON identity and exact definition/step names; `createdAt <= updatedAt` and other timestamp monotonicity; workflow/step state and ordering; required outputs, errors, and `retryAt`; forward and compensation counters against that definition's deployed `maxAttempts`; lease token/expiry validity; and error name/message bounds (128/4096). Previous-release serialized error text is bounded safely during authoritative reads, but it must still be included in the audit.
-3. Update relational columns and snapshot JSON atomically under an explicit reviewed mapping. Never trim, lowercase, re-pin, reorder, or otherwise silently normalize identity or state. Rows from untrusted/custom stores that violate state invariants require application-specific repair or archival; automatic in-flight migration remains unsupported.
-4. Treat old race rows with `state IN ('completed', 'failed')` and `cancellationRequested = true` as incidents, not cleanup. Perform a business/incident review and either perform or verify the required compensation before marking the workflow `cancelled`/`compensated`, or explicitly document why cancellation was rejected before clearing the flag. **Never blindly clear it.**
-5. Re-run the complete validator/definition audit as a dry run before deployment. Invalid historical tuples cannot be recreated through the strict API, so repair them before upgrade; “restore the old version” applies only to already-valid identifiers.
+Versions are opaque, case-sensitive strings of 1–64 ASCII characters, with alphanumeric ends and `[A-Za-z0-9._-]` interiors; `latest`, `default`, and `current` are reserved case-insensitively. Resolution is exact, without fallback, latest aliases, or ranges. Never change handlers or steps under a published tuple; assign a new version. New source snapshots require `snapshotFormatVersion: 1`. Diagnostic `status` normalizes a legacy missing field and rejects unknown formats without requiring a deployed definition; execution exact-resolves even terminal/waiting rows before claim or mutation.
 
-Missing `snapshotFormatVersion` remains readable as format 1 and may be backfilled. Unknown explicit formats must not be rewritten blindly. After the audit, dual-register old and new valid versions during rolling deployment, retaining every version while a persisted row or outstanding job/wake references it.
+This persisted-row validation is breaking. Before upgrade, stop every workflow writer and take a verified backup. Audit **every row**, not only identifiers, with the new validator and exact historical definitions: relational/JSON identity and exact definition/step names; timestamp monotonicity; workflow/step ordering; required outputs, errors, and `retryAt`; retry/compensation counters versus deployed `maxAttempts`; lease validity; and 128/4096 error bounds. Previous-release error strings are bounded on authoritative reads and missing JSON format remains format 1, but neither compatibility path repairs any other invariant. Migrate relational columns and snapshot JSON atomically from an explicit reviewed mapping, then rerun dry validation. Rows from custom/untrusted stores need application-specific repair or archival; automatic in-flight migration remains unsupported.
 
-Call `process(id)` from a worker to perform at most one attempt, or `run(id)` for bounded local draining. Configure `leaseDurationMs` and a shorter `heartbeatIntervalMs`; every step and compensation receives `signal`. Heartbeats observe in-flight cancellation and abort forward work, while compensation continues. `process(id, { signal })` supports cooperative shutdown, and lease loss always discards stale results. Signals cannot undo accepted external effects and non-cooperative handlers may continue, so stable idempotency keys remain mandatory.
+Old `completed|failed + cancellationRequested` race rows are explicitly rejected and must not be silently normalized. Review each incident and either perform/verify compensation before marking `cancelled`/`compensated`, or document rejection of cancellation before clearing the flag; never blindly clear it. The workflows-drizzle README includes PostgreSQL discovery queries. After repair, dual-register old and new valid definitions everywhere and retain historical versions while any row or outstanding queue job/wake references them.
+
+```ts
+const fulfill = defineWorkflow({
+  name: 'orders.fulfill',
+  version: '1',
+  steps: [
+    defineStep({ name: 'reserve', run: reserve, compensate: release }),
+    defineStep({ name: 'charge', run: charge, compensate: refund }),
+  ],
+})
+
+registry.register(fulfill)
+const started = await workflows.start(fulfill, { orderId }, orderId)
+await workflows.run(started.id)
+```
+
+The included in-memory store is volatile and intended for tests or local development. Production stores must implement atomic revision and lease fencing, including `renewLease()`. Configure `leaseDurationMs` and a shorter `heartbeatIntervalMs`; handler contexts receive `signal`, cancellation is observed at heartbeat cadence, and stale results are discarded after lease loss. Signals cannot undo accepted external effects, so handlers remain at-least-once and require stable idempotency keys.
+
+`@nuxt-laravelize/workflows-drizzle` supplies durable PostgreSQL, SQLite, and Turso stores. Workflow identity and canonical input are immutable; relational revision, cancellation and lease columns override serialized snapshots during hydration. Claims and commits are conditional row-returning statements, and stale or expired owners are fenced before state can be persisted. These stores also implement the optional `RecoverableWorkflowStore` capability, returning non-terminal IDs in bounded `(updatedAt, id)` cursor pages.
+
+```ts
+import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'
+
+const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
+```
+
+### Transactional outbox wake-ups
+
+`@nuxt-laravelize/workflows-reliability` atomically records each workflow mutation and its future wake-up in the reliability outbox. Atomicity requires the workflow adapter, outbox adapter, and `TransactionManager` to use the same physical database transaction and connection.
+
+```ts
+const workflowStore = new TransactionalWorkflowStore({
+  transactions,
+  readStore: new DrizzlePostgresWorkflowStore(db),
+  storeForSession: tx => new DrizzlePostgresWorkflowStore(tx),
+  outbox: new DrizzlePostgresReliabilityStore(db),
+})
+
+const workflows = new WorkflowManager(workflowStore, registry)
+registerWorkflowWakeHandler(reliableHandlers, workflows)
+```
+
+The registration helper owns the wake-up message type and version while accepting any structurally compatible reliability registry; it forwards the reliability execution signal without coupling persistence to a queue transport. Creation emits an immediate wake-up. Every claim and renewal records a fallback at lease expiry, released non-terminal commits emit at once or at their retry deadline, and cancellation emits immediately. Renewal and replacement fallback share one transaction and do not change workflow revision.
+
+To join an existing domain transaction, call `workflows.using(workflowStore.in(unitOfWork)).start(...)`. This writes domain state, workflow state, and outbox wake-up together without opening a nested transaction. Never wrap all of `processResult()` in one transaction: handlers may perform slow external effects between the engine's persisted boundaries. External effects remain at least once and still require their stable idempotency keys.
+
+Run `new WorkflowWakeReconciler(durableWorkflowStore, durableReliabilityStore, { resolver: registry }).reconcileStore({ pageSize: 100 })` periodically to repair dead or operationally lost wake-ups. The exact resolver is required and must match workers. The bounded scan reloads authoritative state and schedules after any active lease or business retry deadline. Repeated and concurrent scans of an unchanged workflow share one deterministic wake per 60-second generation; configure `generationMs` when a different recovery-latency bound is required. Later generations use fresh IDs, so recovery never revives or mutates an old dead row. Use `reconcile(ids)` with an application-owned index. Per-workflow failures are returned without aborting later pages.
+
+For a long-lived process, `new WorkflowWakeReconciliationWorker(reconciler, { intervalMs: 60_000, reconcile: { pageSize: 100 }, onResult })` runs immediately and then waits after each completed scan. It coalesces overlapping local calls and drains an active scan on abort. Per-workflow failures are reported through `onResult`; discovery and callback errors stop the loop. Deterministic IDs keep multiple processes safe, although a single leader avoids redundant scans.
+
+Deploy it with `workflow-wake-reconcile --config ./workflow-wake-reconciliation.config.js`, or add `--once` for cron. The ESM config must default-export `{ worker, close? }`; `close` runs only after active reconciliation drains. The default config path is `workflow-wake-reconciliation.config.js` in the current directory. Signals trigger one graceful shutdown, while configuration, discovery, callback, drain, and cleanup errors exit non-zero.
+
+When the same outbox contains other protocols, configure the dedicated `OutboxProcessor` with `types: [workflowWakeMessageType]`. Type-filtered claiming prevents a workflow queue delivery adapter from racing webhook or unrelated message workers.
+
+Run `DATABASE_URL=postgresql://... pnpm test:integration:postgres` to execute the required real-PostgreSQL proof in an isolated temporary schema. It verifies joint commit, rollback on outbox failure, caller-owned rollback across domain, workflow, and outbox rows, and fresh recovery while retaining the dead row. The target fails when `DATABASE_URL` is absent rather than silently skipping.
+
+### Queue scheduling
+
+`@nuxt-laravelize/workflows-queue` schedules one authoritative workflow transition per queue job. Payloads contain only the workflow ID; workers reload the store and claim by revision and lease. Business retry deadlines create delayed successor jobs, while queue retries are reserved for transport, store, and publication failures.
+
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/workflows-queue'],
+  laravelizeWorkflowsQueue: { queue: 'workflows', tries: 5, backoff: 5000 },
+})
+
+await useWorkflows(event).start(fulfill, { orderId }, orderId)
+
+// Run periodically from your scheduler or operational worker.
+await useWorkflows(event).reconcileStore({ pageSize: 100 })
+```
+
+Bind `workflowStoreToken` to a durable store and register definitions through `workflowRegistryToken`. Deterministic revision-based job IDs optimize transport deduplication, but correctness relies on store fencing, so duplicate jobs remain harmless. Persistence and publication are separate operations: run `reconcileStore()` periodically when the store supports recovery discovery, or call `reconcile(ids)` with IDs from a custom index. Every store scan captures an `updatedBefore` boundary so concurrent updates cannot make one pass unbounded; later passes pick up newer changes. This bridge does not claim transactional-outbox guarantees.
+
+Queue and wake payloads remain ID-only so old jobs reload the relationally authoritative tuple rather than carrying stale or attacker-controlled version metadata. Enqueue/reconciliation preflight exact definitions and continue after reporting unsupported IDs; handlers independently fail closed before claim. Wake reconcilers require `{ resolver: registry }`, using the same registry as workers.
+
+## Compatibility and boundaries
+
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
+
+The shared API and security reference lives in the [module guide](../../docs/modules.md#workflows-and-sagas). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/workflows-drizzle`](../workflows-drizzle/README.md), [`@nuxt-laravelize/workflows-queue`](../workflows-queue/README.md), [`@nuxt-laravelize/workflows-reliability`](../workflows-reliability/README.md).

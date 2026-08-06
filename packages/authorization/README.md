@@ -1,9 +1,65 @@
-# @nuxt-laravelize/authorization
+# `@nuxt-laravelize/authorization`
 
-Portable, fail-closed authorization for HTTP, queues, workflows, schedulers and CLI commands. Register abilities with `registerAbility(name, handler)` and policies with the explicit stable `registerResourceType(key, policy)`; runtime lookup never depends on class names. Resolve it from `authorizationToken`, or use `useAuthorization(event)` in H3.
+[Espanol](./README.es.md) | English
 
-Authorization passes the immutable current `ExecutionContextSnapshot` to `PrincipalResolver`. Serialized queue actor/tenant values are provenance, not credentials: an ordinary principal result is centrally denied for `source.type === 'queue'`, and queue abilities never receive those serialized identities. After independently authenticating a delegation or current worker identity and reloading current grants, return `trustQueuePrincipal(principal, { actor, tenantId })` with the actor and optional tenant established by that verification. A principal-only trust wrapper is insufficient for queue authorization. None of these trusted values may be copied from actor, tenant, attributes, or other envelope claims without independent verification. Non-queue resolvers may return a principal directly. The default resolver returns no principal and denies access.
+Portable centralized authorization for Nuxt Laravelize
 
-`inspect` returns an allow/deny decision. `allows`, `denies`, `authorize`, `any`, and `none` build on it. Supplying `resource` without an explicit `resourceType` throws a transport-neutral `TypeError` instead of falling back to a global ability. The ability key `before` is reserved and never dispatched as an action; it is only the optional policy hook. A policy action must exist before the hook is invoked, and `null`/`undefined` continues evaluation. Enumerable policy entries and decision values are runtime-validated. Duplicate registrations throw immediately.
+## Install
 
-The registry is a singleton intended only for startup registration by application providers. It is not automatically sealed because every provider must be able to register throughout boot. Handlers must therefore be singleton-safe and must not capture request/scoped state; use the supplied authorization context instead. `AuthorizationDeniedError` and `AbilityNotDefinedError` are transport-neutral. H3 applications can import `toAuthorizationHttpError` from `@nuxt-laravelize/authorization/runtime/server` and throw its result when defined.
+```bash
+pnpm add @nuxt-laravelize/authorization
+```
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/authorization'],
+})
+```
+
+
+## Package-specific usage
+
+
+### Register and evaluate an ability
+
+Register abilities and resource policies once during boot, then resolve the scoped authorizer at the application boundary. The default principal resolver denies until the application supplies a trusted current principal.
+
+```ts
+import { authorizationRegistryToken } from '@nuxt-laravelize/authorization/runtime'
+
+const registry = container.make(authorizationRegistryToken)
+registry.registerAbility('invoice.view', ({ principal, tenantId }) => {
+  return Boolean(principal && tenantId && membershipAllows(principal, tenantId, 'invoice.view'))
+})
+
+const authorization = useAuthorization(event)
+if (!await authorization.allows('invoice.view')) throw createError({ statusCode: 403 })
+```
+
+## Public entrypoints
+
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
+
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
+| `./runtime` | Public entrypoint for this package. |
+| `./runtime/server` | Public entrypoint for this package. |
+| `./testing` | Public entrypoint for this package. |
+
+## Authorization
+
+`@nuxt-laravelize/authorization` is included in the preset. Its core is H3-independent: resolve `authorizationToken` in HTTP, queues, workflows or CLI scopes, and use the auto-imported `useAuthorization(event)` only at the HTTP boundary. Register global abilities and resource policies once through the singleton `authorizationRegistryToken`; resource types are explicit stable keys and duplicate registrations fail immediately.
+
+The scoped authorizer calls the overrideable `principalResolverToken` to reload the current principal. Propagated or serialized execution-context snapshots are metadata, never credentials. For queue contexts, an ordinary principal result is centrally denied and serialized actor/tenant values never reach abilities. Return `trustQueuePrincipal(principal, { actor, tenantId })` only after the application independently authenticates delegation or current worker identity, including the supplied actor and optional tenant. A principal-only wrapper is denied, and trusted values must not be copied from envelope claims without independent verification. The default resolver returns no principal and therefore denies. `inspect` returns a bounded typed decision, while `allows`, `denies`, `authorize`, `any`, and `none` provide convenience behavior. The resource ability name `before` is reserved for the policy hook; the requested action must exist before the hook runs, and `null`/`undefined` means continue. Portable denial and undefined-ability errors contain no H3 dependency; map denials to 403 in HTTP code.
+
+## Compatibility and boundaries
+
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
+
+The shared API and security reference lives in the [module guide](../../docs/modules.md#authorization). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/authorization-queue`](../authorization-queue/README.md), [`@nuxt-laravelize/http`](../http/README.md).

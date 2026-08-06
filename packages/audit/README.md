@@ -1,7 +1,63 @@
-# @nuxt-laravelize/audit
+# `@nuxt-laravelize/audit`
 
-Append-only-by-interface, manually invoked security audit records enriched from the scoped execution context. Use `useAudit(event).record(...)`; runtime input permits only `action`, `outcome`, `subject`, `target`, `changes`, and `metadata`. Actor, tenant, execution, ID, timestamp, source, unknown, reserved prototype, and enumerable symbol keys are rejected. Values under password, secret, token, cookie, authorization, API/private key, or session-like keys become `[REDACTED]`. This is not application logging or domain-event serialization; never pass request/response bodies or arbitrary models.
+[Espanol](./README.es.md) | English
 
-The umbrella preset defaults to bounded memory (1,000 entries) in Nuxt development and disabled persistence in production. Both emit a warning. Disabled `record()` calls fail closed rather than pretending to persist. Memory never evicts: it throws at capacity and loses all records on restart. Set `laravelizeAudit: { driver: 'memory', memoryCapacity: 1000 }` explicitly only when volatility is acceptable, or override `auditStoreToken` with durable storage. Limits (`maxNodes`, `maxArrayElements`, `maxKeys`, per-array length, depth, and serialized bytes) are finite positive integers and are enforced globally during each record traversal.
+Secure append-only audit recording for Nuxt Laravelize
 
-Set `laravelizeAudit.requireTenantId: true` for tenant-scoped systems. This rejects recording without a trusted execution-context tenant; it does not replace tenant-safe queries, database RLS, least-privilege access, or authorization. `occurredAt` is application occurrence time and can differ from database ingestion/commit order; use a database-generated ingestion timestamp or sequence when authoritative ordering is required. `@nuxt-laravelize/audit-drizzle` provides explicit adapters. No automatic HTTP or policy recording is currently performed.
+## Install
+
+```bash
+pnpm add @nuxt-laravelize/audit
+```
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/audit'],
+})
+```
+
+
+## Package-specific usage
+
+The package exposes a small, explicit surface. Configure its dependencies from an application provider or adapter and test its boundaries before promoting it to production.
+
+## Public entrypoints
+
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
+
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
+| `./runtime` | Public entrypoint for this package. |
+| `./runtime/server` | Public entrypoint for this package. |
+| `./testing` | Public entrypoint for this package. |
+
+## Audit
+
+`@nuxt-laravelize/audit` is included in the preset and exposes `useAudit(event)`. Recording is explicit:
+
+```ts
+await useAudit(event).record({
+  action: 'patient.viewed',
+  outcome: 'success',
+  target: { type: 'patient', id: patientId },
+  metadata: { reason: 'care-plan' },
+})
+```
+
+The recorder generates the ID/time and enriches actor, tenant, execution, correlation, causation, source, and trace fields from trusted scoped execution context. Callers cannot override them. Actions/references use bounded safe identifiers. Changes and metadata must be bounded plain JSON; functions, symbols, cycles, custom prototypes, and excessive depth, keys, arrays, or bytes are rejected. Common credential keys and configured redaction keys become `[REDACTED]`.
+
+The preset defaults to bounded, non-evicting memory in development and disabled persistence in production; both warn, and disabled recording fails closed. Configure `laravelizeAudit.driver: 'memory'` explicitly only when volatility is acceptable, or override `auditStoreToken` with durable storage. Set `requireTenantId: true` for tenant-scoped systems. Optional `@nuxt-laravelize/audit-drizzle` provides append-only-by-interface PostgreSQL, SQLite, and Turso/libSQL stores; apply `0002_add_audit_locale.sql` or `0003_add_audit_locale_sqlite.sql` when upgrading so the trusted execution-context locale remains a first-class column. Database immutability still requires least-privilege credentials and retention controls. `occurredAt` is application time, not authoritative ingestion order. `AuditFake` provides defensive assertions.
+
+Audit is neither logging nor domain-event serialization. Do not pass request/response bodies or arbitrary models. Automatic policy/HTTP auditing is deferred to a future neutral `audit-http` bridge.
+
+## Compatibility and boundaries
+
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
+
+The shared API and security reference lives in the [module guide](../../docs/modules.md#audit). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/audit-drizzle`](../audit-drizzle/README.md), [`@nuxt-laravelize/execution-context`](../execution-context/README.md).

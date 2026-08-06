@@ -25,6 +25,7 @@
     "test:packages": "pnpm -r --filter './packages/**' --if-present run test",
     "pack:tarballs": "pnpm -r --filter './packages/**' --if-present run pack:test",
     "pack:test": "pnpm run pack:tarballs && node scripts/package-smoke.mjs",
+    "docs:packages": "node scripts/generate-package-readmes.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release:packages": "pnpm run lint && pnpm run test && pnpm run typecheck && pnpm run pack:test && changeset publish"

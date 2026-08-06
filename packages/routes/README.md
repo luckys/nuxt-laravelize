@@ -1,6 +1,40 @@
 # `@nuxt-laravelize/routes`
 
-Wayfinder-inspired, generated typed URL helpers for Nuxt. It infers URL parameters and HTTP methods; it intentionally does **not** infer request bodies or responses.
+[Espanol](./README.es.md) | English
+
+Wayfinder-inspired typed routes for Nuxt Laravelize
+
+## Install
+
+```bash
+pnpm add @nuxt-laravelize/routes
+```
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/routes'],
+})
+```
+
+
+## Package-specific usage
+
+The package exposes a small, explicit surface. Configure its dependencies from an application provider or adapter and test its boundaries before promoting it to production.
+
+## Public entrypoints
+
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
+
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
+| `./runtime` | Public entrypoint for this package. |
+| `./kit` | Public entrypoint for this package. |
+
+## Typed routes
+
+`@nuxt-laravelize/routes` generates `#laravelize/routes` from explicit declarations and is included in the preset. It infers URL parameters and HTTP methods only; request bodies and responses are intentionally **not inferred**.
 
 ```ts
 // routes.ts
@@ -8,28 +42,30 @@ import { route } from '@nuxt-laravelize/routes/runtime'
 
 export default {
   users: {
-    show: route('GET', '/users/{user}'),
-    files: route('GET', '/users/{user}/files/{path*}'),
+    show: route('GET', '/users/{user}/{section?}'),
+    files: route('GET', '/users/{user}/files/{path+}'),
+    browse: route('GET', '/files/{path*}'),
   },
 } as const
 ```
 
-```ts
-// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/routes'],
-  laravelizeRoutes: { declarations: ['routes.ts'], baseURL: '/api' },
-})
-```
+The conventional `routes.ts` is loaded automatically. Configure `laravelizeRoutes.declarations` for other explicit files and `baseURL` for a shared prefix. Use `{id}` for required values, `{id?}` for optional values, `{path+}` for a required non-empty catch-all, and `{path*}` for an optional catch-all.
 
 ```ts
 import routes from '#laravelize/routes'
 
-routes.users.show({ user: 42 }) // { url: '/api/users/42', method: 'GET' }
-routes.users.show.url({ user: { toRoute: () => 'ada' } }, { query: { preview: true } })
-routes.users.show.definition // { path: '/users/{user}', method: 'GET' }
+routes.users.show({ user: 42 }, { query: { preview: true } })
+// { method: 'GET', url: '/users/42?preview=1' }
 ```
 
-Parameters use `{id}`, optional `{id?}`, catch-all optional `{path*}`, or catch-all required `{path+}`. Values are strings, numbers, or objects implementing `toRoute()`. Query keys are sorted; array order is retained; booleans become `1`/`0`; `null` and `undefined` are omitted.
+Path values are encoded. Catch-all arrays retain segment boundaries, while `.` and `..` segments are rejected to prevent traversal-style URLs. Query keys are sorted, array order is retained, booleans use `1`/`0`, and nullish values are omitted. Package authors can register declarations with `addRoutesDeclaration()` from `@nuxt-laravelize/routes/kit`.
 
-Other modules can contribute declaration paths during setup with `addRoutesDeclaration(nuxt, path)` from `@nuxt-laravelize/routes/kit`. Route declarations are watched in development. Duplicate method/path pairs fail generation with a diagnostic.
+## Compatibility and boundaries
+
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
+
+The shared API and security reference lives in the [module guide](../../docs/modules.md#typed-routes). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/http`](../http/README.md), [`@nuxt-laravelize/nuxt`](../nuxt/README.md).

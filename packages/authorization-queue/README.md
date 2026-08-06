@@ -1,44 +1,70 @@
-# @nuxt-laravelize/authorization-queue
+# `@nuxt-laravelize/authorization-queue`
 
-Opt-in, fail-closed queue authorization backed by `@nuxt-laravelize/authorization`.
+[Espanol](./README.es.md) | English
 
-Register an application ability first, then attach the middleware to the shared worker `JobRunner` using trusted worker configuration:
+Fail-closed queue authorization bridge for Nuxt Laravelize
+
+## Install
+
+```bash
+pnpm add @nuxt-laravelize/authorization-queue
+```
 
 ```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/authorization-queue'],
+})
+```
+
+
+## Package-specific usage
+
+The package exposes a small, explicit surface. Configure its dependencies from an application provider or adapter and test its boundaries before promoting it to production.
+
+## Public entrypoints
+
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
+
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
+| `./runtime` | Public entrypoint for this package. |
+
+## Queue authorization
+
+`@nuxt-laravelize/authorization-queue` re-evaluates one registered application ability before selected queue jobs run. Configure selection in trusted worker startup code, not serialized metadata, and register it outside operational middleware with a lower `JobRunner` order. Normal denials become the privacy-bounded terminal code `QUEUE_AUTHORIZATION_DENIED`; resolver, identity-store and ability-handler outages during processing remain retryable failures.
+
+```ts
+import { authorizationRegistryToken } from '@nuxt-laravelize/authorization/runtime'
+import { RequireAuthorization } from '@nuxt-laravelize/authorization-queue/runtime'
+import { jobRunnerToken } from '@nuxt-laravelize/queue/runtime'
+
+const registry = container.make(authorizationRegistryToken)
 registry.registerAbility('queue.invoice.process', async ({ principal, tenantId }) => {
   if (!tenantId) return false
   return memberships.currentlyAllows(principal, tenantId, 'invoice.process')
 })
 
+const runner = container.make(jobRunnerToken)
 runner.use('authorize-invoices', new RequireAuthorization(registry, runner, {
   ability: 'queue.invoice.process',
   jobs: ['billing.invoice.process.v1'],
 }).handle, -100)
 ```
 
-The ability is checked on every process attempt and failed-hook invocation. A normal denial becomes a privacy-bounded terminal `QUEUE_AUTHORIZATION_DENIED` job failure. During processing, resolver, identity-store, and ability-handler exceptions become sanitized retryable `QueueAuthorizationUnavailableError` failures with the original error retained only as a trusted diagnostic cause. Failed hooks are best-effort queue observers, so authorization outages in that phase skip the hook and must be reported through independent terminal observers. Register this middleware with a lower order than rate limiting or exception throttling so denied work never consumes their budgets.
+The check runs on every attempt, delayed replay and terminal failed-hook invocation; denied failed hooks do not execute under a revoked identity. Processing outages are wrapped in sanitized retryable `QueueAuthorizationUnavailableError` values whose causes are trusted diagnostic material. Failed hooks are best-effort observers and an authorization outage there cannot be retried by current adapters, so use independent terminal reporters. Actor and tenant fields propagated by `execution-context-queue` are provenance only and never enter the ability. Dispatch identity and its unkeyed payload fingerprint are also not credentials. The application `PrincipalResolver` must independently verify a durable delegation or current worker identity, reload current grants and return `trustQueuePrincipal(principal, { actor, tenantId })` with the verified identity binding. Job-name selection is canonicalized through the identical worker registry but provides no identity evidence. For payload resource IDs, configure the optional authoritative `resource` resolver so a registered resource policy receives trusted store data; coarse abilities do not authorize payload contents or unrelated effects. Malformed propagated contexts fail terminally as `INVALID_EXECUTION_CONTEXT`. The package intentionally does not expose `RequirePrincipal` or `RequireTenant` shortcuts without an application-specific authenticated delegation.
 
-Serialized actor and tenant values are provenance, not credentials. This package never trusts job payload, metadata, tags, queue names, or job names as identity evidence. The application `PrincipalResolver` must independently authenticate a durable delegation or current worker identity, reload current grants and return `trustQueuePrincipal(principal, { actor, tenantId })` with independently verified identity values. Principal-only wrappers are denied. Job-name selection is canonicalized through the worker's job registry and only chooses which trusted worker policy applies; it does not authenticate the job or caller. For jobs carrying resource IDs, configure `resource: { resourceType, resolve }`; the trusted resolver must reload the authoritative resource before the registered policy runs. A coarse global ability does not authorize payload contents, so handlers must still tenant-scope queries and authorize effects not represented by that resource policy.
+For per-dispatch authenticated delegation, call `installQueueDelegation(admissionContributors, runner, options)` before dispatching or processing selected jobs. Its synchronous issuer receives the frozen final admission context plus the current producer execution snapshot and emits one opaque printable ASCII credential up to 8 KiB. That snapshot is context rather than identity proof, so the issuer must authenticate the producer through trusted application state or refuse issuance. On every process attempt and failed hook, the verifier returns signed `QueueDelegationClaimsV1`; the package independently compares the configured issuer allowlist and audience with the actual adapter queue, exact serialized alias, canonical job, dispatch ID, payload fingerprint and Unix epoch-millisecond `issuedAtMs`/`expiresAtMs` bounds. The authenticator must then reload the durable delegation, current principal and active tenant membership and return `trustQueuePrincipal()`. The bridge verifies that actor and tenant match the claims and replaces any previously resolved scoped `Authorization`, while the official `Authorization` provider resolves the scoped principal resolver lazily so already-captured instances also observe the verified identity. `RequireAuthorization` then evaluates current grants and authoritative resources.
 
-The ability and each selected job must exist in the same registries used by the worker when `RequireAuthorization` is constructed. Optional `jobs` accepts 1 through 256 unique registered aliases, canonicalizes them and rejects duplicates; omit it to protect every job handled by that runner. Missing queue context, registry mismatch and denied failed hooks fail closed. Keep queue attempts conservative and terminal observers independent of privileged job hooks.
+Missing, malformed, invalid, expired or mismatched credentials and revoked identities become terminal `QUEUE_DELEGATION_DENIED`; adapters return `null` or throw `QueueDelegationDeniedError` for terminal signature/parsing/key/state failures. Missing trusted worker facts become `QUEUE_DELEGATION_MISCONFIGURED`, while other verifier or authenticator exceptions become sanitized retryable `QueueDelegationUnavailableError` failures. Credential metadata is persisted sensitive material: never log it or expose it through tags, errors or dashboards. The package supplies no JWT/PASETO format, algorithms, keys, KMS, rotation, revocation/membership store or replay store. Synchronous admission does not support remote KMS issuance. Exact redelivery of the same tuple remains valid for retries under at-least-once delivery; copying a credential to another tuple is denied, while duplicate effects still require durable idempotency or fencing.
 
-## Authenticated delegation
+## Compatibility and boundaries
 
-`installQueueDelegation()` composes final queue admission with worker-side authentication. Install it explicitly with the shared admission contributor registry and `JobRunner`, then keep `RequireAuthorization` for current ability or resource-policy checks:
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
 
-```ts
-installQueueDelegation(admissionContributors, runner, {
-  audience: 'billing-workers.production',
-  issuers: ['identity.production'],
-  jobs: ['billing.invoice.process.v1'],
-  issuer,
-  verifier,
-  authenticator,
-})
-```
+The shared API and security reference lives in the [module guide](../../docs/modules.md#queue-authorization). This page summarizes this package's contract and keeps copy-pasteable examples.
 
-The synchronous issuer receives a frozen `QueueDelegationIssueContext` after the queue, exact serialized alias, registry-canonical job, dispatch ID and payload fingerprint are final. Its producer execution snapshot is context rather than identity proof; the issuer must authenticate the producer through trusted application state or refuse issuance. It returns one opaque printable ASCII credential of at most 8 KiB. The worker strictly parses that metadata, asks the verifier for signed claims, and independently compares the trusted issuer allowlist, audience, actual adapter queue, exact alias, canonical job, dispatch ID, fingerprint, `issuedAtMs` and `expiresAtMs` Unix epoch-millisecond bounds. It then calls the authenticator on every process attempt and failed-hook invocation. The authenticator must reload the durable delegation, current principal, active tenant membership and identity, returning `trustQueuePrincipal()` only when they remain valid. The package verifies that returned actor and tenant match the signed claims and installs a fresh scoped `Authorization`; registered abilities and resource policies still reload and decide current grants and effects.
+## Related packages
 
-Missing, malformed, invalid, expired or mismatched credentials and revoked identities fail terminally as the privacy-bounded `QUEUE_DELEGATION_DENIED`. Verifiers return `null` or throw `QueueDelegationDeniedError` for signature, parsing, expiry, unknown-key and other terminal credential failures; authenticators use the same error for revoked durable state. Other verifier and authenticator exceptions become retryable, sanitized `QueueDelegationUnavailableError` values. Missing worker queue/registry configuration fails as `QUEUE_DELEGATION_MISCONFIGURED`, and failed-hook errors remain isolated by queue adapters. Credential strings are sensitive persisted secrets visible to the queue transport, backups and dead-letter tooling: never log, tag or expose them.
-
-This package defines ports and binding checks, not a credential format or cryptographic implementation. It does not include signing keys, KMS integration, key rotation, revocation storage, tenant storage or replay storage. Admission issuance is deliberately synchronous, so remote KMS signing requires a separately designed async admission boundary. Retries and broker redelivery reuse the same authenticated dispatch and must remain valid under at-least-once delivery. Copying a credential to another tuple is rejected, but duplicate effects still require durable idempotency or fencing keyed by the dispatch or business operation.
+[`@nuxt-laravelize/authorization`](../authorization/README.md), [`@nuxt-laravelize/queue`](../queue/README.md), [`@nuxt-laravelize/execution-context-queue`](../execution-context-queue/README.md).

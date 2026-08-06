@@ -1,19 +1,91 @@
-# @nuxt-laravelize/queue-bullmq
+# `@nuxt-laravelize/queue-bullmq`
 
-Node-only BullMQ queue and worker. Importing `@nuxt-laravelize/queue` never loads BullMQ or ioredis.
+[Espanol](./README.es.md) | English
 
-Sequential chains persist their eagerly prepared future steps and use deterministic internal successor IDs. Run a worker for every selected queue. A successor publication outage can retry the preceding handler, cross-queue handoff is not atomic, and future delegation credentials can expire before execution. Dead-letter payload inspection exposes only the current business payload and strips all serialized metadata and credentials.
+Node-only BullMQ driver and worker for Nuxt Laravelize
 
-Bounded batches use one atomic same-queue `FlowProducer.add()` with a retained hidden coordinator and 1-100 independent children. Progress is derived from the complete retained dependency set, not worker memory. Cancellation marks the coordinator so waiting/retried children skip effects and active handlers can poll `QueueBatchContext`; it does not interrupt effects immediately or roll them back. BullMQ lazy auto-removal thresholds are 24 hours/1000 completed jobs for coordinators and children, and 7 days/1000 failed jobs for children. Pruning occurs on later terminal transitions, so idle queues can retain records beyond those ages; hard deletion deadlines require explicit scheduled cleanup. Counts are bounded lazily under BullMQ behavior. `batchStatus()` is available only while its coordinator remains retained, and this retention is not audit history. Durability depends on retained BullMQ flow state and configured Redis durability. Close the queue to close its FlowProducer.
+## Install
 
-See the complete [English](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.md#bullmq-adapter) or [Spanish](https://github.com/luckys/nuxt-laravelize/blob/development/docs/modules.es.md#adapter-bullmq) guide for connection, queue and worker examples.
+```bash
+pnpm add @nuxt-laravelize/queue-bullmq @nuxt-laravelize/queue bullmq ioredis
+```
 
-`BullMQDeadLetterAdapter` uses public BullMQ APIs. Lists are metadata-only; payload and error summaries are separate opt-ins. Payloads are JSON-cloned and rejected above bounded size/depth/complexity. Failed batch children intentionally cannot use `retry()` because BullMQ 5.77.3 cannot safely reprocess `ignoreDependencyOnFailure` children; admit a fresh standalone job or batch with a new final-admission identity and application idempotency instead. Rejected batch retries do not reserve an operation ID. Ordinary retry fences remain optimistic because BullMQ cannot atomically combine the final state check, retry and an external receipt. A durable `DeadLetterOperationStore` is required; the memory store is testing-only.
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@nuxt-laravelize/queue-bullmq'],
+})
+```
 
-Destructive discard is intentionally unsupported: BullMQ's public APIs cannot atomically verify failed state and remove. `discard()` fails before mutation. Future scheduled retry is also rejected because public failed-job retry is immediate. Listing uses a complete bounded snapshot and keyset cursors for up to 1000 retained failed jobs. Larger sources are rejected as ambiguous and require a narrower queue or retention policy.
 
-`BullMQWorker.stop()` performs one idempotent graceful drain: it rejects later queue registrations, closes every registered worker, waits for active jobs and terminal failure observers, and leaves waiting or delayed jobs in Redis. It deliberately has no force-close timeout; configure the process supervisor's grace period and close producer resources only after draining resolves.
+## Package-specific usage
 
-`BullMQConnection` owns the default shared `FailureReporter`. Construct queues and workers with the same connection instance so `queue.onFailed()` receives worker terminal failures. Redis integration tests are mandatory in CI through `REDIS_URL=redis://127.0.0.1:6379 pnpm test:redis`.
+The package exposes a small, explicit surface. Configure its dependencies from an application provider or adapter and test its boundaries before promoting it to production.
 
-When applications or environments share Redis, pass a globally unique stable prefix with `new BullMQConnection(redis, { prefix: 'orders:production' })`; `Redis | Cluster` clients are accepted and Cluster deployments should use a hash tag such as `{orders-production}`. Every producer, worker, and operational client in that fleet must use the same value. This avoids accidental key collisions, not hostile access: Redis/broker write access is a trusted infrastructure boundary, and a malicious writer can recompute SHA-256 wrappers or replay jobs. Use separate instances or distinct ACL users with restrictive key patterns as the security boundary. Prefixes and batch handles are not authorization; enforce application ownership before status or cancellation. Handlers require idempotency/fencing.
+## Public entrypoints
+
+Use only these public entrypoints. Paths not listed here are internals and may change without notice.
+
+| Entrypoint | Use |
+|---|---|
+| `package root` | Public entrypoint for this package. |
+| `./runtime` | Public entrypoint for this package. |
+
+## BullMQ adapter
+
+`@nuxt-laravelize/queue-bullmq` is an optional Node-only persistent driver; the preset and reliability queue bridge do not install it. Install it with the portable queue and provide an `ioredis` client.
+
+```bash
+pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq bullmq ioredis
+```
+
+```ts
+import Redis from 'ioredis'
+import { BullMQConnection, BullMQQueue, BullMQWorker } from '@nuxt-laravelize/queue-bullmq/runtime'
+import { jobSerializerToken } from '@nuxt-laravelize/queue/runtime'
+
+const prefix = process.env.QUEUE_PREFIX
+if (!prefix) throw new Error('QUEUE_PREFIX is required')
+const connection = new BullMQConnection(new Redis(process.env.REDIS_URL!), {
+  prefix,
+})
+const queue = new BullMQQueue(connection, runner, container.make(jobSerializerToken))
+const worker = new BullMQWorker(connection, registry, runner)
+
+await queue.push(new SendReport({ reportId: 'report_1' }))
+await worker.work('reports', 4)
+// During graceful shutdown:
+await worker.stop()
+await queue.close()
+```
+
+BullMQ batches are one atomic flat same-queue flow with a retained hidden coordinator parent. Children ignore sibling dependency failures, and the coordinator never enters the application registry or failure hooks. Status loads the complete BullMQ dependency sets, rejects unsuccessful `failed` dependencies, and verifies that processed, ignored and unprocessed keys are disjoint and exactly match all deterministic children; processed return values distinguish success from cancellation and ignored dependencies are failures. Coordinator cancellation state is strictly validated and fingerprinted. BullMQ lazy auto-removal thresholds are 24 hours/1000 completed jobs for coordinators and children, and 7 days/1000 failed jobs for children. Pruning occurs only on later terminal transitions, so idle queues may retain data beyond those ages; hard deletion deadlines require explicit scheduled cleanup. Counts remain bounded lazily according to BullMQ behavior. `batchStatus()` works only while the coordinator remains retained, and retention is not permanent or audit history. Dead-letter inspection exposes only the failed child business payload. Retrying failed batch children through `BullMQDeadLetterAdapter.retry()` is intentionally unsupported because BullMQ 5.77.3 cannot safely retry `ignoreDependencyOnFailure` children; admit a fresh standalone job or batch with a new final-admission identity and application idempotency. Cross-queue batches, branches/nesting/DAGs, dynamic children, fail-fast, results, callbacks, compensation/rollback, exactly-once effects and permanent history are intentionally unsupported.
+
+`worker.stop()` is idempotent: the first call prevents new `work()` registrations, stops intake on every registered BullMQ worker, waits for active jobs and terminal failure reporting, and attempts every worker close even if one fails. Waiting and delayed jobs remain in Redis for another worker; draining never clears the queue. The drain has no built-in deadline because force-closing can make active execution ambiguous. Configure the process supervisor's termination grace period, keep handlers bounded and idempotent, and call producer `queue.close()` only after worker draining resolves.
+
+Set a globally unique, stable, bounded `prefix` when applications or environments share one Redis database. Producers, workers, and operational tooling for one fleet must use the same value. This prevents accidental key collisions but is not a security boundary: mutually untrusted applications require separate Redis instances or distinct ACL users with restrictive key patterns. Logical Redis databases provide collision separation only unless access is independently constrained. Prefixes are visible in Redis keys, monitoring, and backups, so use only non-sensitive application/environment identifiers and never tenant PII, credentials, tokens, or customer-controlled values. Redis Cluster clients are supported and should use one validated hash tag such as `{orders-production}` so BullMQ's multi-key operations share a slot.
+
+Changing a prefix creates a separate namespace and requires a coordinated migration. Validate producer/worker/tooling parity, start new-prefix workers before switching producers, keep old-prefix workers and tooling until waiting and delayed jobs drain and relevant deduplication TTLs expire, then retire the old keys. Deduplication remains local to the prefix and queue name. Tenant scope still belongs in logical deduplication IDs produced by trusted application code and is not inferred from propagated metadata.
+
+`FailureReporter.listen()` observes terminal failures and `report()` notifies registered observers. A `BullMQConnection` owns the default shared reporter, so queues and workers that use the same connection instance also share `queue.onFailed()` observations; pass one explicit reporter to both constructors when custom composition requires separate connection wrappers. The worker CLI loads a default-exported `{ worker }` from `laravelize.queue.config.mjs` (or `--config=path`):
+
+```js
+// laravelize.queue.config.mjs
+import { worker } from './server/queue.js'
+
+export default { worker }
+```
+
+```bash
+pnpm exec laravelize-queue-work --queue=reports --concurrency=4
+```
+
+## Compatibility and boundaries
+
+Respect the at-least-once delivery, durability, authorization, tenant isolation, and secret-handling warnings in the reference section. Examples do not replace server-side authentication, authorization, or validation.
+
+The shared API and security reference lives in the [module guide](../../docs/modules.md#bullmq-adapter). This page summarizes this package's contract and keeps copy-pasteable examples.
+
+## Related packages
+
+[`@nuxt-laravelize/queue`](../queue/README.md), [`@nuxt-laravelize/cache-redis`](../cache-redis/README.md), [`@nuxt-laravelize/dead-letter`](../dead-letter/README.md).
