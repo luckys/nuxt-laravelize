@@ -3,6 +3,13 @@ packages:
   - 'playground'
 
 allowBuilds:
+  '@google/genai': true
+  '@mongodb-js/zstd': true
   '@parcel/watcher': true
+  better-sqlite3: true
+  core-js-pure: true
   esbuild: true
+  msgpackr-extract: true
+  node-liblzma: true
+  protobufjs: true
   unrs-resolver: true

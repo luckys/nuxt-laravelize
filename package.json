@@ -6,7 +6,7 @@
   "repository": "nuxt-laravelize/nuxt-laravelize",
   "license": "MIT",
   "type": "module",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "dev": "pnpm run dev:prepare && pnpm --dir playground dev",
     "dev:build": "pnpm run build:packages && pnpm --dir playground build",
