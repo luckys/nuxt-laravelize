@@ -28,7 +28,7 @@
     "docs:packages": "node scripts/generate-package-readmes.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release:packages": "pnpm run lint && pnpm run test && pnpm run typecheck && pnpm run pack:test && changeset publish"
+    "release:packages": "pnpm run lint && pnpm run build:packages && pnpm run test && pnpm run typecheck && pnpm run pack:test && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",
