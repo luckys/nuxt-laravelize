@@ -1,4 +1,4 @@
-import type { ExecutionContext, ExecutionContextSnapshot } from '@nuxt-laravelize/execution-context/runtime'
+import type { ExecutionContext, ExecutionContextSnapshot } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 import { AbilityNotDefinedError, AuthorizationDeniedError } from './errors'
 import type { AuthorizationRegistry } from './AuthorizationRegistry'
 import { decision, deny, resolvePrincipal, resolveTrustedQueueContext, type AuthorizationContext, type AuthorizationDecision, type DecisionInput, type PrincipalResolver } from './types'

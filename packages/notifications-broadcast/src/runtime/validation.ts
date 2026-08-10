@@ -1,4 +1,4 @@
-import { assertJsonObject } from '@nuxt-laravelize/broadcasting/runtime'
+import { assertJsonObject } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
 import type { BroadcastNotificationJsonObject, BroadcastNotificationRecipient } from './contracts'
 
 const SAFE = /^[A-Z0-9][\w.:-]{0,127}$/i

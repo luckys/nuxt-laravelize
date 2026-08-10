@@ -1,5 +1,5 @@
-import type { Resolver } from '@nuxt-laravelize/core/runtime'
-import { Job } from '@nuxt-laravelize/queue/runtime'
+import type { Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { Job } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { workflowCoordinatorToken } from './tokens'
 
 export class WorkflowJob extends Job<{ workflowId: string }> {

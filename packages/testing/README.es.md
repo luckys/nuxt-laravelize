@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/testing`
+# `@luckys_luis/nuxt-laravelize-testing`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Test harness agregado y fakes
 ## Instalacion
 
 ```bash
-pnpm add -D @nuxt-laravelize/testing
+pnpm add -D @luckys_luis/nuxt-laravelize-testing
 ```
 
 ## Uso especifico del package
@@ -24,14 +24,14 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Testing
 
-`@nuxt-laravelize/testing` agrega los fakes oficiales y los monta en un contenedor sellado.
+`@luckys_luis/nuxt-laravelize-testing` agrega los fakes oficiales y los monta en un contenedor sellado.
 
 ```bash
-pnpm add -D @nuxt-laravelize/testing
+pnpm add -D @luckys_luis/nuxt-laravelize-testing
 ```
 
 ```ts
-import { mountLaravelize } from '@nuxt-laravelize/testing'
+import { mountLaravelize } from '@luckys_luis/nuxt-laravelize-testing'
 
 const app = mountLaravelize()
 await app.cache.put('feature:user_1', true, 60)
@@ -55,4 +55,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/core`](../core/README.es.md), [`@nuxt-laravelize/cache`](../cache/README.es.md), [`@nuxt-laravelize/queue`](../queue/README.es.md), [`@nuxt-laravelize/events`](../events/README.es.md).
+[`@luckys_luis/nuxt-laravelize-core`](../core/README.es.md), [`@luckys_luis/nuxt-laravelize-cache`](../cache/README.es.md), [`@luckys_luis/nuxt-laravelize-queue`](../queue/README.es.md), [`@luckys_luis/nuxt-laravelize-events`](../events/README.es.md).

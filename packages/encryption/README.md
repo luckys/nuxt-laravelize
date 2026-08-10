@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/encryption`
+# `@luckys_luis/nuxt-laravelize-encryption`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Authenticated application encryption with key rotation for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/encryption
+pnpm add @luckys_luis/nuxt-laravelize-encryption
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/encryption'],
+  modules: ['@luckys_luis/nuxt-laravelize-encryption'],
 })
 ```
 
@@ -33,16 +33,16 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Encryption
 
-`@nuxt-laravelize/encryption` provides authenticated AES-256-GCM encryption through the Web Crypto API.
+`@luckys_luis/nuxt-laravelize-encryption` provides authenticated AES-256-GCM encryption through the Web Crypto API.
 
 ```bash
-pnpm add @nuxt-laravelize/encryption
+pnpm add @luckys_luis/nuxt-laravelize-encryption
 ```
 
 Generate a base64url key once and store it in a private environment variable. Never commit production keys.
 
 ```ts
-import { generateEncryptionKey } from '@nuxt-laravelize/encryption/runtime'
+import { generateEncryptionKey } from '@luckys_luis/nuxt-laravelize-encryption/runtime'
 
 console.log(generateEncryptionKey())
 ```
@@ -78,4 +78,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/hashing`](../hashing/README.md), [`@nuxt-laravelize/core`](../core/README.md).
+[`@luckys_luis/nuxt-laravelize-hashing`](../hashing/README.md), [`@luckys_luis/nuxt-laravelize-core`](../core/README.md).

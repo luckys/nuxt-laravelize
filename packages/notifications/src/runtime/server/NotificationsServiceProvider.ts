@@ -1,5 +1,5 @@
-import { ConsoleLogger, loggerToken, type Container, type ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { dispatcherToken } from '@nuxt-laravelize/events/runtime'
+import { ConsoleLogger, loggerToken, type Container, type ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { dispatcherToken } from '@luckys_luis/nuxt-laravelize-events/runtime'
 import { LogChannel } from '../LogChannel'
 import { DefaultNotificationManager, NotificationChannelRegistry } from '../NotificationManager'
 import { notificationChannelRegistryToken, notificationManagerToken } from '../tokens'

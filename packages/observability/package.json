@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/observability",
+  "name": "@luckys_luis/nuxt-laravelize-observability",
   "version": "0.1.0",
   "description": "Vendor-neutral observability contracts and safe Nuxt request instrumentation",
   "license": "MIT",
@@ -36,8 +36,8 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/execution-context": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-execution-context": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

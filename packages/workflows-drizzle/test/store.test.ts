@@ -2,7 +2,7 @@ import { PgDialect } from 'drizzle-orm/pg-core'
 import { SQLiteAsyncDialect, SQLiteSyncDialect } from 'drizzle-orm/sqlite-core'
 import type { SQL } from 'drizzle-orm'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { InvalidWorkflowSnapshotError, InvalidWorkflowVersionError, LeaseConflictError, normalizePersistedWorkflowSnapshot, RevisionConflictError, StartKeyConflictError, UnsupportedWorkflowSnapshotFormatError, WorkflowIdentityConflictError, type WorkflowSnapshot } from '@nuxt-laravelize/workflows'
+import { InvalidWorkflowSnapshotError, InvalidWorkflowVersionError, LeaseConflictError, normalizePersistedWorkflowSnapshot, RevisionConflictError, StartKeyConflictError, UnsupportedWorkflowSnapshotFormatError, WorkflowIdentityConflictError, type WorkflowSnapshot } from '@luckys_luis/nuxt-laravelize-workflows'
 import { DrizzlePostgresWorkflowStore, DrizzleSQLiteWorkflowStore, TursoWorkflowStore, type DrizzlePostgresWorkflowDatabase, type DrizzleSQLiteWorkflowDatabase } from '../src/index.js'
 
 type Row = Record<string, unknown>

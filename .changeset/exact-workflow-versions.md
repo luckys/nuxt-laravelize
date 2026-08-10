@@ -1,10 +1,10 @@
 ---
-'@nuxt-laravelize/workflows': major
-'@nuxt-laravelize/workflows-drizzle': major
-'@nuxt-laravelize/workflows-queue': major
-'@nuxt-laravelize/workflows-reliability': major
-'@nuxt-laravelize/database': major
-'@nuxt-laravelize/database-drizzle': major
+'@luckys_luis/nuxt-laravelize-workflows': major
+'@luckys_luis/nuxt-laravelize-workflows-drizzle': major
+'@luckys_luis/nuxt-laravelize-workflows-queue': major
+'@luckys_luis/nuxt-laravelize-workflows-reliability': major
+'@luckys_luis/nuxt-laravelize-database': major
+'@luckys_luis/nuxt-laravelize-database-drizzle': major
 ---
 
 Require strict workflow/step identifiers, exact immutable definition resolution, and `snapshotFormatVersion` on source snapshots. Workers, queues, and recovery now fail closed when a definition is missing or a custom resolver returns a fallback; `WorkflowWakeReconciler` now requires a resolver.

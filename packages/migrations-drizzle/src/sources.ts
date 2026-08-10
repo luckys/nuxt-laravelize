@@ -1,10 +1,10 @@
-import { migrationSourceFor as auditMigrationSourceFor } from '@nuxt-laravelize/audit-drizzle/migrations'
-import { migrationSourceFor as idempotencyMigrationSourceFor } from '@nuxt-laravelize/idempotency-drizzle/migrations'
-import type { MigrationDialect, MigrationSource } from '@nuxt-laravelize/migrations'
-import { migrationSourceFor as notificationsDatabaseMigrationSourceFor } from '@nuxt-laravelize/notifications-database-drizzle/migrations'
-import { migrationSourceFor as reliabilityMigrationSourceFor } from '@nuxt-laravelize/reliability-drizzle/migrations'
-import { migrationSourceFor as scoutMigrationSourceFor } from '@nuxt-laravelize/scout-drizzle/migrations'
-import { migrationSourceFor as workflowsMigrationSourceFor } from '@nuxt-laravelize/workflows-drizzle/migrations'
+import { migrationSourceFor as auditMigrationSourceFor } from '@luckys_luis/nuxt-laravelize-audit-drizzle/migrations'
+import { migrationSourceFor as idempotencyMigrationSourceFor } from '@luckys_luis/nuxt-laravelize-idempotency-drizzle/migrations'
+import type { MigrationDialect, MigrationSource } from '@luckys_luis/nuxt-laravelize-migrations'
+import { migrationSourceFor as notificationsDatabaseMigrationSourceFor } from '@luckys_luis/nuxt-laravelize-notifications-database-drizzle/migrations'
+import { migrationSourceFor as reliabilityMigrationSourceFor } from '@luckys_luis/nuxt-laravelize-reliability-drizzle/migrations'
+import { migrationSourceFor as scoutMigrationSourceFor } from '@luckys_luis/nuxt-laravelize-scout-drizzle/migrations'
+import { migrationSourceFor as workflowsMigrationSourceFor } from '@luckys_luis/nuxt-laravelize-workflows-drizzle/migrations'
 
 /**
  * Explicit framework package order. Adding a package migration source is an

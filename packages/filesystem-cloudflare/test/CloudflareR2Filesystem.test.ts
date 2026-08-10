@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { CloudflareR2Filesystem } from '../src'
-import { isDirectUploadFilesystem, isStreamFilesystem, isTemporaryUrlFilesystem } from '@nuxt-laravelize/filesystem/runtime'
+import { isDirectUploadFilesystem, isStreamFilesystem, isTemporaryUrlFilesystem } from '@luckys_luis/nuxt-laravelize-filesystem/runtime'
 
 function bucket(overrides: Record<string, unknown> = {}) {
   return {

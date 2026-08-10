@@ -1,4 +1,4 @@
-import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { describe, expect, it, vi } from 'vitest'
 import { Mailable, ResendMailer } from '../../src/runtime/index'
 import MailServiceProvider from '../../src/runtime/server/MailServiceProvider'

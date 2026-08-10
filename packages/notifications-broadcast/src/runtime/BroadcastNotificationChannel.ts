@@ -1,5 +1,5 @@
-import { PrivateChannel, type BroadcastingManager } from '@nuxt-laravelize/broadcasting/runtime'
-import type { Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from '@nuxt-laravelize/notifications/runtime'
+import { PrivateChannel, type BroadcastingManager } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
+import type { Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 import type { BroadcastNotificationJsonObject, BroadcastNotificationRecipient } from './contracts'
 import { normalizeBroadcastNotificationData, normalizeBroadcastNotificationRecipient, normalizeBroadcastNotificationVersion, safeBroadcastNotificationText } from './validation'
 

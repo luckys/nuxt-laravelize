@@ -16,7 +16,7 @@ export function compileSchedule(schedule: Schedule, definitions: Readonly<Record
       task.maintenance === 'run' && 'maintenance override',
       task.hooks && 'success/failure hooks',
     ].filter(Boolean)
-    if (unsupported.length) throw new Error(`Nitro 3 adapter cannot enforce ${unsupported.join(', ')} for scheduled task "${task.name}". Use @nuxt-laravelize/scheduler-nuxt or a policy-aware wrapper.`)
+    if (unsupported.length) throw new Error(`Nitro 3 adapter cannot enforce ${unsupported.join(', ')} for scheduled task "${task.name}". Use @luckys_luis/nuxt-laravelize-scheduler-nuxt or a policy-aware wrapper.`)
     const names = scheduled.get(task.cron) ?? []
     if (!names.includes(task.name)) names.push(task.name)
     scheduled.set(task.cron, names)

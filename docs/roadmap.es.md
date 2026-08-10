@@ -39,7 +39,7 @@ Este documento registra capacidades inspiradas en Laravel que podrian aportar va
 
 ### Autenticacion, Fortify y semantica Sanctum
 
-Paquetes candidatos: `@nuxt-laravelize/auth`, `@nuxt-laravelize/auth-better-auth` y `@nuxt-laravelize/auth-drizzle`.
+Paquetes candidatos: `@luckys_luis/nuxt-laravelize-auth`, `@luckys_luis/nuxt-laravelize-auth-better-auth` y `@luckys_luis/nuxt-laravelize-auth-drizzle`.
 
 El paquete portable definiria contratos confiables de sesion y principal. Un adapter inicial para Better Auth proporcionaria la implementacion de protocolos en vez de introducir un motor de autenticacion nuevo. Debe cubrir sesiones cookie, login/logout, rotacion y revocacion, recuperacion de password, verificacion de email, confirmacion de password, TOTP y recovery codes, personal access tokens, abilities de token, throttling de credenciales, integracion CSRF y eventos de seguridad auditados.
 
@@ -47,13 +47,13 @@ Debe integrarse con `principalResolverToken`, execution context, authorization, 
 
 ### Sesiones, cookies y CSRF
 
-Paquetes candidatos: `@nuxt-laravelize/session`, `@nuxt-laravelize/session-redis` y `@nuxt-laravelize/csrf`.
+Paquetes candidatos: `@luckys_luis/nuxt-laravelize-session`, `@luckys_luis/nuxt-laravelize-session-redis` y `@luckys_luis/nuxt-laravelize-csrf`.
 
 Soportarian sesiones firmadas o server-side, regeneracion de ID, flash data, locks de sesion, stores memory/Redis/database, cookies cifradas, defaults seguros y proteccion CSRF compatible con SPA. Deben poder utilizarse sin el paquete de autenticacion.
 
 ### Comandos de consola
 
-Paquete candidato: `@nuxt-laravelize/console`.
+Paquete candidato: `@luckys_luis/nuxt-laravelize-console`.
 
 Estado: implementado como runtime portable opt-in con adapters Node y de testing.
 
@@ -61,7 +61,7 @@ El runtime proporcionaria registro tipado de comandos, argumentos, opciones, hel
 
 ### Migraciones unificadas
 
-Paquetes candidatos: `@nuxt-laravelize/migrations` y `@nuxt-laravelize/migrations-drizzle`.
+Paquetes candidatos: `@luckys_luis/nuxt-laravelize-migrations` y `@luckys_luis/nuxt-laravelize-migrations-drizzle`.
 
 Estado: implementado con backends transaccionales PostgreSQL/SQLite, discovery explicito de aplicacion, comandos console y fuentes agregadas de paquetes.
 
@@ -69,7 +69,7 @@ El runner descubriria migraciones de aplicacion y paquetes, guardaria IDs y chec
 
 ### Scheduler para Nuxt 4
 
-Paquete candidato: `@nuxt-laravelize/scheduler-nuxt`.
+Paquete candidato: `@luckys_luis/nuxt-laravelize-scheduler-nuxt`.
 
 Estado: implementado como modulo opt-in Nuxt 4/Nitro 2 con triggers timezone-aware y locks Redis/Valkey.
 
@@ -77,25 +77,25 @@ Las definiciones actuales necesitan una capa de ejecucion compatible con Nuxt 4.
 
 ### Manejo central de excepciones
 
-Paquete candidato: `@nuxt-laravelize/exceptions`.
+Paquete candidato: `@luckys_luis/nuxt-laravelize-exceptions`.
 
 Este boundary registraria reporters y renderers, mapearia errores de dominio a HTTP Problem Details, excluiria reportes seleccionados, limitaria fallos repetidos, adjuntaria correlation IDs, redactaria datos sensibles y se integraria con observability. Debe reemplazar traducciones HTTP duplicadas sin filtrar stack traces, payloads o secretos.
 
 ### Contratos API tipados y OpenAPI
 
-Paquetes candidatos: `@nuxt-laravelize/contracts` y `@nuxt-laravelize/openapi`.
+Paquetes candidatos: `@luckys_luis/nuxt-laravelize-contracts` y `@luckys_luis/nuxt-laravelize-openapi`.
 
 Un contrato declararia una sola vez metodo, path, parametros, query, body, respuestas por status, errores y metadata de autorizacion. Los adapters podrian generar validacion runtime, OpenAPI 3.1, llamadas `useHttp` tipadas, fixtures e informes CI de breaking changes. El diseño extenderia routes, validation, Form Requests, resources y paginacion. Las implementaciones Standard Schema sin introspeccion requeriran metadata explicita o adapters especificos.
 
 ### Diagnostico estilo Telescope
 
-Paquete candidato: `@nuxt-laravelize/telescope`.
+Paquete candidato: `@luckys_luis/nuxt-laravelize-telescope`.
 
 El dashboard de desarrollo podria inspeccionar requests, excepciones, logs, queries lentas, jobs, eventos, mail, notificaciones, cache, HTTP saliente, webhooks y workflows. Su uso en produccion debe habilitarse y autorizarse explicitamente. Bodies y headers arbitrarios permanecen desactivados por defecto, los secretos se redactan y el almacenamiento tiene retencion acotada.
 
 ### Operaciones estilo Horizon/Pulse
 
-Paquetes candidatos: `@nuxt-laravelize/queue-operations` y `@nuxt-laravelize/pulse`, posiblemente compartiendo el shell de dead-letter operations.
+Paquetes candidatos: `@luckys_luis/nuxt-laravelize-queue-operations` y `@luckys_luis/nuxt-laravelize-pulse`, posiblemente compartiendo el shell de dead-letter operations.
 
 La superficie mostraria profundidad, throughput y latencia de queues; heartbeats; jobs retrasados/fallidos; lag de outbox; workflows bloqueados; ejecuciones del scheduler; metricas de cache y HTTP; y dead letters. Acciones fenced y auditadas podrian reintentar, cancelar, reconciliar, pausar, reanudar y ejecutar bulk operations acotadas. La revelacion de payloads seguiria siendo una capacidad privilegiada separada.
 
@@ -111,19 +111,19 @@ Quedan como candidatos los adapters SMS, push y Slack/Teams. Los eventos de life
 
 ### Precognition
 
-Paquete candidato: `@nuxt-laravelize/precognition`.
+Paquete candidato: `@luckys_luis/nuxt-laravelize-precognition`.
 
 Composables Vue invocarian la misma validacion server de Form Requests sin ejecutar el controller. Debe soportar subconjuntos de campos, debounce, cancelacion, valores transformados, error bags, dirty state y tipos Standard Schema.
 
 ### Semantica Socialite
 
-Paquete candidato: `@nuxt-laravelize/socialite`, posterior a auth.
+Paquete candidato: `@luckys_luis/nuxt-laravelize-socialite`, posterior a auth.
 
 Los primeros providers podrian ser GitHub, Google, Microsoft, Apple, Discord y OpenID Connect generico. State, nonce, PKCE, account linking explicito, prevencion de takeover por email, refresh tokens cifrados y eventos link/unlink auditados son obligatorios.
 
 ### Echo y realtime
 
-Paquetes candidatos: `@nuxt-laravelize/echo` y `@nuxt-laravelize/echo-pusher`.
+Paquetes candidatos: `@luckys_luis/nuxt-laravelize-echo` y `@luckys_luis/nuxt-laravelize-echo-pusher`.
 
 La capa browser proporcionaria composables Vue SSR-safe para canales publicos, privados y presence, eventos tipados, autenticacion, reconexion/resubscripcion y dispose automatico. Un servidor propio estilo Reverb solo deberia considerarse tras estabilizar el contrato cliente; Pusher es el primer adapter de menor riesgo.
 
@@ -135,11 +135,11 @@ El escaneo antivirus y las transformaciones siguen siendo responsabilidad de que
 
 ### Mejoras de factories
 
-Entregado en `@nuxt-laravelize/database/runtime`: states/sequences indexados, composicion explicita y anidada `has`/`for`, recycling local determinista, Faker con seed y reloj fijo, adapters tipados sync/async, compatibilidad con callbacks y hooks before/after secuenciales. La composicion sigue siendo explicita e independiente del ORM; deliberadamente no se incluyen metadata ORM, foreign keys implicitas, pools globales, persistencia/transacciones bulk ni un clon de Eloquent.
+Entregado en `@luckys_luis/nuxt-laravelize-database/runtime`: states/sequences indexados, composicion explicita y anidada `has`/`for`, recycling local determinista, Faker con seed y reloj fijo, adapters tipados sync/async, compatibilidad con callbacks y hooks before/after secuenciales. La composicion sigue siendo explicita e independiente del ORM; deliberadamente no se incluyen metadata ORM, foreign keys implicitas, pools globales, persistencia/transacciones bulk ni un clon de Eloquent.
 
 ### Billing estilo Cashier
 
-Paquetes candidatos: `@nuxt-laravelize/cashier` y `@nuxt-laravelize/cashier-stripe`.
+Paquetes candidatos: `@luckys_luis/nuxt-laravelize-cashier` y `@luckys_luis/nuxt-laravelize-cashier-stripe`.
 
 El primer adapter podria cubrir customers, subscriptions, trials, usage billing, invoices, Checkout, customer portal, webhooks idempotentes y sincronizacion de entitlements con Pennant. Los cambios de billing usarian reliability y workflows para retry y compensacion. Paddle u otros providers serian adapters separados.
 
@@ -161,7 +161,7 @@ El cliente HTTP podria añadir clients nombrados, retries y backoff, timeouts, p
 
 ### Guardrails multi-tenant
 
-Paquetes candidatos: `@nuxt-laravelize/tenancy` y adapters de base de datos opcionales.
+Paquetes candidatos: `@luckys_luis/nuxt-laravelize-tenancy` y adapters de base de datos opcionales.
 
 Resolverian tenant desde una fuente confiable, verificarian membership, exigirian contexto tenant en handlers/jobs seleccionados, aplicarian scope a cache/files/search, propagarian identidad con reautorizacion del worker y soportarian integraciones PostgreSQL RLS o session variables. La metadata de contexto nunca equivale a autorizacion y ningun paquete independiente del ORM puede garantizar aislamiento total de queries.
 

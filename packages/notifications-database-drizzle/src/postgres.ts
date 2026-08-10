@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import type { DatabaseNotificationQuery, DatabaseNotificationRecipient, DatabaseNotificationRecord, DatabaseNotificationStore } from '@nuxt-laravelize/notifications-database/runtime'
+import type { DatabaseNotificationQuery, DatabaseNotificationRecipient, DatabaseNotificationRecord, DatabaseNotificationStore } from '@luckys_luis/nuxt-laravelize-notifications-database/runtime'
 import { insertionResult, notificationId, page, query, readAt, recipient, record, rows, tenantScope, type DrizzlePostgresDatabaseNotificationDatabase } from './shared'
 
 export { databaseNotifications } from './schema'

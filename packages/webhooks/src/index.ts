@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 import { lookup } from 'node:dns/promises'
-import { InboxConsumer, OutboxProcessor, createEnvelope, type ContextSnapshot, type InboxStore, type JsonValue, type MessageEnvelope, type MessageExecutionContext, type OutboxStore } from '@nuxt-laravelize/reliability'
+import { InboxConsumer, OutboxProcessor, createEnvelope, type ContextSnapshot, type InboxStore, type JsonValue, type MessageEnvelope, type MessageExecutionContext, type OutboxStore } from '@luckys_luis/nuxt-laravelize-reliability'
 
 export interface WebhookTransport {
   send(url: string, init: RequestInit): Promise<Pick<Response, 'status' | 'headers'>>

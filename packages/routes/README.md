@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/routes`
+# `@luckys_luis/nuxt-laravelize-routes`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Wayfinder-inspired typed routes for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/routes
+pnpm add @luckys_luis/nuxt-laravelize-routes
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/routes'],
+  modules: ['@luckys_luis/nuxt-laravelize-routes'],
 })
 ```
 
@@ -34,11 +34,11 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Typed routes
 
-`@nuxt-laravelize/routes` generates `#laravelize/routes` from explicit declarations and is included in the preset. It infers URL parameters and HTTP methods only; request bodies and responses are intentionally **not inferred**.
+`@luckys_luis/nuxt-laravelize-routes` generates `#laravelize/routes` from explicit declarations and is included in the preset. It infers URL parameters and HTTP methods only; request bodies and responses are intentionally **not inferred**.
 
 ```ts
 // routes.ts
-import { route } from '@nuxt-laravelize/routes/runtime'
+import { route } from '@luckys_luis/nuxt-laravelize-routes/runtime'
 
 export default {
   users: {
@@ -58,7 +58,7 @@ routes.users.show({ user: 42 }, { query: { preview: true } })
 // { method: 'GET', url: '/users/42?preview=1' }
 ```
 
-Path values are encoded. Catch-all arrays retain segment boundaries, while `.` and `..` segments are rejected to prevent traversal-style URLs. Query keys are sorted, array order is retained, booleans use `1`/`0`, and nullish values are omitted. Package authors can register declarations with `addRoutesDeclaration()` from `@nuxt-laravelize/routes/kit`.
+Path values are encoded. Catch-all arrays retain segment boundaries, while `.` and `..` segments are rejected to prevent traversal-style URLs. Query keys are sorted, array order is retained, booleans use `1`/`0`, and nullish values are omitted. Package authors can register declarations with `addRoutesDeclaration()` from `@luckys_luis/nuxt-laravelize-routes/kit`.
 
 ## Compatibility and boundaries
 
@@ -68,4 +68,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/http`](../http/README.md), [`@nuxt-laravelize/nuxt`](../nuxt/README.md).
+[`@luckys_luis/nuxt-laravelize-http`](../http/README.md), [`@luckys_luis/nuxt-laravelize`](../nuxt/README.md).

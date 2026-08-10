@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/core`
+# `@luckys_luis/nuxt-laravelize-core`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Framework-neutral container and provider lifecycle for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/core
+pnpm add @luckys_luis/nuxt-laravelize-core
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/core'],
+  modules: ['@luckys_luis/nuxt-laravelize-core'],
 })
 ```
 
@@ -36,10 +36,10 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Core
 
-`@nuxt-laravelize/core` provides the dependency container, typed tokens, service providers, application lifecycle and logging. Feature modules install it automatically.
+`@luckys_luis/nuxt-laravelize-core` provides the dependency container, typed tokens, service providers, application lifecycle and logging. Feature modules install it automatically.
 
 ```bash
-pnpm add @nuxt-laravelize/core
+pnpm add @luckys_luis/nuxt-laravelize-core
 ```
 
 ### Container and tokens
@@ -58,7 +58,7 @@ pnpm add @nuxt-laravelize/core
 | `dispose()` | Disposes this container. Dispose each child scope separately. |
 
 ```ts
-import { createContainer, createToken } from '@nuxt-laravelize/core/runtime'
+import { createContainer, createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 interface Clock { now(): Date }
 const clockToken = createToken<Clock>('app.clock')
@@ -73,7 +73,7 @@ const now = container.make(clockToken).now()
 Implement `ServiceProvider.register()` for bindings and optional `boot()` for work that requires all providers to be registered.
 
 ```ts
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 export default class ClockServiceProvider implements ServiceProvider {
   register(container: Container) {
@@ -82,7 +82,7 @@ export default class ClockServiceProvider implements ServiceProvider {
 }
 ```
 
-Register an application provider from a Nuxt module with `addLaravelizeProvider(nuxt, path, mode)` from `@nuxt-laravelize/core/kit`. In Nitro handlers, the auto-imports `useContainer(event)` and `useLogger(event)` resolve the current request scope.
+Register an application provider from a Nuxt module with `addLaravelizeProvider(nuxt, path, mode)` from `@luckys_luis/nuxt-laravelize-core/kit`. In Nitro handlers, the auto-imports `useContainer(event)` and `useLogger(event)` resolve the current request scope.
 
 ### Logging
 
@@ -96,7 +96,7 @@ Register an application provider from a Nuxt module with `addLaravelizeProvider(
 | `FakeLogger` | Records logs for assertions through `/testing`. |
 
 ```ts
-import { ConsoleLogger } from '@nuxt-laravelize/core/runtime'
+import { ConsoleLogger } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 const logger = new ConsoleLogger({ threshold: 'info' })
 logger.info('Invoice created', { invoiceId: 'inv_1' })
@@ -112,4 +112,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/testing`](../testing/README.md), [`@nuxt-laravelize/execution-context`](../execution-context/README.md).
+[`@luckys_luis/nuxt-laravelize-testing`](../testing/README.md), [`@luckys_luis/nuxt-laravelize-execution-context`](../execution-context/README.md).

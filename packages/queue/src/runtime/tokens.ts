@@ -1,4 +1,4 @@
-import { createToken, type Token } from '@nuxt-laravelize/core/runtime'
+import { createToken, type Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import type { Queue } from './Queue'
 import type { InMemoryJobRegistry } from './JobRegistry'
 import type { JobRunner } from './JobRunner'

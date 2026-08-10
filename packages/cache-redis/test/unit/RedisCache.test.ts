@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { isAtomicFixedWindowCache, isDistributedCache, type AtomicFixedWindowCache, type DistributedCache } from '@nuxt-laravelize/cache/runtime'
+import { isAtomicFixedWindowCache, isDistributedCache, type AtomicFixedWindowCache, type DistributedCache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 import { RedisCache, type RedisCacheClient } from '../../src/index'
 
 function client(overrides: Partial<RedisCacheClient> = {}): RedisCacheClient {

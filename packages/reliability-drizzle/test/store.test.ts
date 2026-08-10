@@ -4,8 +4,8 @@ import { DatabaseSync, type SQLInputValue } from 'node:sqlite'
 import { describe, expect, it, vi } from 'vitest'
 import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core'
 import type { SQL } from 'drizzle-orm'
-import { createEnvelope, OutboxMessageConflictError } from '@nuxt-laravelize/reliability'
-import { DeadLetterAmbiguousError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, DeadLetterUnmanagedLegacyError, deadLetterOperationFingerprint } from '@nuxt-laravelize/dead-letter'
+import { createEnvelope, OutboxMessageConflictError } from '@luckys_luis/nuxt-laravelize-reliability'
+import { DeadLetterAmbiguousError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, DeadLetterUnmanagedLegacyError, deadLetterOperationFingerprint } from '@luckys_luis/nuxt-laravelize-dead-letter'
 import { DrizzlePostgresReliabilityStore, DrizzleReliabilityDeadLetterAdapter, DrizzleSQLiteReliabilityStore } from '../src/index.js'
 
 describe('drizzle reliability stores', () => {

@@ -1,5 +1,5 @@
-import type { Container } from '@nuxt-laravelize/core/runtime'
-import type { JobExecutionDescriptor, SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import type { Container } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { JobExecutionDescriptor, SerializedJob } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 export type JobMiddlewareKey = string | ((job: SerializedJob, scope: Container, descriptor?: JobExecutionDescriptor) => string | Promise<string>)
 

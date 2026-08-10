@@ -1,8 +1,8 @@
 /* eslint-disable @stylistic/max-statements-per-line, @stylistic/lines-between-class-members */
 import { createHash } from 'node:crypto'
 import type { Job as BullJob, Queue } from 'bullmq'
-import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, deadLetterOperationFingerprint, sanitizeDeadLetterError, type DeadLetterAdapter, type DeadLetterDetail, type DeadLetterKey, type DeadLetterListRequest, type DeadLetterMutation, type DeadLetterMutationResult, type DeadLetterOperationReceipt, type DeadLetterOperationStore, type DeadLetterRetry, type DeadLetterSummary } from '@nuxt-laravelize/dead-letter'
-import { currentQueueChainStep, readQueueBatchChildEnvelope, readQueueBatchCoordinatorEnvelope, readQueueChainEnvelope } from '@nuxt-laravelize/queue/runtime'
+import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, deadLetterOperationFingerprint, sanitizeDeadLetterError, type DeadLetterAdapter, type DeadLetterDetail, type DeadLetterKey, type DeadLetterListRequest, type DeadLetterMutation, type DeadLetterMutationResult, type DeadLetterOperationReceipt, type DeadLetterOperationStore, type DeadLetterRetry, type DeadLetterSummary } from '@luckys_luis/nuxt-laravelize-dead-letter'
+import { currentQueueChainStep, readQueueBatchChildEnvelope, readQueueBatchCoordinatorEnvelope, readQueueChainEnvelope } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 const MAX_PAYLOAD_BYTES = 256 * 1024
 const MAX_LIST_JOBS = 1000

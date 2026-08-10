@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/observability`
+# `@luckys_luis/nuxt-laravelize-observability`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Base no-op neutral, spans HTTP seguros, metricas y fake de testing
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/observability
+pnpm add @luckys_luis/nuxt-laravelize-observability
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/observability'],
+  modules: ['@luckys_luis/nuxt-laravelize-observability'],
 })
 ```
 
@@ -26,7 +26,7 @@ export default defineNuxtConfig({
 El paquete base es una foundation no-op neutral al vendor. Reemplaza el token scoped por una implementacion de la aplicacion y conserva atributos acotados; la instrumentacion incluida excluye bodies, URLs raw, secrets e IDs de identidad.
 
 ```ts
-import { observabilityToken } from '@nuxt-laravelize/observability/runtime'
+import { observabilityToken } from '@luckys_luis/nuxt-laravelize-observability/runtime'
 
 const span = useObservability(event).startSpan('invoice.load', {
   kind: 'server',
@@ -53,7 +53,7 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Observabilidad y OpenTelemetry
 
-`@nuxt-laravelize/observability` se incluye en el preset como base no-op sin coste. Sus contratos runtime no dependen de H3. Los providers de la aplicación pueden sobrescribir `observabilityToken` si se registran después de los providers del módulo. `@nuxt-laravelize/observability-otel` y `@nuxt-laravelize/observability-queue` son opt-in. El adapter OTel usa solo `@opentelemetry/api` en runtime y nunca instala globals, SDK ni exporters.
+`@luckys_luis/nuxt-laravelize-observability` se incluye en el preset como base no-op sin coste. Sus contratos runtime no dependen de H3. Los providers de la aplicación pueden sobrescribir `observabilityToken` si se registran después de los providers del módulo. `@luckys_luis/nuxt-laravelize-observability-otel` y `@luckys_luis/nuxt-laravelize-observability-queue` son opt-in. El adapter OTel usa solo `@opentelemetry/api` en runtime y nunca instala globals, SDK ni exporters.
 
 Los consumidores de cola crean spans raíz por defecto. Activa `trustTraceContext: true` solo para carriers de confianza. Los metadatos persisten únicamente `traceparent`; `tracestate` requiere `propagateTracestate: true` y baggage nunca se persiste. Los callbacks terminales de fallo no son spans de proceso. Si también se instala execution-context, observabilidad sustituye solo la correlación trace/span y conserva la identidad y procedencia de ejecución del worker.
 
@@ -69,4 +69,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/observability-otel`](../observability-otel/README.es.md), [`@nuxt-laravelize/observability-queue`](../observability-queue/README.es.md), [`@nuxt-laravelize/execution-context`](../execution-context/README.es.md).
+[`@luckys_luis/nuxt-laravelize-observability-otel`](../observability-otel/README.es.md), [`@luckys_luis/nuxt-laravelize-observability-queue`](../observability-queue/README.es.md), [`@luckys_luis/nuxt-laravelize-execution-context`](../execution-context/README.es.md).

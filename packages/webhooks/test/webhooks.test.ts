@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { InMemoryReliabilityStore } from '@nuxt-laravelize/reliability/testing'
+import { InMemoryReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability/testing'
 import { assertSafeWebhookUrl, createWebhookEnvelope, OutgoingWebhookProcessor, signWebhook, verifyWebhook, WebhookInboxReceiver, WebhookSecretMissingError } from '../src/index.js'
 import { WebhookTransportFake } from '../src/testing.js'
 

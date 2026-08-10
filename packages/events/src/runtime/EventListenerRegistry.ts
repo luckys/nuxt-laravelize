@@ -1,4 +1,4 @@
-import type { Token } from '@nuxt-laravelize/core/runtime'
+import type { Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 import type { EventConstructor, Listener } from './contracts'
 

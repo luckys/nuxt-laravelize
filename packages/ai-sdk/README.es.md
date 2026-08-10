@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/ai-sdk`
+# `@luckys_luis/nuxt-laravelize-ai-sdk`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Conexiones IA nombradas opt-in, agentes tipados, streaming y testing
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/ai-sdk ai zod @ai-sdk/anthropic
+pnpm add @luckys_luis/nuxt-laravelize-ai-sdk ai zod @ai-sdk/anthropic
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/ai-sdk'],
+  modules: ['@luckys_luis/nuxt-laravelize-ai-sdk'],
 })
 ```
 
@@ -35,18 +35,18 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## AI SDK
 
-`@nuxt-laravelize/ai-sdk` es un modulo de servidor opt-in construido sobre AI SDK 7. Proporciona conexiones de modelos nombradas, `useAi(event)`, agentes reutilizables tipados, streaming de texto, tools, structured output, comprobaciones explicitas de capacidades y `AiFake`. No forma parte del preset y requiere Node.js 22 o superior.
+`@luckys_luis/nuxt-laravelize-ai-sdk` es un modulo de servidor opt-in construido sobre AI SDK 7. Proporciona conexiones de modelos nombradas, `useAi(event)`, agentes reutilizables tipados, streaming de texto, tools, structured output, comprobaciones explicitas de capacidades y `AiFake`. No forma parte del preset y requiere Node.js 22 o superior.
 
 ```bash
-pnpm add @nuxt-laravelize/ai-sdk ai zod @ai-sdk/anthropic
+pnpm add @luckys_luis/nuxt-laravelize-ai-sdk ai zod @ai-sdk/anthropic
 ```
 
 Registra los providers explicitamente en `server/providers`; el modulo nunca importa paquetes de providers ni lee sus credenciales:
 
 ```ts
 import { createAnthropic } from '@ai-sdk/anthropic'
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { AiConnectionRegistry, aiConnectionsToken } from '@nuxt-laravelize/ai-sdk/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { AiConnectionRegistry, aiConnectionsToken } from '@luckys_luis/nuxt-laravelize-ai-sdk/runtime'
 
 export default class AiConnectionsServiceProvider implements ServiceProvider {
   register(container: Container) {
@@ -73,4 +73,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/agent-sdk`](../agent-sdk/README.es.md).
+[`@luckys_luis/nuxt-laravelize-agent-sdk`](../agent-sdk/README.es.md).

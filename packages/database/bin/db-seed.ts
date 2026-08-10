@@ -2,7 +2,7 @@
 import { resolve as resolvePath } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { createContainer, type ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import { createContainer, type ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { seederRegistryToken } from '../src/database/seeding/SeederRegistryToken'
 
 interface DbSeedConfig {

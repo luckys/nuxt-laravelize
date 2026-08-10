@@ -1,4 +1,4 @@
-import type { Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from '@nuxt-laravelize/notifications/runtime'
+import type { Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 import type { DatabaseNotificationRecipient, DatabaseNotificationStore, NotificationJsonObject } from './contracts'
 import { normalizeDatabaseNotificationData, normalizeDatabaseNotificationRecipient, normalizeDatabaseNotificationVersion, safeDatabaseNotificationText } from './validation'
 

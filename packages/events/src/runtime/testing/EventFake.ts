@@ -1,5 +1,5 @@
 import type { Dispatcher, EventConstructor, EventSubscriber, Listener } from '../contracts'
-import type { Token } from '@nuxt-laravelize/core/runtime'
+import type { Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 export class EventFake implements Dispatcher {
   readonly dispatched: unknown[] = []

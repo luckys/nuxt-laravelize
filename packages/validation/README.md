@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/validation`
+# `@luckys_luis/nuxt-laravelize-validation`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Portable Standard Schema validation and error bags for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/validation
+pnpm add @luckys_luis/nuxt-laravelize-validation
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/validation'],
+  modules: ['@luckys_luis/nuxt-laravelize-validation'],
 })
 ```
 
@@ -33,10 +33,10 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Validation
 
-`@nuxt-laravelize/validation` validates any [Standard Schema](https://standardschema.dev/) implementation, including Zod, Valibot and ArkType, without coupling application services to HTTP.
+`@luckys_luis/nuxt-laravelize-validation` validates any [Standard Schema](https://standardschema.dev/) implementation, including Zod, Valibot and ArkType, without coupling application services to HTTP.
 
 ```bash
-pnpm add @nuxt-laravelize/validation
+pnpm add @luckys_luis/nuxt-laravelize-validation
 ```
 
 Use `validate()` when invalid input is exceptional, or `safeValidate()` when the caller owns the control flow.
@@ -80,4 +80,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/http`](../http/README.md), [`@nuxt-laravelize/nuxt`](../nuxt/README.md).
+[`@luckys_luis/nuxt-laravelize-http`](../http/README.md), [`@luckys_luis/nuxt-laravelize`](../nuxt/README.md).

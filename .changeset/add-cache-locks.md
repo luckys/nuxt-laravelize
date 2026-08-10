@@ -1,5 +1,5 @@
 ---
-'@nuxt-laravelize/cache': minor
+'@luckys_luis/nuxt-laravelize-cache': minor
 ---
 
 Add owner-safe atomic cache locks with expiration, blocking acquisition, ownership transfer, and callback helpers.

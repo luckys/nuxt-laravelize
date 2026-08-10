@@ -1,5 +1,5 @@
 /* eslint-disable @stylistic/max-statements-per-line */
-import type { ScoutManager, SearchEngine, SearchPage, SearchRequest, Searchable } from '@nuxt-laravelize/scout/runtime'
+import type { ScoutManager, SearchEngine, SearchPage, SearchRequest, Searchable } from '@luckys_luis/nuxt-laravelize-scout/runtime'
 import { buildSQLiteDelete, buildSQLiteFlush, buildSQLiteSearch, buildSQLiteUpdate, compileLibSQL, pageFromRows, validateOptions, type LibSQLStatement, type SQLiteScoutOptions } from './sqlite'
 
 interface LibSQLResultSet { readonly rows: readonly Record<string, unknown>[] }

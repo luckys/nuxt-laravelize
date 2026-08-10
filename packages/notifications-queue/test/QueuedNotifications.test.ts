@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { ExecutionContext, executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { Notification, type Notifiable } from '@nuxt-laravelize/notifications/runtime'
-import { DefaultNotificationManager } from '@nuxt-laravelize/notifications/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, JobRunner, type Job, type PushOptions, type Queue } from '@nuxt-laravelize/queue/runtime'
-import { InMemoryReliabilityStore } from '@nuxt-laravelize/reliability/testing'
+import { createContainer, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { ExecutionContext, executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { Notification, type Notifiable } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
+import { DefaultNotificationManager } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
+import { InMemoryJobRegistry, InMemoryQueue, JobRunner, type Job, type PushOptions, type Queue } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { InMemoryReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability/testing'
 import { NotificationCodecRegistry, QueuedNotificationDispatcher, QueuedNotificationJob, RecipientResolverRegistry, notificationCodecRegistryToken, notificationInboxStoreToken, notificationManagerToken, notificationQueueOptionsToken, recipientResolverRegistryToken } from '../src/runtime/index'
 
 class WelcomeNotification extends Notification {

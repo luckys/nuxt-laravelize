@@ -1,6 +1,6 @@
-import type { Resolver } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { Job, jobRegistryToken, type InMemoryJobRegistry } from '@nuxt-laravelize/queue/runtime'
+import type { Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { Job, jobRegistryToken, type InMemoryJobRegistry } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 const observations = new Map<string, string>()
 

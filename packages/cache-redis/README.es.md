@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/cache-redis`
+# `@luckys_luis/nuxt-laravelize-cache-redis`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Adapter opcional Node-only para Redis/Valkey (no incluido en el preset)
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/cache-redis ioredis
+pnpm add @luckys_luis/nuxt-laravelize-cache-redis ioredis
 ```
 
 ## Uso especifico del package
@@ -19,8 +19,8 @@ Crea un `RedisCache` con un prefijo obligatorio de aplicacion y registralo media
 
 ```ts
 import Redis from 'ioredis'
-import { RedisCache } from '@nuxt-laravelize/cache-redis'
-import { cacheToken } from '@nuxt-laravelize/cache/runtime'
+import { RedisCache } from '@luckys_luis/nuxt-laravelize-cache-redis'
+import { cacheToken } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 
 const redis = new Redis(process.env.REDIS_URL)
 container.instance(cacheToken, new RedisCache(redis, { prefix: 'orders:production:' }))
@@ -38,16 +38,16 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Cache
 
-`@nuxt-laravelize/cache` proporciona un contrato cache async portable, operaciones al estilo Laravel y un driver en memoria por defecto.
+`@luckys_luis/nuxt-laravelize-cache` proporciona un contrato cache async portable, operaciones al estilo Laravel y un driver en memoria por defecto.
 
 ```bash
-pnpm add @nuxt-laravelize/cache
+pnpm add @luckys_luis/nuxt-laravelize-cache
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/cache'],
+  modules: ['@luckys_luis/nuxt-laravelize-cache'],
 })
 ```
 
@@ -103,7 +103,7 @@ Cada lock expone un token opaco `owner`. Pasa ese token como cuarto argumento de
 
 Usa `lock.renew(ttlSeconds?)` para extender atomicamente un lease solo mientras coincida su owner. La capacidad `Cache.expireIf` es opcional para mantener compatibilidad con adapters personalizados; la renovacion falla de forma segura con `false` cuando no esta disponible y nunca se emula con una lectura y escritura expuestas a carreras. Los locks de cache no tienen fencing token, y un failover o lag de replicacion de Redis/Valkey puede romper la exclusion mutua.
 
-Para despliegues Node compartidos, instala `@nuxt-laravelize/cache-redis` con ioredis 5. Soporta Redis y Valkey, usa un prefijo obligatorio y deja a la aplicacion el inicio/cierre de la conexion. No esta incluido en el preset `@nuxt-laravelize/nuxt`. Su `flush()` por prefijo usa `SCAN` escapado y lotes acotados de `UNLINK`/`DEL`, no es atomico y debe ejecutarse en cada primario de Redis Cluster.
+Para despliegues Node compartidos, instala `@luckys_luis/nuxt-laravelize-cache-redis` con ioredis 5. Soporta Redis y Valkey, usa un prefijo obligatorio y deja a la aplicacion el inicio/cierre de la conexion. No esta incluido en el preset `@luckys_luis/nuxt-laravelize`. Su `flush()` por prefijo usa `SCAN` escapado y lotes acotados de `UNLINK`/`DEL`, no es atomico y debe ejecutarse en cada primario de Redis Cluster.
 
 Los locks distribuidos requieren que los adapters cache compartidos implementen `add()` y `forgetIf()` atomicamente. El TTL debe superar la operacion protegida; la expiracion evita deadlocks permanentes pero no cancela un callback que tarde demasiado.
 
@@ -115,4 +115,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/cache`](../cache/README.es.md).
+[`@luckys_luis/nuxt-laravelize-cache`](../cache/README.es.md).

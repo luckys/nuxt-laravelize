@@ -1,4 +1,4 @@
-import { CacheLock, isDistributedCache, type DistributedCache } from '@nuxt-laravelize/cache/runtime'
+import { CacheLock, isDistributedCache, type DistributedCache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 import { SchedulerLockLostError, type SchedulerLockLease, type SchedulerLockProvider, type SchedulerOccurrenceClaim } from './runtime'
 
 export interface CacheLockSchedulerLockProviderOptions {

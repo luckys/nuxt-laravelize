@@ -1,4 +1,4 @@
-import { DeadLetterAmbiguousError, DeadLetterNotFoundError, DeadLetterStaleRevisionError } from '@nuxt-laravelize/dead-letter'
+import { DeadLetterAmbiguousError, DeadLetterNotFoundError, DeadLetterStaleRevisionError } from '@luckys_luis/nuxt-laravelize-dead-letter'
 import { describe, expect, it } from 'vitest'
 import { deadLetterHttpProblem } from '../src/runtime/server/errors'
 

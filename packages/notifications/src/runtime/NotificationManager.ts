@@ -1,5 +1,5 @@
-import type { Logger, Resolver } from '@nuxt-laravelize/core/runtime'
-import type { Dispatcher } from '@nuxt-laravelize/events/runtime'
+import type { Logger, Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { Dispatcher } from '@luckys_luis/nuxt-laravelize-events/runtime'
 import type { ChannelName, Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from './contracts'
 import { NotificationDelivered, NotificationDeliveryFailed, type NotificationDeliveryEventContext } from './NotificationEvents'
 

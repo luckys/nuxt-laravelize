@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/validation`
+# `@luckys_luis/nuxt-laravelize-validation`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Validacion Standard Schema, resultados tipados y error bags
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/validation
+pnpm add @luckys_luis/nuxt-laravelize-validation
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/validation'],
+  modules: ['@luckys_luis/nuxt-laravelize-validation'],
 })
 ```
 
@@ -33,10 +33,10 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Validation
 
-`@nuxt-laravelize/validation` valida cualquier implementacion de [Standard Schema](https://standardschema.dev/), incluyendo Zod, Valibot y ArkType, sin acoplar servicios de aplicacion a HTTP.
+`@luckys_luis/nuxt-laravelize-validation` valida cualquier implementacion de [Standard Schema](https://standardschema.dev/), incluyendo Zod, Valibot y ArkType, sin acoplar servicios de aplicacion a HTTP.
 
 ```bash
-pnpm add @nuxt-laravelize/validation
+pnpm add @luckys_luis/nuxt-laravelize-validation
 ```
 
 Usa `validate()` cuando input invalido sea excepcional, o `safeValidate()` cuando el caller controle el flujo.
@@ -80,4 +80,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/http`](../http/README.es.md), [`@nuxt-laravelize/nuxt`](../nuxt/README.es.md).
+[`@luckys_luis/nuxt-laravelize-http`](../http/README.es.md), [`@luckys_luis/nuxt-laravelize`](../nuxt/README.es.md).

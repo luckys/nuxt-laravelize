@@ -1,4 +1,4 @@
-import type { MessageEnvelope, MessageExecutionContext } from '@nuxt-laravelize/reliability'
+import type { MessageEnvelope, MessageExecutionContext } from '@luckys_luis/nuxt-laravelize-reliability'
 
 export type ReliableMessageHandler = (message: MessageEnvelope, context: MessageExecutionContext) => void | Promise<void>
 export class DuplicateReliableHandlerError extends Error {}

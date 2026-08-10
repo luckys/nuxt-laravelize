@@ -1,5 +1,5 @@
-import { cacheToken } from '@nuxt-laravelize/cache/runtime'
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import { cacheToken } from '@luckys_luis/nuxt-laravelize-cache/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 import { RateLimiter } from '../RateLimiter'
 import { rateLimiterToken } from '../tokens'

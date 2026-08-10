@@ -7,12 +7,12 @@ import ReliabilityQueue from '../../../packages/reliability-queue/src/module'
 export default defineNuxtConfig({
   modules: [Pennant, Routes, ReliabilityQueue, Laravelize],
   alias: {
-    '@nuxt-laravelize/authorization/runtime': fileURLToPath(new URL('../../../packages/authorization/src/public-runtime.ts', import.meta.url)),
-    '@nuxt-laravelize/routes/runtime': fileURLToPath(new URL('../../../packages/routes/src/public-runtime.ts', import.meta.url)),
-    '@nuxt-laravelize/broadcasting/runtime': fileURLToPath(new URL('../../../packages/broadcasting/src/public-runtime.ts', import.meta.url)),
-    '@nuxt-laravelize/reliability-queue/runtime': fileURLToPath(new URL('../../../packages/reliability-queue/src/public-runtime.ts', import.meta.url)),
-    '@nuxt-laravelize/observability/runtime': fileURLToPath(new URL('../../../packages/observability/src/public-runtime.ts', import.meta.url)),
-    '@nuxt-laravelize/observability/testing': fileURLToPath(new URL('../../../packages/observability/src/public-testing.ts', import.meta.url)),
+    '@luckys_luis/nuxt-laravelize-authorization/runtime': fileURLToPath(new URL('../../../packages/authorization/src/public-runtime.ts', import.meta.url)),
+    '@luckys_luis/nuxt-laravelize-routes/runtime': fileURLToPath(new URL('../../../packages/routes/src/public-runtime.ts', import.meta.url)),
+    '@luckys_luis/nuxt-laravelize-broadcasting/runtime': fileURLToPath(new URL('../../../packages/broadcasting/src/public-runtime.ts', import.meta.url)),
+    '@luckys_luis/nuxt-laravelize-reliability-queue/runtime': fileURLToPath(new URL('../../../packages/reliability-queue/src/public-runtime.ts', import.meta.url)),
+    '@luckys_luis/nuxt-laravelize-observability/runtime': fileURLToPath(new URL('../../../packages/observability/src/public-runtime.ts', import.meta.url)),
+    '@luckys_luis/nuxt-laravelize-observability/testing': fileURLToPath(new URL('../../../packages/observability/src/public-testing.ts', import.meta.url)),
   },
   compatibilityDate: '2026-07-01',
   i18n: {

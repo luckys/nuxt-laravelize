@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ConsumerFailure, createEnvelope } from '@nuxt-laravelize/reliability'
-import { InMemoryReliabilityStore } from '@nuxt-laravelize/reliability/testing'
-import type { Resolver, Token } from '@nuxt-laravelize/core/runtime'
-import { QueueFake } from '@nuxt-laravelize/queue/testing'
+import { ConsumerFailure, createEnvelope } from '@luckys_luis/nuxt-laravelize-reliability'
+import { InMemoryReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability/testing'
+import type { Resolver, Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { QueueFake } from '@luckys_luis/nuxt-laravelize-queue/testing'
 import { createQueueOutboxDelivery, DuplicateReliableHandlerError, inboxStoreToken, ReliableHandlerRegistry, reliableHandlerRegistryToken, ReliableMessageJob } from '../src/runtime/index'
 
 describe('reliability queue', () => {

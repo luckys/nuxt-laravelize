@@ -1,4 +1,4 @@
-import type { Resolver, Token } from '@nuxt-laravelize/core/runtime'
+import type { Resolver, Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import type { ProcessAdapter, Prompt, Terminal } from './ports'
 import type { InferSchema, Schema } from './schema'
 import { validateValue } from './schema'

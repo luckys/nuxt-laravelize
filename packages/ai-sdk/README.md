@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/ai-sdk`
+# `@luckys_luis/nuxt-laravelize-ai-sdk`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Provider-neutral AI SDK integration for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/ai-sdk ai zod @ai-sdk/anthropic
+pnpm add @luckys_luis/nuxt-laravelize-ai-sdk ai zod @ai-sdk/anthropic
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/ai-sdk'],
+  modules: ['@luckys_luis/nuxt-laravelize-ai-sdk'],
 })
 ```
 
@@ -35,18 +35,18 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## AI SDK
 
-`@nuxt-laravelize/ai-sdk` is an opt-in server module built on AI SDK 7. It provides named model connections, `useAi(event)`, typed reusable agents, text streaming, tools, structured output, explicit capability checks, and `AiFake`. It is not included in the preset and requires Node.js 22 or newer.
+`@luckys_luis/nuxt-laravelize-ai-sdk` is an opt-in server module built on AI SDK 7. It provides named model connections, `useAi(event)`, typed reusable agents, text streaming, tools, structured output, explicit capability checks, and `AiFake`. It is not included in the preset and requires Node.js 22 or newer.
 
 ```bash
-pnpm add @nuxt-laravelize/ai-sdk ai zod @ai-sdk/anthropic
+pnpm add @luckys_luis/nuxt-laravelize-ai-sdk ai zod @ai-sdk/anthropic
 ```
 
 Register providers explicitly in `server/providers`; the module never imports provider packages or reads provider credentials itself:
 
 ```ts
 import { createAnthropic } from '@ai-sdk/anthropic'
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { AiConnectionRegistry, aiConnectionsToken } from '@nuxt-laravelize/ai-sdk/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { AiConnectionRegistry, aiConnectionsToken } from '@luckys_luis/nuxt-laravelize-ai-sdk/runtime'
 
 export default class AiConnectionsServiceProvider implements ServiceProvider {
   register(container: Container) {
@@ -73,4 +73,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/agent-sdk`](../agent-sdk/README.md).
+[`@luckys_luis/nuxt-laravelize-agent-sdk`](../agent-sdk/README.md).

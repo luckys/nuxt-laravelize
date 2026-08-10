@@ -1,4 +1,4 @@
-import { createToken, type Token } from '@nuxt-laravelize/core/runtime'
+import { createToken, type Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import type { TransactionManager } from './TransactionManager'
 
 export function createTransactionManagerToken<Session>(key: string): Token<TransactionManager<Session>> {

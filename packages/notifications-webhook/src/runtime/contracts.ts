@@ -1,4 +1,4 @@
-import type { JsonValue } from '@nuxt-laravelize/reliability'
+import type { JsonValue } from '@luckys_luis/nuxt-laravelize-reliability'
 
 export type WebhookNotificationJsonObject = { readonly [key: string]: JsonValue }
 

@@ -1,6 +1,6 @@
 import Redis from 'ioredis'
 import { afterAll, describe, expect, it } from 'vitest'
-import { S3UploadConfirmationInProgressError, type S3UploadIssuance } from '@nuxt-laravelize/filesystem-aws'
+import { S3UploadConfirmationInProgressError, type S3UploadIssuance } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 import { RedisS3UploadIssuanceCorruptionError, RedisS3UploadIssuanceStore } from '../../src'
 
 const redisUrl = process.env.REDIS_URL

@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/execution-context-queue",
+  "name": "@luckys_luis/nuxt-laravelize-execution-context-queue",
   "version": "0.2.0",
   "description": "Execution context propagation across Laravelize queues",
   "license": "MIT",
@@ -28,9 +28,9 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/execution-context": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-execution-context": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-queue": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

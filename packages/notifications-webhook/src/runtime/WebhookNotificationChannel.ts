@@ -1,6 +1,6 @@
-import type { Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from '@nuxt-laravelize/notifications/runtime'
-import { createEnvelope, type JsonValue, type OutboxStore } from '@nuxt-laravelize/reliability'
-import { createWebhookEnvelope } from '@nuxt-laravelize/webhooks'
+import type { Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
+import { createEnvelope, type JsonValue, type OutboxStore } from '@luckys_luis/nuxt-laravelize-reliability'
+import { createWebhookEnvelope } from '@luckys_luis/nuxt-laravelize-webhooks'
 import type { WebhookNotificationEndpointResolver, WebhookNotificationJsonObject } from './contracts'
 import { assertWebhookNotificationBodySize, canonicalWebhookNotificationTimestamp, normalizeWebhookNotificationData, normalizeWebhookNotificationEndpoint, normalizeWebhookNotificationRoute, normalizeWebhookNotificationVersion, safeWebhookNotificationText } from './validation'
 

@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/http",
+  "name": "@luckys_luis/nuxt-laravelize-http",
   "version": "0.2.0",
   "description": "Nuxt-native HTTP client and Laravel-like server architecture for Nuxt",
   "license": "MIT",
@@ -28,8 +28,8 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/validation": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-validation": "workspace:^",
     "@nuxt/kit": "^4.5.2",
     "@standard-schema/spec": "^1.1.0",
     "h3": "^1.15.11"

@@ -1,4 +1,4 @@
-import type { AuditEntry, AuditStore } from '@nuxt-laravelize/audit/runtime'
+import type { AuditEntry, AuditStore } from '@luckys_luis/nuxt-laravelize-audit/runtime'
 
 export interface TursoAuditClient { execute(statement: { sql: string, args: readonly unknown[] }): Promise<unknown> }
 const json = (value: unknown): string | null => value === undefined ? null : JSON.stringify(value)

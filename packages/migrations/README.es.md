@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/migrations`
+# `@luckys_luis/nuxt-laravelize-migrations`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Runner transaccional neutral al ORM con checksums y comandos console
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/migrations
+pnpm add @luckys_luis/nuxt-laravelize-migrations
 ```
 
 ## Uso especifico del package
@@ -26,9 +26,9 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Migraciones
 
-`@nuxt-laravelize/migrations` es neutral al ORM. Las fuentes son explicitas y los IDs usan `namespace:name`; no se escanean dependencias. Antes de mutar, el runner valida dialectos, dependencias, ciclos, IDs duplicados, historial aplicado y checksums. `up`, `rollback`, `reset` y `fresh` seleccionan trabajo bajo el lock del backend, y cada statement junto con su historial comparte una transaccion. Las migraciones irreversibles rechazan rollback. `fresh` exige un allowlist exacto de ownership y nunca inspecciona objetos ajenos.
+`@luckys_luis/nuxt-laravelize-migrations` es neutral al ORM. Las fuentes son explicitas y los IDs usan `namespace:name`; no se escanean dependencias. Antes de mutar, el runner valida dialectos, dependencias, ciclos, IDs duplicados, historial aplicado y checksums. `up`, `rollback`, `reset` y `fresh` seleccionan trabajo bajo el lock del backend, y cada statement junto con su historial comparte una transaccion. Las migraciones irreversibles rechazan rollback. `fresh` exige un allowlist exacto de ownership y nunca inspecciona objetos ajenos.
 
-`@nuxt-laravelize/migrations-drizzle` aporta backends PostgreSQL y SQLite. PostgreSQL exige una conexion fijada para que advisory lock, SQL e historial compartan sesion y transaccion. SQLite usa transacciones immediate locales al callback. `migrationSourcesFor(dialect)` agrega explicitamente fuentes de audit, idempotency, reliability, Scout y workflows. `discoverApplicationMigrations()` carga fuentes de aplicacion desde paths entregados por el caller.
+`@luckys_luis/nuxt-laravelize-migrations-drizzle` aporta backends PostgreSQL y SQLite. PostgreSQL exige una conexion fijada para que advisory lock, SQL e historial compartan sesion y transaccion. SQLite usa transacciones immediate locales al callback. `migrationSourcesFor(dialect)` agrega explicitamente fuentes de audit, idempotency, reliability, Scout y workflows. `discoverApplicationMigrations()` carga fuentes de aplicacion desde paths entregados por el caller.
 
 ```ts
 const runner = new MigrationRunner({
@@ -50,4 +50,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/migrations-drizzle`](../migrations-drizzle/README.es.md), [`@nuxt-laravelize/database`](../database/README.es.md).
+[`@luckys_luis/nuxt-laravelize-migrations-drizzle`](../migrations-drizzle/README.es.md), [`@luckys_luis/nuxt-laravelize-database`](../database/README.es.md).

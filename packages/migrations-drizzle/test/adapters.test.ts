@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { MigrationRecord } from '@nuxt-laravelize/migrations'
+import type { MigrationRecord } from '@luckys_luis/nuxt-laravelize-migrations'
 import { PostgresMigrationBackend, type PostgreSQLMigrationConnection } from '../src/postgres.js'
 import { SQLiteMigrationBackend, type SQLiteMigrationTransactionClient } from '../src/sqlite.js'
 import { createTestNamespace } from '../src/testing.js'

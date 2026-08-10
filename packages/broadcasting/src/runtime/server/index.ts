@@ -1,4 +1,4 @@
-import { useContainer } from '@nuxt-laravelize/core/runtime/server'
+import { useContainer } from '@luckys_luis/nuxt-laravelize-core/runtime/server'
 import { broadcastingManagerToken, channelRegistryToken } from '../tokens'
 import type { BroadcastingManager } from '../Broadcasting'
 import type { ChannelRegistry } from '../ChannelRegistry'

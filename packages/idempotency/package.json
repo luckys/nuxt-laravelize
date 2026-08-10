@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/idempotency",
+  "name": "@luckys_luis/nuxt-laravelize-idempotency",
   "version": "0.1.0",
   "description": "Portable HTTP idempotency for Nuxt Laravelize",
   "license": "MIT",
@@ -28,8 +28,8 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/http": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-http": "workspace:^",
     "@nuxt/kit": "^4.5.2",
     "h3": "^1.15.11"
   },

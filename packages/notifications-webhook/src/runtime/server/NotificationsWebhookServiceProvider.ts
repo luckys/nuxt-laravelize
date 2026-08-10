@@ -1,6 +1,6 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { notificationChannelRegistryToken } from '@nuxt-laravelize/notifications/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { notificationChannelRegistryToken } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 import { webhookNotificationEndpointResolverToken, webhookNotificationOutboxStoreToken } from '../tokens'
 import { WebhookNotificationChannel } from '../WebhookNotificationChannel'
 

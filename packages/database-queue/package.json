@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/database-queue",
+  "name": "@luckys_luis/nuxt-laravelize-database-queue",
   "version": "0.1.0",
   "description": "Explicit post-commit queue dispatch for Nuxt Laravelize transactions",
   "license": "MIT",
@@ -23,11 +23,11 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/database": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^"
+    "@luckys_luis/nuxt-laravelize-database": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-queue": "workspace:^"
   },
   "devDependencies": {
-    "@nuxt-laravelize/database-drizzle": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-database-drizzle": "workspace:^",
     "@types/node": "latest",
     "typescript": "^5.9.3",
     "unbuild": "^3.6.1",

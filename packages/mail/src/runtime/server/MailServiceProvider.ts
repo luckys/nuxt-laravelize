@@ -1,4 +1,4 @@
-import { ConsoleLogger, loggerToken, type Container, type ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import { ConsoleLogger, loggerToken, type Container, type ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { LogMailer } from '../drivers/LogMailer'
 import { mailerToken } from '../tokens'
 

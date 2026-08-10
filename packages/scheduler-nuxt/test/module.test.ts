@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { defineSchedule } from '@nuxt-laravelize/scheduler'
+import { defineSchedule } from '@luckys_luis/nuxt-laravelize-scheduler'
 import { compileNuxtSchedule, mergeNitro2SchedulerConfig } from '../src/compiler'
 import { loadScheduleDeclarations, renderSchedulerTaskModule } from '../src/module'
 import { createGeneratedSchedulerTask, createSchedulerRunner } from '../src/runtime'

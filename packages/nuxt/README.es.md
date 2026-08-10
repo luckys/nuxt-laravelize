@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/nuxt`
+# `@luckys_luis/nuxt-laravelize`
 
 [English](./README.md) | Espanol
 
@@ -7,12 +7,12 @@ Preset conveniente con integracion de `nuxt-i18n-micro`
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/nuxt
+pnpm add @luckys_luis/nuxt-laravelize
 ```
 
 ```ts
 // nuxt.config.ts
-import Laravelize from '@nuxt-laravelize/nuxt'
+import Laravelize from '@luckys_luis/nuxt-laravelize'
 
 export default defineNuxtConfig({
   modules: [Laravelize],
@@ -35,15 +35,15 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Preset Nuxt
 
-Instala `@nuxt-laravelize/nuxt` para activar juntos los modulos estables, el bridge reliability-queue y `nuxt-i18n-micro`. BullMQ, los adapters durables de reliability y el scheduler experimental se excluyen intencionalmente.
+Instala `@luckys_luis/nuxt-laravelize` para activar juntos los modulos estables, el bridge reliability-queue y `nuxt-i18n-micro`. BullMQ, los adapters durables de reliability y el scheduler experimental se excluyen intencionalmente.
 
 ```bash
-pnpm add @nuxt-laravelize/nuxt
+pnpm add @luckys_luis/nuxt-laravelize
 ```
 
 ```ts
 // nuxt.config.ts
-import Laravelize from '@nuxt-laravelize/nuxt'
+import Laravelize from '@luckys_luis/nuxt-laravelize'
 
 export default defineNuxtConfig({
   modules: [Laravelize],
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
   return { message: i18n.t('welcome', { name: 'Ada' }), count: i18n.tc('apples', 2) }
 })
 
-import { createServerLocalization } from '@nuxt-laravelize/nuxt/runtime/server'
+import { createServerLocalization } from '@luckys_luis/nuxt-laravelize/runtime/server'
 const i18n = await createServerLocalization(context.snapshot().locale ?? 'es')
 ```
 
@@ -79,4 +79,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/core`](../core/README.es.md), [`@nuxt-laravelize/execution-context`](../execution-context/README.es.md), [`@nuxt-laravelize/reliability-queue`](../reliability-queue/README.es.md).
+[`@luckys_luis/nuxt-laravelize-core`](../core/README.es.md), [`@luckys_luis/nuxt-laravelize-execution-context`](../execution-context/README.es.md), [`@luckys_luis/nuxt-laravelize-reliability-queue`](../reliability-queue/README.es.md).

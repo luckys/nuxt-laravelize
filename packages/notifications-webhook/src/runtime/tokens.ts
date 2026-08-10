@@ -1,5 +1,5 @@
-import { createToken } from '@nuxt-laravelize/core/runtime'
-import type { OutboxStore } from '@nuxt-laravelize/reliability'
+import { createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { OutboxStore } from '@luckys_luis/nuxt-laravelize-reliability'
 import type { WebhookNotificationEndpointResolver } from './contracts'
 
 export const webhookNotificationEndpointResolverToken = createToken<WebhookNotificationEndpointResolver>('laravelize.notifications.webhook.endpoint-resolver')

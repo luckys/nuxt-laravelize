@@ -1,12 +1,12 @@
 import { addServerImports, addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
-import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import { addLaravelizeProvider } from '@luckys_luis/nuxt-laravelize-core/kit'
 import { resolveWorkflowsQueueOptions, type WorkflowsQueueOptions } from './runtime/options'
 import type { NuxtModule } from 'nuxt/schema'
 
 const module: NuxtModule<WorkflowsQueueOptions, WorkflowsQueueOptions, false> = defineNuxtModule<WorkflowsQueueOptions>({
-  meta: { name: '@nuxt-laravelize/workflows-queue', configKey: 'laravelizeWorkflowsQueue', compatibility: { nuxt: '>=4.3.0 <5' } },
+  meta: { name: '@luckys_luis/nuxt-laravelize-workflows-queue', configKey: 'laravelizeWorkflowsQueue', compatibility: { nuxt: '>=4.3.0 <5' } },
   defaults: {},
-  moduleDependencies: { '@nuxt-laravelize/core': {}, '@nuxt-laravelize/queue': {} },
+  moduleDependencies: { '@luckys_luis/nuxt-laravelize-core': {}, '@luckys_luis/nuxt-laravelize-queue': {} },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
     const resolved = resolveWorkflowsQueueOptions(options)

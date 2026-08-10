@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/workflows-reliability`
+# `@luckys_luis/nuxt-laravelize-workflows-reliability`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Wake-ups transaccionales solo-ID con preflight de definicion exacta mediante el 
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/workflows-reliability @nuxt-laravelize/workflows @nuxt-laravelize/reliability @nuxt-laravelize/database
+pnpm add @luckys_luis/nuxt-laravelize-workflows-reliability @luckys_luis/nuxt-laravelize-workflows @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-database
 ```
 
 ## Uso especifico del package
@@ -40,7 +40,7 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Workflows y sagas
 
-`@nuxt-laravelize/workflows` implementa workflows lineales persistidos con definiciones versionadas, leases renovables con fencing, reintentos, intentos reanudables, cancelacion cooperativa en curso y compensacion en orden inverso.
+`@luckys_luis/nuxt-laravelize-workflows` implementa workflows lineales persistidos con definiciones versionadas, leases renovables con fencing, reintentos, intentos reanudables, cancelacion cooperativa en curso y compensacion en orden inverso.
 
 Las versiones son strings opacos y sensibles a mayusculas de 1–64 caracteres ASCII, con extremos alfanumericos e interior `[A-Za-z0-9._-]`; `latest`, `default` y `current` estan reservados sin distinguir mayusculas. La resolucion es exacta, sin fallback, alias latest ni rangos. Nunca cambies handlers o steps bajo una tupla publicada; asigna una version nueva. Los snapshots fuente nuevos requieren `snapshotFormatVersion: 1`. El `status` diagnostico normaliza un campo legacy ausente y rechaza formatos desconocidos sin exigir una definicion desplegada; la ejecucion resuelve exactamente incluso filas terminales o en espera antes de claim o mutacion.
 
@@ -65,17 +65,17 @@ await workflows.run(started.id)
 
 El store en memoria incluido es volatil y solo sirve para tests o desarrollo local. Los stores de produccion deben implementar fencing atomico de revision y lease, incluyendo `renewLease()`. Configura `leaseDurationMs` y un `heartbeatIntervalMs` menor; los contexts reciben `signal`, la cancelacion se observa al ritmo del heartbeat y resultados stale se descartan al perder el lease. Una signal no revierte efectos externos aceptados, asi que se mantienen las claves de idempotencia estables.
 
-`@nuxt-laravelize/workflows-drizzle` proporciona stores durables para PostgreSQL, SQLite y Turso. La identidad e input canonico del workflow son inmutables; las columnas relacionales de revision, cancelacion y lease prevalecen sobre el snapshot serializado al hidratar. Claims y commits usan sentencias condicionales que devuelven la fila, impidiendo que owners obsoletos o expirados persistan estado. Estos stores tambien implementan la capability opcional `RecoverableWorkflowStore`, que devuelve IDs no terminales en paginas acotadas por cursor `(updatedAt, id)`.
+`@luckys_luis/nuxt-laravelize-workflows-drizzle` proporciona stores durables para PostgreSQL, SQLite y Turso. La identidad e input canonico del workflow son inmutables; las columnas relacionales de revision, cancelacion y lease prevalecen sobre el snapshot serializado al hidratar. Claims y commits usan sentencias condicionales que devuelven la fila, impidiendo que owners obsoletos o expirados persistan estado. Estos stores tambien implementan la capability opcional `RecoverableWorkflowStore`, que devuelve IDs no terminales en paginas acotadas por cursor `(updatedAt, id)`.
 
 ```ts
-import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'
+import { DrizzlePostgresWorkflowStore } from '@luckys_luis/nuxt-laravelize-workflows-drizzle/postgres'
 
 const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
 ```
 
 ### Wake-ups transaccionales por outbox
 
-`@nuxt-laravelize/workflows-reliability` registra atomicamente cada mutacion del workflow y su wake-up futuro en el outbox de reliability. La atomicidad requiere que el adapter de workflow, el adapter outbox y `TransactionManager` usen la misma transaccion fisica y conexion de base de datos.
+`@luckys_luis/nuxt-laravelize-workflows-reliability` registra atomicamente cada mutacion del workflow y su wake-up futuro en el outbox de reliability. La atomicidad requiere que el adapter de workflow, el adapter outbox y `TransactionManager` usen la misma transaccion fisica y conexion de base de datos.
 
 ```ts
 const workflowStore = new TransactionalWorkflowStore({
@@ -105,11 +105,11 @@ Ejecuta `DATABASE_URL=postgresql://... pnpm test:integration:postgres` para corr
 
 ### Scheduling por colas
 
-`@nuxt-laravelize/workflows-queue` agenda una transicion autoritativa por job. El payload solo contiene el ID; cada worker recarga el store y hace claim por revision y lease. Los deadlines de reintentos de negocio crean jobs sucesores diferidos, mientras los reintentos de cola quedan para fallos de transporte, store o publicacion.
+`@luckys_luis/nuxt-laravelize-workflows-queue` agenda una transicion autoritativa por job. El payload solo contiene el ID; cada worker recarga el store y hace claim por revision y lease. Los deadlines de reintentos de negocio crean jobs sucesores diferidos, mientras los reintentos de cola quedan para fallos de transporte, store o publicacion.
 
 ```ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/workflows-queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-workflows-queue'],
   laravelizeWorkflowsQueue: { queue: 'workflows', tries: 5, backoff: 5000 },
 })
 
@@ -131,4 +131,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/workflows`](../workflows/README.es.md), [`@nuxt-laravelize/reliability`](../reliability/README.es.md), [`@nuxt-laravelize/database`](../database/README.es.md).
+[`@luckys_luis/nuxt-laravelize-workflows`](../workflows/README.es.md), [`@luckys_luis/nuxt-laravelize-reliability`](../reliability/README.es.md), [`@luckys_luis/nuxt-laravelize-database`](../database/README.es.md).

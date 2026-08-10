@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { migrationSourceFor, postgresMigrationSource, sqliteMigrationSource } from '../src/migrations.js'
-import type { MigrationDialect, MigrationSource } from '@nuxt-laravelize/migrations'
+import type { MigrationDialect, MigrationSource } from '@luckys_luis/nuxt-laravelize-migrations'
 
 const namespace = 'nuxt-laravelize.reliability-drizzle'
 

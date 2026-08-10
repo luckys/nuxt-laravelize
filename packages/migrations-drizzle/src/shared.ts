@@ -1,4 +1,4 @@
-import type { FreshOwnership, MigrationRecord } from '@nuxt-laravelize/migrations'
+import type { FreshOwnership, MigrationRecord } from '@luckys_luis/nuxt-laravelize-migrations'
 
 export const IDENTIFIER = /^[a-z_]\w{0,62}$/i
 export const assertIdentifier = (value: string, label: string): void => {

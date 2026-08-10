@@ -1,6 +1,6 @@
-import { isAtomicFixedWindowCache, isDistributedCache, type AtomicFixedWindowCache } from '@nuxt-laravelize/cache/runtime'
-import { JobReleasedError, type JobExecutionMiddleware } from '@nuxt-laravelize/queue/runtime'
-import { RateLimiter, type RateLimitResult } from '@nuxt-laravelize/rate-limiter/runtime'
+import { isAtomicFixedWindowCache, isDistributedCache, type AtomicFixedWindowCache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
+import { JobReleasedError, type JobExecutionMiddleware } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { RateLimiter, type RateLimitResult } from '@luckys_luis/nuxt-laravelize-rate-limiter/runtime'
 import { releaseBudget, resolveMiddlewareKey, safeIdentifier, type JobMiddlewareKey } from './keys'
 
 export interface RateLimitedOptions {

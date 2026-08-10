@@ -1,5 +1,5 @@
 import { DelayedError, Queue as BullQueue, UnrecoverableError, Worker, type Job as BullJob } from 'bullmq'
-import { currentQueueChainStep, isJobReleasedError, isNonRetryableJobError, isQueueBatchCancelledError, nextQueueChainEnvelope, NonRetryableJobError, queueBatchChildJobId, queueBatchCoordinatorJobId, queueChainJobId, readQueueBatchChildEnvelope, readQueueBatchCoordinatorEnvelope, readQueueChainEnvelope, type InMemoryJobRegistry, type JobRunner, type QueueBatchChildEnvelopeV1, type QueueChainEnvelopeV1, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { currentQueueChainStep, isJobReleasedError, isNonRetryableJobError, isQueueBatchCancelledError, nextQueueChainEnvelope, NonRetryableJobError, queueBatchChildJobId, queueBatchCoordinatorJobId, queueChainJobId, readQueueBatchChildEnvelope, readQueueBatchCoordinatorEnvelope, readQueueChainEnvelope, type InMemoryJobRegistry, type JobRunner, type QueueBatchChildEnvelopeV1, type QueueChainEnvelopeV1, type SerializedJob } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import type { BullMQConnection } from './BullMQConnection'
 import type { FailureReporter } from './FailureReporter'
 import { bullMQOptions, matchesBatchJobOptions, matchesQueueQualifiedName, QUEUE_BATCH_COORDINATOR_KIND_NAME } from './BullMQQueue'

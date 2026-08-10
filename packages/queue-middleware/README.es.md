@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/queue-middleware`
+# `@luckys_luis/nuxt-laravelize-queue-middleware`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Locks anti-overlap, rate limits y throttling de excepciones por ventana fija
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/queue-middleware
+pnpm add @luckys_luis/nuxt-laravelize-queue-middleware
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/queue-middleware'],
+  modules: ['@luckys_luis/nuxt-laravelize-queue-middleware'],
 })
 ```
 
@@ -33,13 +33,13 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Middleware de queue
 
-`@nuxt-laravelize/queue-middleware` proporciona `WithoutOverlapping`, `RateLimited` y `ThrottlesExceptions` opt-in. Registra sus funciones `handle` estables en el `JobRunner` compartido; todos omiten su logica de coordinacion durante la fase failed y permiten ejecutar los hooks `failed()` terminales. Un job bloqueado se libera con delay acotado en vez de marcarse como exitoso o consumir un retry ordinario. `InMemoryQueue` reprograma la misma entrada y BullMQ usa `moveToDelayed()` con el token del worker. La observabilidad de queue lo registra como `released`, no `failed`.
+`@luckys_luis/nuxt-laravelize-queue-middleware` proporciona `WithoutOverlapping`, `RateLimited` y `ThrottlesExceptions` opt-in. Registra sus funciones `handle` estables en el `JobRunner` compartido; todos omiten su logica de coordinacion durante la fase failed y permiten ejecutar los hooks `failed()` terminales. Un job bloqueado se libera con delay acotado en vez de marcarse como exitoso o consumir un retry ordinario. `InMemoryQueue` reprograma la misma entrada y BullMQ usa `moveToDelayed()` con el token del worker. La observabilidad de queue lo registra como `released`, no `failed`.
 
 ```ts
-import { cacheToken } from '@nuxt-laravelize/cache/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { RateLimited, ThrottlesExceptions, WithoutOverlapping } from '@nuxt-laravelize/queue-middleware/runtime'
-import { jobRunnerToken } from '@nuxt-laravelize/queue/runtime'
+import { cacheToken } from '@luckys_luis/nuxt-laravelize-cache/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { RateLimited, ThrottlesExceptions, WithoutOverlapping } from '@luckys_luis/nuxt-laravelize-queue-middleware/runtime'
+import { jobRunnerToken } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 const runner = container.make(jobRunnerToken)
 const cache = container.make(cacheToken)
@@ -84,4 +84,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/queue`](../queue/README.es.md), [`@nuxt-laravelize/cache`](../cache/README.es.md), [`@nuxt-laravelize/rate-limiter`](../rate-limiter/README.es.md).
+[`@luckys_luis/nuxt-laravelize-queue`](../queue/README.es.md), [`@luckys_luis/nuxt-laravelize-cache`](../cache/README.es.md), [`@luckys_luis/nuxt-laravelize-rate-limiter`](../rate-limiter/README.es.md).

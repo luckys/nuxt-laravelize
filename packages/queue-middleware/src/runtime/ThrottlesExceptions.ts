@@ -1,6 +1,6 @@
-import type { Container } from '@nuxt-laravelize/core/runtime'
-import { isAtomicFixedWindowCache, isDistributedCache, type AtomicFixedWindowCache } from '@nuxt-laravelize/cache/runtime'
-import { isJobReleasedError, isNonRetryableJobError, JobReleasedError, type JobExecutionDescriptor, type JobExecutionMiddleware, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import type { Container } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { isAtomicFixedWindowCache, isDistributedCache, type AtomicFixedWindowCache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
+import { isJobReleasedError, isNonRetryableJobError, JobReleasedError, type JobExecutionDescriptor, type JobExecutionMiddleware, type SerializedJob } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { releaseBudget, resolveMiddlewareKey, safeIdentifier, type JobMiddlewareKey } from './keys'
 
 export type ExceptionThrottlePredicate = (error: unknown, job: SerializedJob, scope: Container, descriptor?: JobExecutionDescriptor) => boolean | Promise<boolean>

@@ -1,4 +1,4 @@
-import type { FreshOwnership, MigrationBackend, MigrationRecord, MigrationTransaction } from '@nuxt-laravelize/migrations'
+import type { FreshOwnership, MigrationBackend, MigrationRecord, MigrationTransaction } from '@luckys_luis/nuxt-laravelize-migrations'
 import { assertIdentifier, assertOwnership, failureWithCleanup, mapRecord, pgRows, quoteIdentifier } from './shared.js'
 
 export interface PostgreSQLMigrationConnection { query(sql: string, parameters?: readonly unknown[]): unknown | PromiseLike<unknown> }

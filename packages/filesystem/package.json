@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/filesystem",
+  "name": "@luckys_luis/nuxt-laravelize-filesystem",
   "version": "0.2.0",
   "description": "Portable filesystem disks and local storage adapter for Nuxt Laravelize",
   "license": "MIT",
@@ -36,7 +36,7 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

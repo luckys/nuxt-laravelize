@@ -1,4 +1,4 @@
-import { normalizeScheduledTask, type NormalizedScheduledTask, type Schedule, type ScheduledTask } from '@nuxt-laravelize/scheduler'
+import { normalizeScheduledTask, type NormalizedScheduledTask, type Schedule, type ScheduledTask } from '@luckys_luis/nuxt-laravelize-scheduler'
 import { compileNuxtSchedule, providerCronExpression, type NitroTaskDefinition } from './compiler'
 import { runScheduledTaskIfDue, ScheduledMinuteGuard, type SchedulerClock, type SchedulerRunResult, type SchedulerRunner } from './runtime'
 

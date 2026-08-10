@@ -2,8 +2,8 @@ import { AbortMultipartUploadCommand, CompleteMultipartUploadCommand, CopyObject
 import type { S3ClientConfig } from '@aws-sdk/client-s3'
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import type { DirectUploadGrant, DirectUploadPolicy, DirectUploadRequest, FileContents, Filesystem, FilesystemStream, MultipartPart, MultipartUpload, TemporaryUrlOptions } from '@nuxt-laravelize/filesystem/runtime'
-import { FileNotFoundError, assertUsableUploadPolicy, normalizeStoragePath, temporaryUrlExpiresIn, toBytes } from '@nuxt-laravelize/filesystem/runtime'
+import type { DirectUploadGrant, DirectUploadPolicy, DirectUploadRequest, FileContents, Filesystem, FilesystemStream, MultipartPart, MultipartUpload, TemporaryUrlOptions } from '@luckys_luis/nuxt-laravelize-filesystem/runtime'
+import { FileNotFoundError, assertUsableUploadPolicy, normalizeStoragePath, temporaryUrlExpiresIn, toBytes } from '@luckys_luis/nuxt-laravelize-filesystem/runtime'
 
 export interface S3CommandClient { send(command: unknown): Promise<unknown> }
 export interface S3RequestSigner { sign(command: unknown, expiresIn: number): Promise<string> }

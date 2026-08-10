@@ -1,8 +1,8 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { describe, expect, it, vi } from 'vitest'
-import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterStaleRevisionError, deadLetterOperationFingerprint, type DeadLetterMutationResult } from '@nuxt-laravelize/dead-letter'
-import { MemoryDeadLetterOperationStore } from '@nuxt-laravelize/dead-letter/testing'
-import { Job, JobSerializer, prepareQueueBatch, prepareQueueChain } from '@nuxt-laravelize/queue/runtime'
+import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterStaleRevisionError, deadLetterOperationFingerprint, type DeadLetterMutationResult } from '@luckys_luis/nuxt-laravelize-dead-letter'
+import { MemoryDeadLetterOperationStore } from '@luckys_luis/nuxt-laravelize-dead-letter/testing'
+import { Job, JobSerializer, prepareQueueBatch, prepareQueueChain } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { BullMQDeadLetterAdapter } from '../../src/runtime/BullMQDeadLetterAdapter.js'
 
 const job = () => ({ id: 'job-1', name: 'mail.send', data: { secret: true }, opts: { attempts: 4 }, failedReason: 'token=hidden\nstack', attemptsMade: 3, finishedOn: 100, processedOn: 50, timestamp: 0, getState: vi.fn().mockResolvedValue('failed'), retry: vi.fn().mockResolvedValue(undefined), remove: vi.fn().mockResolvedValue(undefined) })

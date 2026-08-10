@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/scout`
+# `@luckys_luis/nuxt-laravelize-scout`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Contratos de busqueda portables, motores nombrados, queries fluidas e indexacion
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/scout
+pnpm add @luckys_luis/nuxt-laravelize-scout
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/scout'],
+  modules: ['@luckys_luis/nuxt-laravelize-scout'],
 })
 ```
 
@@ -33,7 +33,7 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Busqueda Scout
 
-`@nuxt-laravelize/scout` ofrece contratos portables para modelos y motores, builder fluido, importacion por lotes y el auto-import de servidor `useScout(event)`. Configura `laravelizeScout.driver` (por defecto: `memory`). Los motores tienen nombre, se crean de forma diferida y se cachean; registra adapters en un provider antes de seleccionarlos. `@nuxt-laravelize/scout-drizzle` ofrece helpers para PostgreSQL, SQLite local y Turso/libSQL mediante `/postgres`, `/sqlite` y `/turso`.
+`@luckys_luis/nuxt-laravelize-scout` ofrece contratos portables para modelos y motores, builder fluido, importacion por lotes y el auto-import de servidor `useScout(event)`. Configura `laravelizeScout.driver` (por defecto: `memory`). Los motores tienen nombre, se crean de forma diferida y se cachean; registra adapters en un provider antes de seleccionarlos. `@luckys_luis/nuxt-laravelize-scout-drizzle` ofrece helpers para PostgreSQL, SQLite local y Turso/libSQL mediante `/postgres`, `/sqlite` y `/turso`.
 
 ```ts
 const scout = useScout(event)
@@ -50,8 +50,8 @@ scout.use('postgres')
 SQLite local y Turso usan la misma API de Scout con registros separados:
 
 ```ts
-import { registerDrizzleSQLiteDriver } from '@nuxt-laravelize/scout-drizzle/sqlite'
-import { registerTursoDriver } from '@nuxt-laravelize/scout-drizzle/turso'
+import { registerDrizzleSQLiteDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/sqlite'
+import { registerTursoDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/turso'
 
 registerDrizzleSQLiteDriver(scout, 'sqlite', sqliteDb, allowlists)
 registerTursoDriver(scout, 'turso', tursoClient, allowlists)
@@ -68,4 +68,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/scout-drizzle`](../scout-drizzle/README.es.md), [`@nuxt-laravelize/authorization`](../authorization/README.es.md).
+[`@luckys_luis/nuxt-laravelize-scout-drizzle`](../scout-drizzle/README.es.md), [`@luckys_luis/nuxt-laravelize-authorization`](../authorization/README.es.md).

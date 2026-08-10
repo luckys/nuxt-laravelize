@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/queue-bullmq`
+# `@luckys_luis/nuxt-laravelize-queue-bullmq`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Driver BullMQ y worker persistente, solo para Node
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/queue-bullmq @nuxt-laravelize/queue bullmq ioredis
+pnpm add @luckys_luis/nuxt-laravelize-queue-bullmq @luckys_luis/nuxt-laravelize-queue bullmq ioredis
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/queue-bullmq'],
+  modules: ['@luckys_luis/nuxt-laravelize-queue-bullmq'],
 })
 ```
 
@@ -33,16 +33,16 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Adapter BullMQ
 
-`@nuxt-laravelize/queue-bullmq` es un driver persistente opcional y solo para Node; ni el preset ni reliability-queue lo instalan. Instalalo con la cola portable y proporciona un cliente `ioredis`.
+`@luckys_luis/nuxt-laravelize-queue-bullmq` es un driver persistente opcional y solo para Node; ni el preset ni reliability-queue lo instalan. Instalalo con la cola portable y proporciona un cliente `ioredis`.
 
 ```bash
-pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq bullmq ioredis
+pnpm add @luckys_luis/nuxt-laravelize-queue @luckys_luis/nuxt-laravelize-queue-bullmq bullmq ioredis
 ```
 
 ```ts
 import Redis from 'ioredis'
-import { BullMQConnection, BullMQQueue, BullMQWorker } from '@nuxt-laravelize/queue-bullmq/runtime'
-import { jobSerializerToken } from '@nuxt-laravelize/queue/runtime'
+import { BullMQConnection, BullMQQueue, BullMQWorker } from '@luckys_luis/nuxt-laravelize-queue-bullmq/runtime'
+import { jobSerializerToken } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 const prefix = process.env.QUEUE_PREFIX
 if (!prefix) throw new Error('QUEUE_PREFIX is required')
@@ -88,4 +88,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/queue`](../queue/README.es.md), [`@nuxt-laravelize/cache-redis`](../cache-redis/README.es.md), [`@nuxt-laravelize/dead-letter`](../dead-letter/README.es.md).
+[`@luckys_luis/nuxt-laravelize-queue`](../queue/README.es.md), [`@luckys_luis/nuxt-laravelize-cache-redis`](../cache-redis/README.es.md), [`@luckys_luis/nuxt-laravelize-dead-letter`](../dead-letter/README.es.md).

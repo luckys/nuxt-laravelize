@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/scheduler`
+# `@luckys_luis/nuxt-laravelize-scheduler`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Schedules independientes del framework y adapter Nitro 3 explicito
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/scheduler
+pnpm add @luckys_luis/nuxt-laravelize-scheduler
 ```
 
 ## Uso especifico del package
@@ -25,10 +25,10 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Scheduler
 
-`@nuxt-laravelize/scheduler` define schedules inmutables e independientes del framework. No forma parte del preset Nuxt. `@nuxt-laravelize/scheduler-nuxt` es el adapter opt-in para Nuxt 4 y compila declaraciones explicitas como tasks del Nitro 2 gestionado por Nuxt; nunca instala ni reemplaza Nitro.
+`@luckys_luis/nuxt-laravelize-scheduler` define schedules inmutables e independientes del framework. No forma parte del preset Nuxt. `@luckys_luis/nuxt-laravelize-scheduler-nuxt` es el adapter opt-in para Nuxt 4 y compila declaraciones explicitas como tasks del Nitro 2 gestionado por Nuxt; nunca instala ni reemplaza Nitro.
 
 ```ts
-import { defineSchedule } from '@nuxt-laravelize/scheduler'
+import { defineSchedule } from '@luckys_luis/nuxt-laravelize-scheduler'
 
 const schedule = defineSchedule((schedule) => {
   schedule.operation('reports:hourly').hourly().withoutOverlapping(30)
@@ -47,8 +47,8 @@ La ejecucion es at-least-once ante fallos ambiguos de aplicacion o cleanup. Usa 
 La generacion de triggers sigue perteneciendo a Nitro. Esta integracion soporta Nuxt `>=4.4.5 <5`; verifica que el preset Nitro seleccionado soporte scheduled tasks. Las invocaciones estandar de Nitro 2 no propagan el timestamp programado de Cloudflare o Vercel, por lo que los wrappers generados por el modulo siempre usan un wall clock que avanza. Solo la API low-level `createGeneratedSchedulerTask(..., { timestampSource: 'event' })` puede optar por un timestamp de ocurrencia inmutable aportado explicitamente; el adapter Cloudflare standalone acepta `ScheduledController.scheduledTime`. Configura un `CRON_SECRET` fuerte en cada deployment de produccion en Vercel para que Nitro autentique los endpoints cron generados. Nunca expongas los endpoints de desarrollo de tasks ni envuelvas `runTask()` en una ruta de produccion sin autenticacion.
 
 ```ts
-import { defineSchedule } from '@nuxt-laravelize/scheduler'
-import { compileSchedule, defineScheduledOperation, runScheduledTask } from '@nuxt-laravelize/scheduler/nitro3'
+import { defineSchedule } from '@luckys_luis/nuxt-laravelize-scheduler'
+import { compileSchedule, defineScheduledOperation, runScheduledTask } from '@luckys_luis/nuxt-laravelize-scheduler/nitro3'
 
 export default defineScheduledOperation('reports:daily', {
   execute: async payload => generateReport(String(payload.reportId ?? 'daily')),
@@ -75,4 +75,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/scheduler-nuxt`](../scheduler-nuxt/README.es.md), [`@nuxt-laravelize/cache`](../cache/README.es.md).
+[`@luckys_luis/nuxt-laravelize-scheduler-nuxt`](../scheduler-nuxt/README.es.md), [`@luckys_luis/nuxt-laravelize-cache`](../cache/README.es.md).

@@ -1,4 +1,4 @@
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 import { defineNitroPlugin } from 'nitropack/runtime'
 import { useServerLocalization } from './useServerLocalization'
 
@@ -13,5 +13,5 @@ export default defineNitroPlugin((nitroApp) => {
 })
 
 declare module 'h3' {
-  interface H3EventContext { laravelizeContainer?: import('@nuxt-laravelize/core/runtime').Container }
+  interface H3EventContext { laravelizeContainer?: import('@luckys_luis/nuxt-laravelize-core/runtime').Container }
 }

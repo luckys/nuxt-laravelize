@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/notifications-database-drizzle",
+  "name": "@luckys_luis/nuxt-laravelize-notifications-database-drizzle",
   "version": "0.1.0",
   "description": "Drizzle PostgreSQL, SQLite and Turso stores for database notifications",
   "license": "MIT",
@@ -27,8 +27,8 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/migrations": "workspace:^",
-    "@nuxt-laravelize/notifications-database": "workspace:^"
+    "@luckys_luis/nuxt-laravelize-migrations": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-notifications-database": "workspace:^"
   },
   "peerDependencies": { "drizzle-orm": ">=0.44.0" },
   "peerDependenciesMeta": { "drizzle-orm": { "optional": true } },

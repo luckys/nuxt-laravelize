@@ -35,7 +35,7 @@ importers:
 
   packages/agent-sdk:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -66,7 +66,7 @@ importers:
 
   packages/agents-cloudflare:
     devDependencies:
-      '@nuxt-laravelize/agent-sdk':
+      '@luckys_luis/nuxt-laravelize-agent-sdk':
         specifier: workspace:^
         version: link:../agent-sdk
       agents:
@@ -90,7 +90,7 @@ importers:
       '@flue/sdk':
         specifier: 1.0.0-beta.9
         version: 1.0.0-beta.9
-      '@nuxt-laravelize/agent-sdk':
+      '@luckys_luis/nuxt-laravelize-agent-sdk':
         specifier: workspace:^
         version: link:../agent-sdk
       typescript:
@@ -105,7 +105,7 @@ importers:
 
   packages/ai-sdk:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -142,10 +142,10 @@ importers:
 
   packages/audit:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
       '@nuxt/kit':
@@ -176,10 +176,10 @@ importers:
 
   packages/audit-drizzle:
     dependencies:
-      '@nuxt-laravelize/audit':
+      '@luckys_luis/nuxt-laravelize-audit':
         specifier: workspace:^
         version: link:../audit
-      '@nuxt-laravelize/migrations':
+      '@luckys_luis/nuxt-laravelize-migrations':
         specifier: workspace:^
         version: link:../migrations
     devDependencies:
@@ -201,10 +201,10 @@ importers:
 
   packages/authorization:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
       '@nuxt/kit':
@@ -235,19 +235,19 @@ importers:
 
   packages/authorization-queue:
     dependencies:
-      '@nuxt-laravelize/authorization':
+      '@luckys_luis/nuxt-laravelize-authorization':
         specifier: workspace:^
         version: link:../authorization
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/execution-context-queue':
+      '@luckys_luis/nuxt-laravelize-execution-context-queue':
         specifier: workspace:^
         version: link:../execution-context-queue
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
       '@nuxt/kit':
@@ -278,10 +278,10 @@ importers:
 
   packages/broadcasting:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/events':
+      '@luckys_luis/nuxt-laravelize-events':
         specifier: workspace:^
         version: link:../events
       '@nuxt/kit':
@@ -312,7 +312,7 @@ importers:
 
   packages/broadcasting-pusher:
     dependencies:
-      '@nuxt-laravelize/broadcasting':
+      '@luckys_luis/nuxt-laravelize-broadcasting':
         specifier: workspace:^
         version: link:../broadcasting
     devDependencies:
@@ -331,7 +331,7 @@ importers:
 
   packages/cache:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -362,7 +362,7 @@ importers:
 
   packages/cache-redis:
     dependencies:
-      '@nuxt-laravelize/cache':
+      '@luckys_luis/nuxt-laravelize-cache':
         specifier: workspace:^
         version: link:../cache
     devDependencies:
@@ -381,13 +381,13 @@ importers:
 
   packages/console:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/observability':
+      '@luckys_luis/nuxt-laravelize-observability':
         specifier: workspace:^
         version: link:../observability
     devDependencies:
@@ -446,7 +446,7 @@ importers:
 
   packages/database:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -477,7 +477,7 @@ importers:
 
   packages/database-drizzle:
     dependencies:
-      '@nuxt-laravelize/database':
+      '@luckys_luis/nuxt-laravelize-database':
         specifier: workspace:^
         version: link:../database
     devDependencies:
@@ -499,14 +499,14 @@ importers:
 
   packages/database-queue:
     dependencies:
-      '@nuxt-laravelize/database':
+      '@luckys_luis/nuxt-laravelize-database':
         specifier: workspace:^
         version: link:../database
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
     devDependencies:
-      '@nuxt-laravelize/database-drizzle':
+      '@luckys_luis/nuxt-laravelize-database-drizzle':
         specifier: workspace:^
         version: link:../database-drizzle
       '@types/node':
@@ -539,13 +539,13 @@ importers:
 
   packages/dead-letter-operations:
     dependencies:
-      '@nuxt-laravelize/authorization':
+      '@luckys_luis/nuxt-laravelize-authorization':
         specifier: workspace:^
         version: link:../authorization
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/dead-letter':
+      '@luckys_luis/nuxt-laravelize-dead-letter':
         specifier: workspace:^
         version: link:../dead-letter
       '@nuxt/kit':
@@ -585,7 +585,7 @@ importers:
 
   packages/encryption:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -616,7 +616,7 @@ importers:
 
   packages/events:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -647,13 +647,13 @@ importers:
 
   packages/events-queue:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/events':
+      '@luckys_luis/nuxt-laravelize-events':
         specifier: workspace:^
         version: link:../events
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
       '@nuxt/kit':
@@ -684,7 +684,7 @@ importers:
 
   packages/execution-context:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -718,13 +718,13 @@ importers:
 
   packages/execution-context-queue:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
       '@nuxt/kit':
@@ -752,7 +752,7 @@ importers:
 
   packages/filesystem:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -792,7 +792,7 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1095.0
         version: 3.1095.0
-      '@nuxt-laravelize/filesystem':
+      '@luckys_luis/nuxt-laravelize-filesystem':
         specifier: workspace:^
         version: link:../filesystem
     devDependencies:
@@ -808,7 +808,7 @@ importers:
 
   packages/filesystem-aws-redis:
     dependencies:
-      '@nuxt-laravelize/filesystem-aws':
+      '@luckys_luis/nuxt-laravelize-filesystem-aws':
         specifier: workspace:^
         version: link:../filesystem-aws
     devDependencies:
@@ -827,7 +827,7 @@ importers:
 
   packages/filesystem-cloudflare:
     dependencies:
-      '@nuxt-laravelize/filesystem':
+      '@luckys_luis/nuxt-laravelize-filesystem':
         specifier: workspace:^
         version: link:../filesystem
     devDependencies:
@@ -843,7 +843,7 @@ importers:
 
   packages/hashing:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -874,10 +874,10 @@ importers:
 
   packages/http:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/validation':
+      '@luckys_luis/nuxt-laravelize-validation':
         specifier: workspace:^
         version: link:../validation
       '@nuxt/kit':
@@ -914,10 +914,10 @@ importers:
 
   packages/idempotency:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/http':
+      '@luckys_luis/nuxt-laravelize-http':
         specifier: workspace:^
         version: link:../http
       '@nuxt/kit':
@@ -951,10 +951,10 @@ importers:
 
   packages/idempotency-drizzle:
     dependencies:
-      '@nuxt-laravelize/idempotency':
+      '@luckys_luis/nuxt-laravelize-idempotency':
         specifier: workspace:^
         version: link:../idempotency
-      '@nuxt-laravelize/migrations':
+      '@luckys_luis/nuxt-laravelize-migrations':
         specifier: workspace:^
         version: link:../migrations
     devDependencies:
@@ -976,7 +976,7 @@ importers:
 
   packages/mail:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -1007,7 +1007,7 @@ importers:
 
   packages/migrations:
     dependencies:
-      '@nuxt-laravelize/console':
+      '@luckys_luis/nuxt-laravelize-console':
         specifier: workspace:^
         version: link:../console
     devDependencies:
@@ -1026,25 +1026,25 @@ importers:
 
   packages/migrations-drizzle:
     dependencies:
-      '@nuxt-laravelize/audit-drizzle':
+      '@luckys_luis/nuxt-laravelize-audit-drizzle':
         specifier: workspace:^
         version: link:../audit-drizzle
-      '@nuxt-laravelize/idempotency-drizzle':
+      '@luckys_luis/nuxt-laravelize-idempotency-drizzle':
         specifier: workspace:^
         version: link:../idempotency-drizzle
-      '@nuxt-laravelize/migrations':
+      '@luckys_luis/nuxt-laravelize-migrations':
         specifier: workspace:^
         version: link:../migrations
-      '@nuxt-laravelize/notifications-database-drizzle':
+      '@luckys_luis/nuxt-laravelize-notifications-database-drizzle':
         specifier: workspace:^
         version: link:../notifications-database-drizzle
-      '@nuxt-laravelize/reliability-drizzle':
+      '@luckys_luis/nuxt-laravelize-reliability-drizzle':
         specifier: workspace:^
         version: link:../reliability-drizzle
-      '@nuxt-laravelize/scout-drizzle':
+      '@luckys_luis/nuxt-laravelize-scout-drizzle':
         specifier: workspace:^
         version: link:../scout-drizzle
-      '@nuxt-laravelize/workflows-drizzle':
+      '@luckys_luis/nuxt-laravelize-workflows-drizzle':
         specifier: workspace:^
         version: link:../workflows-drizzle
     devDependencies:
@@ -1063,10 +1063,10 @@ importers:
 
   packages/notifications:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/events':
+      '@luckys_luis/nuxt-laravelize-events':
         specifier: workspace:^
         version: link:../events
       '@nuxt/kit':
@@ -1097,16 +1097,16 @@ importers:
 
   packages/notifications-broadcast:
     dependencies:
-      '@nuxt-laravelize/broadcasting':
+      '@luckys_luis/nuxt-laravelize-broadcasting':
         specifier: workspace:^
         version: link:../broadcasting
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/notifications':
+      '@luckys_luis/nuxt-laravelize-notifications':
         specifier: workspace:^
         version: link:../notifications
       '@nuxt/kit':
@@ -1137,13 +1137,13 @@ importers:
 
   packages/notifications-database:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/notifications':
+      '@luckys_luis/nuxt-laravelize-notifications':
         specifier: workspace:^
         version: link:../notifications
       '@nuxt/kit':
@@ -1177,10 +1177,10 @@ importers:
 
   packages/notifications-database-drizzle:
     dependencies:
-      '@nuxt-laravelize/migrations':
+      '@luckys_luis/nuxt-laravelize-migrations':
         specifier: workspace:^
         version: link:../migrations
-      '@nuxt-laravelize/notifications-database':
+      '@luckys_luis/nuxt-laravelize-notifications-database':
         specifier: workspace:^
         version: link:../notifications-database
     devDependencies:
@@ -1205,13 +1205,13 @@ importers:
 
   packages/notifications-mail:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/mail':
+      '@luckys_luis/nuxt-laravelize-mail':
         specifier: workspace:^
         version: link:../mail
-      '@nuxt-laravelize/notifications':
+      '@luckys_luis/nuxt-laravelize-notifications':
         specifier: workspace:^
         version: link:../notifications
       '@nuxt/kit':
@@ -1242,22 +1242,22 @@ importers:
 
   packages/notifications-queue:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/execution-context-queue':
+      '@luckys_luis/nuxt-laravelize-execution-context-queue':
         specifier: workspace:^
         version: link:../execution-context-queue
-      '@nuxt-laravelize/notifications':
+      '@luckys_luis/nuxt-laravelize-notifications':
         specifier: workspace:^
         version: link:../notifications
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
-      '@nuxt-laravelize/reliability':
+      '@luckys_luis/nuxt-laravelize-reliability':
         specifier: workspace:^
         version: link:../reliability
       '@nuxt/kit':
@@ -1288,19 +1288,19 @@ importers:
 
   packages/notifications-webhook:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/notifications':
+      '@luckys_luis/nuxt-laravelize-notifications':
         specifier: workspace:^
         version: link:../notifications
-      '@nuxt-laravelize/reliability':
+      '@luckys_luis/nuxt-laravelize-reliability':
         specifier: workspace:^
         version: link:../reliability
-      '@nuxt-laravelize/webhooks':
+      '@luckys_luis/nuxt-laravelize-webhooks':
         specifier: workspace:^
         version: link:../webhooks
       '@nuxt/kit':
@@ -1334,79 +1334,79 @@ importers:
       '@i18n-micro/core':
         specifier: 1.3.13
         version: 1.3.13
-      '@nuxt-laravelize/audit':
+      '@luckys_luis/nuxt-laravelize-audit':
         specifier: workspace:^
         version: link:../audit
-      '@nuxt-laravelize/authorization':
+      '@luckys_luis/nuxt-laravelize-authorization':
         specifier: workspace:^
         version: link:../authorization
-      '@nuxt-laravelize/broadcasting':
+      '@luckys_luis/nuxt-laravelize-broadcasting':
         specifier: workspace:^
         version: link:../broadcasting
-      '@nuxt-laravelize/cache':
+      '@luckys_luis/nuxt-laravelize-cache':
         specifier: workspace:^
         version: link:../cache
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/database':
+      '@luckys_luis/nuxt-laravelize-database':
         specifier: workspace:^
         version: link:../database
-      '@nuxt-laravelize/encryption':
+      '@luckys_luis/nuxt-laravelize-encryption':
         specifier: workspace:^
         version: link:../encryption
-      '@nuxt-laravelize/events':
+      '@luckys_luis/nuxt-laravelize-events':
         specifier: workspace:^
         version: link:../events
-      '@nuxt-laravelize/events-queue':
+      '@luckys_luis/nuxt-laravelize-events-queue':
         specifier: workspace:^
         version: link:../events-queue
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/execution-context-queue':
+      '@luckys_luis/nuxt-laravelize-execution-context-queue':
         specifier: workspace:^
         version: link:../execution-context-queue
-      '@nuxt-laravelize/filesystem':
+      '@luckys_luis/nuxt-laravelize-filesystem':
         specifier: workspace:^
         version: link:../filesystem
-      '@nuxt-laravelize/hashing':
+      '@luckys_luis/nuxt-laravelize-hashing':
         specifier: workspace:^
         version: link:../hashing
-      '@nuxt-laravelize/http':
+      '@luckys_luis/nuxt-laravelize-http':
         specifier: workspace:^
         version: link:../http
-      '@nuxt-laravelize/mail':
+      '@luckys_luis/nuxt-laravelize-mail':
         specifier: workspace:^
         version: link:../mail
-      '@nuxt-laravelize/notifications':
+      '@luckys_luis/nuxt-laravelize-notifications':
         specifier: workspace:^
         version: link:../notifications
-      '@nuxt-laravelize/observability':
+      '@luckys_luis/nuxt-laravelize-observability':
         specifier: workspace:^
         version: link:../observability
-      '@nuxt-laravelize/pennant':
+      '@luckys_luis/nuxt-laravelize-pennant':
         specifier: workspace:^
         version: link:../pennant
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
-      '@nuxt-laravelize/rate-limiter':
+      '@luckys_luis/nuxt-laravelize-rate-limiter':
         specifier: workspace:^
         version: link:../rate-limiter
-      '@nuxt-laravelize/reliability':
+      '@luckys_luis/nuxt-laravelize-reliability':
         specifier: workspace:^
         version: link:../reliability
-      '@nuxt-laravelize/reliability-queue':
+      '@luckys_luis/nuxt-laravelize-reliability-queue':
         specifier: workspace:^
         version: link:../reliability-queue
-      '@nuxt-laravelize/routes':
+      '@luckys_luis/nuxt-laravelize-routes':
         specifier: workspace:^
         version: link:../routes
-      '@nuxt-laravelize/scout':
+      '@luckys_luis/nuxt-laravelize-scout':
         specifier: workspace:^
         version: link:../scout
-      '@nuxt-laravelize/validation':
+      '@luckys_luis/nuxt-laravelize-validation':
         specifier: workspace:^
         version: link:../validation
       '@nuxt/kit':
@@ -1446,10 +1446,10 @@ importers:
 
   packages/observability:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
       '@nuxt/kit':
@@ -1483,10 +1483,10 @@ importers:
 
   packages/observability-otel:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/observability':
+      '@luckys_luis/nuxt-laravelize-observability':
         specifier: workspace:^
         version: link:../observability
       '@opentelemetry/api':
@@ -1517,16 +1517,16 @@ importers:
 
   packages/observability-queue:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/observability':
+      '@luckys_luis/nuxt-laravelize-observability':
         specifier: workspace:^
         version: link:../observability
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
     devDependencies:
@@ -1542,7 +1542,7 @@ importers:
 
   packages/pennant:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -1576,7 +1576,7 @@ importers:
       '@noble/hashes':
         specifier: ^2.2.0
         version: 2.2.0
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -1607,13 +1607,13 @@ importers:
 
   packages/queue-bullmq:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/dead-letter':
+      '@luckys_luis/nuxt-laravelize-dead-letter':
         specifier: workspace:^
         version: link:../dead-letter
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
       '@nuxt/kit':
@@ -1650,16 +1650,16 @@ importers:
 
   packages/queue-middleware:
     dependencies:
-      '@nuxt-laravelize/cache':
+      '@luckys_luis/nuxt-laravelize-cache':
         specifier: workspace:^
         version: link:../cache
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
-      '@nuxt-laravelize/rate-limiter':
+      '@luckys_luis/nuxt-laravelize-rate-limiter':
         specifier: workspace:^
         version: link:../rate-limiter
       '@nuxt/kit':
@@ -1687,10 +1687,10 @@ importers:
 
   packages/rate-limiter:
     dependencies:
-      '@nuxt-laravelize/cache':
+      '@luckys_luis/nuxt-laravelize-cache':
         specifier: workspace:^
         version: link:../cache
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -1739,16 +1739,16 @@ importers:
 
   packages/reliability-drizzle:
     dependencies:
-      '@nuxt-laravelize/database':
+      '@luckys_luis/nuxt-laravelize-database':
         specifier: workspace:^
         version: link:../database
-      '@nuxt-laravelize/dead-letter':
+      '@luckys_luis/nuxt-laravelize-dead-letter':
         specifier: workspace:^
         version: link:../dead-letter
-      '@nuxt-laravelize/migrations':
+      '@luckys_luis/nuxt-laravelize-migrations':
         specifier: workspace:^
         version: link:../migrations
-      '@nuxt-laravelize/reliability':
+      '@luckys_luis/nuxt-laravelize-reliability':
         specifier: workspace:^
         version: link:../reliability
     devDependencies:
@@ -1770,13 +1770,13 @@ importers:
 
   packages/reliability-queue:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
-      '@nuxt-laravelize/reliability':
+      '@luckys_luis/nuxt-laravelize-reliability':
         specifier: workspace:^
         version: link:../reliability
       '@nuxt/kit':
@@ -1869,10 +1869,10 @@ importers:
 
   packages/scheduler-nuxt:
     dependencies:
-      '@nuxt-laravelize/cache':
+      '@luckys_luis/nuxt-laravelize-cache':
         specifier: workspace:^
         version: link:../cache
-      '@nuxt-laravelize/scheduler':
+      '@luckys_luis/nuxt-laravelize-scheduler':
         specifier: workspace:^
         version: link:../scheduler
       '@nuxt/kit':
@@ -1882,7 +1882,7 @@ importers:
         specifier: ^2.6.1
         version: 2.7.0
     devDependencies:
-      '@nuxt-laravelize/cache-redis':
+      '@luckys_luis/nuxt-laravelize-cache-redis':
         specifier: workspace:^
         version: link:../cache-redis
       '@nuxt/module-builder':
@@ -1912,7 +1912,7 @@ importers:
 
   packages/scout:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -1946,10 +1946,10 @@ importers:
 
   packages/scout-drizzle:
     dependencies:
-      '@nuxt-laravelize/migrations':
+      '@luckys_luis/nuxt-laravelize-migrations':
         specifier: workspace:^
         version: link:../migrations
-      '@nuxt-laravelize/scout':
+      '@luckys_luis/nuxt-laravelize-scout':
         specifier: workspace:^
         version: link:../scout
     devDependencies:
@@ -1974,52 +1974,52 @@ importers:
 
   packages/testing:
     dependencies:
-      '@nuxt-laravelize/audit':
+      '@luckys_luis/nuxt-laravelize-audit':
         specifier: workspace:^
         version: link:../audit
-      '@nuxt-laravelize/broadcasting':
+      '@luckys_luis/nuxt-laravelize-broadcasting':
         specifier: workspace:^
         version: link:../broadcasting
-      '@nuxt-laravelize/cache':
+      '@luckys_luis/nuxt-laravelize-cache':
         specifier: workspace:^
         version: link:../cache
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/encryption':
+      '@luckys_luis/nuxt-laravelize-encryption':
         specifier: workspace:^
         version: link:../encryption
-      '@nuxt-laravelize/events':
+      '@luckys_luis/nuxt-laravelize-events':
         specifier: workspace:^
         version: link:../events
-      '@nuxt-laravelize/execution-context':
+      '@luckys_luis/nuxt-laravelize-execution-context':
         specifier: workspace:^
         version: link:../execution-context
-      '@nuxt-laravelize/filesystem':
+      '@luckys_luis/nuxt-laravelize-filesystem':
         specifier: workspace:^
         version: link:../filesystem
-      '@nuxt-laravelize/hashing':
+      '@luckys_luis/nuxt-laravelize-hashing':
         specifier: workspace:^
         version: link:../hashing
-      '@nuxt-laravelize/mail':
+      '@luckys_luis/nuxt-laravelize-mail':
         specifier: workspace:^
         version: link:../mail
-      '@nuxt-laravelize/notifications':
+      '@luckys_luis/nuxt-laravelize-notifications':
         specifier: workspace:^
         version: link:../notifications
-      '@nuxt-laravelize/pennant':
+      '@luckys_luis/nuxt-laravelize-pennant':
         specifier: workspace:^
         version: link:../pennant
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
-      '@nuxt-laravelize/rate-limiter':
+      '@luckys_luis/nuxt-laravelize-rate-limiter':
         specifier: workspace:^
         version: link:../rate-limiter
-      '@nuxt-laravelize/scout':
+      '@luckys_luis/nuxt-laravelize-scout':
         specifier: workspace:^
         version: link:../scout
-      '@nuxt-laravelize/validation':
+      '@luckys_luis/nuxt-laravelize-validation':
         specifier: workspace:^
         version: link:../validation
     devDependencies:
@@ -2041,7 +2041,7 @@ importers:
 
   packages/validation:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
       '@nuxt/kit':
@@ -2075,7 +2075,7 @@ importers:
 
   packages/webhooks:
     dependencies:
-      '@nuxt-laravelize/reliability':
+      '@luckys_luis/nuxt-laravelize-reliability':
         specifier: workspace:^
         version: link:../reliability
     devDependencies:
@@ -2109,10 +2109,10 @@ importers:
 
   packages/workflows-drizzle:
     dependencies:
-      '@nuxt-laravelize/migrations':
+      '@luckys_luis/nuxt-laravelize-migrations':
         specifier: workspace:^
         version: link:../migrations
-      '@nuxt-laravelize/workflows':
+      '@luckys_luis/nuxt-laravelize-workflows':
         specifier: workspace:^
         version: link:../workflows
     devDependencies:
@@ -2134,13 +2134,13 @@ importers:
 
   packages/workflows-queue:
     dependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
-      '@nuxt-laravelize/workflows':
+      '@luckys_luis/nuxt-laravelize-workflows':
         specifier: workspace:^
         version: link:../workflows
       '@nuxt/kit':
@@ -2171,32 +2171,32 @@ importers:
 
   packages/workflows-reliability:
     dependencies:
-      '@nuxt-laravelize/database':
+      '@luckys_luis/nuxt-laravelize-database':
         specifier: workspace:^
         version: link:../database
-      '@nuxt-laravelize/reliability':
+      '@luckys_luis/nuxt-laravelize-reliability':
         specifier: workspace:^
         version: link:../reliability
-      '@nuxt-laravelize/workflows':
+      '@luckys_luis/nuxt-laravelize-workflows':
         specifier: workspace:^
         version: link:../workflows
     devDependencies:
-      '@nuxt-laravelize/core':
+      '@luckys_luis/nuxt-laravelize-core':
         specifier: workspace:^
         version: link:../core
-      '@nuxt-laravelize/database-drizzle':
+      '@luckys_luis/nuxt-laravelize-database-drizzle':
         specifier: workspace:^
         version: link:../database-drizzle
-      '@nuxt-laravelize/queue':
+      '@luckys_luis/nuxt-laravelize-queue':
         specifier: workspace:^
         version: link:../queue
-      '@nuxt-laravelize/reliability-drizzle':
+      '@luckys_luis/nuxt-laravelize-reliability-drizzle':
         specifier: workspace:^
         version: link:../reliability-drizzle
-      '@nuxt-laravelize/reliability-queue':
+      '@luckys_luis/nuxt-laravelize-reliability-queue':
         specifier: workspace:^
         version: link:../reliability-queue
-      '@nuxt-laravelize/workflows-drizzle':
+      '@luckys_luis/nuxt-laravelize-workflows-drizzle':
         specifier: workspace:^
         version: link:../workflows-drizzle
       '@types/node':
@@ -2220,7 +2220,7 @@ importers:
 
   playground:
     dependencies:
-      '@nuxt-laravelize/nuxt':
+      '@luckys_luis/nuxt-laravelize':
         specifier: workspace:*
         version: link:../packages/nuxt
       nuxt:

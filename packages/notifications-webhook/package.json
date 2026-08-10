@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/notifications-webhook",
+  "name": "@luckys_luis/nuxt-laravelize-notifications-webhook",
   "version": "0.1.0",
   "description": "Reliable tenant-fenced webhook channel for Nuxt Laravelize notifications",
   "license": "MIT",
@@ -28,11 +28,11 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/execution-context": "workspace:^",
-    "@nuxt-laravelize/notifications": "workspace:^",
-    "@nuxt-laravelize/reliability": "workspace:^",
-    "@nuxt-laravelize/webhooks": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-execution-context": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-notifications": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-reliability": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-webhooks": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

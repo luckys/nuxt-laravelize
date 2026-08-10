@@ -1,6 +1,6 @@
 ---
-'@nuxt-laravelize/workflows-reliability': minor
-'@nuxt-laravelize/reliability-drizzle': patch
+'@luckys_luis/nuxt-laravelize-workflows-reliability': minor
+'@luckys_luis/nuxt-laravelize-reliability-drizzle': patch
 ---
 
 Add bounded, store-driven recovery that appends fresh workflow wake-ups from authoritative state.

@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/pennant`
+# `@luckys_luis/nuxt-laravelize-pennant`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Feature flags por scope con definiciones lazy, valores ricos y stores portables
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/pennant
+pnpm add @luckys_luis/nuxt-laravelize-pennant
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/pennant'],
+  modules: ['@luckys_luis/nuxt-laravelize-pennant'],
 })
 ```
 
@@ -33,7 +33,7 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Feature flags
 
-`@nuxt-laravelize/pennant` ofrece feature flags lazy por scope, con valores booleanos o ricos. El preset registra un store en memoria; en despliegues distribuidos reemplaza `featureManagerToken` por un manager respaldado por un `FeatureStore` compartido.
+`@luckys_luis/nuxt-laravelize-pennant` ofrece feature flags lazy por scope, con valores booleanos o ricos. El preset registra un store en memoria; en despliegues distribuidos reemplaza `featureManagerToken` por un manager respaldado por un `FeatureStore` compartido.
 
 ```ts
 const features = useFeatures(event)
@@ -52,4 +52,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/cache`](../cache/README.es.md), [`@nuxt-laravelize/core`](../core/README.es.md).
+[`@luckys_luis/nuxt-laravelize-cache`](../cache/README.es.md), [`@luckys_luis/nuxt-laravelize-core`](../core/README.es.md).

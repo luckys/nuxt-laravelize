@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { AgentClient } from 'agents/client'
-import type { AgentDispatchReceipt, AgentInvokeResult, AgentObservation, AgentObservationEvent, AgentObserveRequest, AgentRequest, AgentRuntime, AgentRuntimeCapabilities } from '@nuxt-laravelize/agent-sdk/runtime'
+import type { AgentDispatchReceipt, AgentInvokeResult, AgentObservation, AgentObservationEvent, AgentObserveRequest, AgentRequest, AgentRuntime, AgentRuntimeCapabilities } from '@luckys_luis/nuxt-laravelize-agent-sdk/runtime'
 
 type CloudflareClient = Pick<AgentClient, 'agent' | 'name' | 'call' | 'close'>
 export interface CloudflareAgentRuntimeOptions {

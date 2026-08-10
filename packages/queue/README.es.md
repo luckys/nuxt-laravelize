@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/queue`
+# `@luckys_luis/nuxt-laravelize-queue`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Contratos de cola portables, jobs, ejecucion por scope y driver en memoria
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/queue
+pnpm add @luckys_luis/nuxt-laravelize-queue
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-queue'],
 })
 ```
 
@@ -34,15 +34,15 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Queue
 
-`@nuxt-laravelize/queue` define jobs portables e incluye una cola en memoria. El autoimport Nitro `useQueue(event)` resuelve el driver activo.
+`@luckys_luis/nuxt-laravelize-queue` define jobs portables e incluye una cola en memoria. El autoimport Nitro `useQueue(event)` resuelve el driver activo.
 
 ```bash
-pnpm add @nuxt-laravelize/queue
+pnpm add @luckys_luis/nuxt-laravelize-queue
 ```
 
 ```ts
-import { createToken, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { Job } from '@nuxt-laravelize/queue/runtime'
+import { createToken, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { Job } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 interface SendReportPayload extends Record<string, unknown> { reportId: string }
 interface ReportService { send(reportId: string): Promise<void> }
@@ -136,7 +136,7 @@ Los batches acotados contienen entre 1 y 100 children planos y eligen una sola q
 La cancelacion es cooperativa. Children pendientes o reintentados comprueban cancelacion antes de efectos; uno activo puede resolver `queueBatchContextToken` y llamar `isCancellationRequested()` o `throwIfCancellationRequested()`. Un error de control confirmado no reintenta ni invoca failed hooks o dead-letter reporting. La cancelacion no interrumpe inmediatamente efectos activos, no hace rollback ni ofrece exactly-once. Una carrera con finalizacion puede dejar `cancellationRequested: true`; el estado final sigue siendo `finished` si ninguno se cancelo y `cancelled` en caso contrario. El progreso de `InMemoryQueue` es volatil y local al proceso; `QueueFake` es solo testing y marca inmediatamente los children restantes como cancelados.
 
 ```ts
-import { QueueFake } from '@nuxt-laravelize/queue/testing'
+import { QueueFake } from '@luckys_luis/nuxt-laravelize-queue/testing'
 
 const queue = new QueueFake()
 await queue.push(new SendReport({ reportId: 'report_1' }))
@@ -151,4 +151,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/queue-bullmq`](../queue-bullmq/README.es.md), [`@nuxt-laravelize/queue-middleware`](../queue-middleware/README.es.md), [`@nuxt-laravelize/events-queue`](../events-queue/README.es.md).
+[`@luckys_luis/nuxt-laravelize-queue-bullmq`](../queue-bullmq/README.es.md), [`@luckys_luis/nuxt-laravelize-queue-middleware`](../queue-middleware/README.es.md), [`@luckys_luis/nuxt-laravelize-events-queue`](../events-queue/README.es.md).

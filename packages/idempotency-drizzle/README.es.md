@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/idempotency-drizzle`
+# `@luckys_luis/nuxt-laravelize-idempotency-drizzle`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Stores durables de idempotencia para PostgreSQL, SQLite y Turso
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/idempotency-drizzle @nuxt-laravelize/idempotency drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-idempotency-drizzle @luckys_luis/nuxt-laravelize-idempotency drizzle-orm
 ```
 
 ## Uso especifico del package
@@ -18,8 +18,8 @@ pnpm add @nuxt-laravelize/idempotency-drizzle @nuxt-laravelize/idempotency drizz
 Aplica exactamente una migracion del dialecto antes de ligar el store. PostgreSQL usa `execute` de Drizzle; SQLite y Turso usan `all` para que las sentencias condicionales con returning conserven fencing de leases y datos de replay.
 
 ```ts
-import { DrizzlePostgresIdempotencyStore } from '@nuxt-laravelize/idempotency-drizzle/postgres'
-import { idempotencyStoreToken } from '@nuxt-laravelize/idempotency/runtime'
+import { DrizzlePostgresIdempotencyStore } from '@luckys_luis/nuxt-laravelize-idempotency-drizzle/postgres'
+import { idempotencyStoreToken } from '@luckys_luis/nuxt-laravelize-idempotency/runtime'
 
 container.instance(idempotencyStoreToken, new DrizzlePostgresIdempotencyStore(db))
 ```
@@ -42,12 +42,12 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## HTTP
 
-`@nuxt-laravelize/http` proporciona el cliente Nuxt autoimportado `useHttp`, requests, middleware, resources, paginacion, gates y policies para Nitro.
+`@luckys_luis/nuxt-laravelize-http` proporciona el cliente Nuxt autoimportado `useHttp`, requests, middleware, resources, paginacion, gates y policies para Nitro.
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/http'],
+  modules: ['@luckys_luis/nuxt-laravelize-http'],
   laravelizeHttp: {
     baseURL: 'https://api.example.com',
     signingKey: '',
@@ -73,8 +73,8 @@ const { data: created } = await useHttp<User>('/users', {
 El ejemplo usa Zod como implementacion Standard Schema: `pnpm add zod`.
 
 ```ts
-import { createToken } from '@nuxt-laravelize/core/runtime'
-import { FormRequest, LengthAwarePaginator, Resource, defineLaravelizedHandler, type ValidatedInput } from '@nuxt-laravelize/http/runtime'
+import { createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { FormRequest, LengthAwarePaginator, Resource, defineLaravelizedHandler, type ValidatedInput } from '@luckys_luis/nuxt-laravelize-http/runtime'
 import { z } from 'zod'
 
 class CreateUserRequest extends FormRequest {
@@ -154,10 +154,10 @@ Las URLs firmadas son credenciales bearer y pueden reutilizarse. Usa expiracione
 
 ### Idempotencia HTTP
 
-`@nuxt-laravelize/idempotency` proporciona un middleware H3 opt-in y un contrato de store atomico para requests con mutaciones. El fingerprint incluye metodo, ruta y query canonicos, principal, content type y bytes exactos del request. Reutilizar una clave con otro fingerprint devuelve `409`; los leases activos se renuevan y un owner obsoleto no puede completar trabajo reclamado. Las respuestas completadas se reproducen con una allowlist de headers seguros. Los fallos se conservan por defecto porque reintentar tras un error ambiguo puede duplicar efectos ya confirmados.
+`@luckys_luis/nuxt-laravelize-idempotency` proporciona un middleware H3 opt-in y un contrato de store atomico para requests con mutaciones. El fingerprint incluye metodo, ruta y query canonicos, principal, content type y bytes exactos del request. Reutilizar una clave con otro fingerprint devuelve `409`; los leases activos se renuevan y un owner obsoleto no puede completar trabajo reclamado. Las respuestas completadas se reproducen con una allowlist de headers seguros. Los fallos se conservan por defecto porque reintentar tras un error ambiguo puede duplicar efectos ya confirmados.
 
 ```ts
-import { createIdempotencyMiddleware } from '@nuxt-laravelize/idempotency/runtime'
+import { createIdempotencyMiddleware } from '@luckys_luis/nuxt-laravelize-idempotency/runtime'
 
 const idempotency = createIdempotencyMiddleware({
   principal: event => event.context.user.id,
@@ -166,10 +166,10 @@ const idempotency = createIdempotencyMiddleware({
 
 El driver memory es volatil y debe habilitarse explicitamente. Despliegues cluster o serverless deben ligar un `IdempotencyStore` durable y atomico. Streaming y escrituras directas se rechazan porque no pueden reproducirse fielmente.
 
-Para almacenamiento durable, `@nuxt-laravelize/idempotency-drizzle` proporciona adapters PostgreSQL, SQLite y Turso, schemas y migraciones explicitas. PostgreSQL acepta el boundary `execute(SQL)` de Drizzle; SQLite/Turso aceptan `all(SQL)` para que las sentencias condicionales `UPSERT/UPDATE ... RETURNING` devuelvan la fila protegida. Aplica exactamente una migracion compatible antes de ligar el token del store.
+Para almacenamiento durable, `@luckys_luis/nuxt-laravelize-idempotency-drizzle` proporciona adapters PostgreSQL, SQLite y Turso, schemas y migraciones explicitas. PostgreSQL acepta el boundary `execute(SQL)` de Drizzle; SQLite/Turso aceptan `all(SQL)` para que las sentencias condicionales `UPSERT/UPDATE ... RETURNING` devuelvan la fila protegida. Aplica exactamente una migracion compatible antes de ligar el token del store.
 
 ```ts
-import { DrizzlePostgresIdempotencyStore } from '@nuxt-laravelize/idempotency-drizzle/postgres'
+import { DrizzlePostgresIdempotencyStore } from '@luckys_luis/nuxt-laravelize-idempotency-drizzle/postgres'
 
 container.singleton(idempotencyStoreToken, () => new DrizzlePostgresIdempotencyStore(db))
 ```
@@ -202,7 +202,7 @@ return UserResource.collection(paginator)
 
 ### Gates y policies
 
-Estas APIs HTTP se conservan por compatibilidad concreta. El codigo nuevo debe usar `@nuxt-laravelize/authorization`: en lugar del lookup legacy por nombre de constructor y el user suministrado por el caller, usa keys de recurso explicitas y recarga el principal scoped. El `authorize()` legacy mantiene su mapping 403 especifico de H3.
+Estas APIs HTTP se conservan por compatibilidad concreta. El codigo nuevo debe usar `@luckys_luis/nuxt-laravelize-authorization`: en lugar del lookup legacy por nombre de constructor y el user suministrado por el caller, usa keys de recurso explicitas y recarga el principal scoped. El `authorize()` legacy mantiene su mapping 403 especifico de H3.
 
 | API | Proposito |
 |---|---|
@@ -215,7 +215,7 @@ Estas APIs HTTP se conservan por compatibilidad concreta. El codigo nuevo debe u
 | `discoverPoliciesByConvention(rootDir)` | Encuentra archivos de policies para adapters. |
 
 ```ts
-import { InMemoryGate } from '@nuxt-laravelize/http/runtime'
+import { InMemoryGate } from '@luckys_luis/nuxt-laravelize-http/runtime'
 
 const gate = new InMemoryGate()
 gate.define('update-invoice', (user, invoice) => user.id === invoice.ownerId)
@@ -230,4 +230,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/idempotency`](../idempotency/README.es.md), [`@nuxt-laravelize/migrations-drizzle`](../migrations-drizzle/README.es.md).
+[`@luckys_luis/nuxt-laravelize-idempotency`](../idempotency/README.es.md), [`@luckys_luis/nuxt-laravelize-migrations-drizzle`](../migrations-drizzle/README.es.md).

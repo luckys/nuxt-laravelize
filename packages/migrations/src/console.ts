@@ -1,4 +1,4 @@
-import { defineCommand, option, type AnyCommand, type CommandHandler, type CommandInvocation } from '@nuxt-laravelize/console'
+import { defineCommand, option, type AnyCommand, type CommandHandler, type CommandInvocation } from '@luckys_luis/nuxt-laravelize-console'
 import type { MigrationDialect, MigrationRunResult, MigrationRunner, MigrationStatus } from './index.js'
 
 type HandlerToken = Readonly<{ key: string }>

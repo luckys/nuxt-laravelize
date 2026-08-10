@@ -1,7 +1,7 @@
 import { AbortMultipartUploadCommand, CompleteMultipartUploadCommand, CopyObjectCommand, CreateMultipartUploadCommand, DeleteObjectCommand, GetObjectAclCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectAclCommand, PutObjectCommand, S3Client, UploadPartCommand } from '@aws-sdk/client-s3'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createDirectUploadPolicy, isDirectUploadFilesystem, isMultipartFilesystem, isTemporaryUrlFilesystem, isUploadConfirmationFilesystem, scopedFilesystem } from '@nuxt-laravelize/filesystem/runtime'
+import { createDirectUploadPolicy, isDirectUploadFilesystem, isMultipartFilesystem, isTemporaryUrlFilesystem, isUploadConfirmationFilesystem, scopedFilesystem } from '@luckys_luis/nuxt-laravelize-filesystem/runtime'
 import { AwsS3Filesystem, InMemoryS3UploadIssuanceStore, S3UploadConfirmationInProgressError, encodeCopySource } from '../src'
 
 describe('AwsS3Filesystem', () => {

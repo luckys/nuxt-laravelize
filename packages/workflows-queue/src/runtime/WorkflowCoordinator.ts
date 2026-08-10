@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import type { Queue, JobHandle, PushOptions } from '@nuxt-laravelize/queue/runtime'
-import { isRecoverableWorkflowStore, isWorkflowTerminal, isWorkflowWaiting, type JsonValue, type WorkflowDefinition, type WorkflowManager, type WorkflowRecoveryCursor, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@nuxt-laravelize/workflows'
+import type { Queue, JobHandle, PushOptions } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { isRecoverableWorkflowStore, isWorkflowTerminal, isWorkflowWaiting, type JsonValue, type WorkflowDefinition, type WorkflowManager, type WorkflowRecoveryCursor, type WorkflowSnapshot, type WorkflowStore, workflowNextRetryAt } from '@luckys_luis/nuxt-laravelize-workflows'
 import { WorkflowJob } from './WorkflowJob'
 import type { ResolvedWorkflowsQueueOptions } from './options'
 

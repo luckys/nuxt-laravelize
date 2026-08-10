@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/database-drizzle",
+  "name": "@luckys_luis/nuxt-laravelize-database-drizzle",
   "version": "0.1.0",
   "description": "Drizzle transaction manager adapter for Nuxt Laravelize",
   "license": "MIT",
@@ -21,7 +21,7 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/database": "workspace:^"
+    "@luckys_luis/nuxt-laravelize-database": "workspace:^"
   },
   "peerDependencies": {
     "drizzle-orm": ">=0.44.0"
