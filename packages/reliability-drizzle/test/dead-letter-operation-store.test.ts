@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PgDialect } from 'drizzle-orm/pg-core'
 import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core'
 import type { SQL } from 'drizzle-orm'
-import { DeadLetterOperationConflictError } from '@nuxt-laravelize/dead-letter'
+import { DeadLetterOperationConflictError } from '@luckys_luis/nuxt-laravelize-dead-letter'
 import { DrizzleDeadLetterOperationStore } from '../src/index.js'
 
 const fingerprint = (character = 'a') => character.repeat(64)

@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/agents-flue`
+# `@luckys_luis/nuxt-laravelize-agents-flue`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Adapter Flue beta.9 para conversaciones, workflows y offsets opacos
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/agents-flue @nuxt-laravelize/agent-sdk @flue/runtime@1.0.0-beta.9 @flue/sdk@1.0.0-beta.9
+pnpm add @luckys_luis/nuxt-laravelize-agents-flue @luckys_luis/nuxt-laravelize-agent-sdk @flue/runtime@1.0.0-beta.9 @flue/sdk@1.0.0-beta.9
 ```
 
 ## Uso especifico del package
@@ -18,7 +18,7 @@ pnpm add @nuxt-laravelize/agents-flue @nuxt-laravelize/agent-sdk @flue/runtime@1
 El adapter de Flue mapea llamadas de agentes a conversaciones persistentes y llamadas de workflows a runs durables. Las conversaciones de agentes requieren un ID de instancia; las observaciones de workflows pueden reanudarse con un offset opaco de Flue.
 
 ```ts
-import { FlueAgentRuntime } from '@nuxt-laravelize/agents-flue'
+import { FlueAgentRuntime } from '@luckys_luis/nuxt-laravelize-agents-flue'
 
 const runtime = new FlueAgentRuntime({
   baseUrl: process.env.FLUE_BASE_URL,
@@ -44,9 +44,9 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Agent SDK
 
-`@nuxt-laravelize/agent-sdk` es una API comun opt-in separada para runtimes de agentes con estado. Registra runtimes nombrados en el contenedor existente y expone `useAgentRuntime(event)`, definiciones tipadas con `defineAgent()`, `invoke` sincrono, receipts de `dispatch` asincrono y streams `observe` iterables. Resultados, receipts, eventos, offsets y clientes conservan escapes `native`. Las capacidades distinguen streams de eventos, conversaciones y estado JSON, sin fingir que son el mismo modelo.
+`@luckys_luis/nuxt-laravelize-agent-sdk` es una API comun opt-in separada para runtimes de agentes con estado. Registra runtimes nombrados en el contenedor existente y expone `useAgentRuntime(event)`, definiciones tipadas con `defineAgent()`, `invoke` sincrono, receipts de `dispatch` asincrono y streams `observe` iterables. Resultados, receipts, eventos, offsets y clientes conservan escapes `native`. Las capacidades distinguen streams de eventos, conversaciones y estado JSON, sin fingir que son el mismo modelo.
 
-`@nuxt-laravelize/agents-cloudflare` usa RPC callable de Cloudflare Agents 0.17.x y conserva clase e identidad Durable Object. `@nuxt-laravelize/agents-flue` separa conversaciones de agentes y runs de workflows con paquetes `1.0.0-beta.9` fijados; sus offsets siguen opacos. Ninguno de los tres paquetes forma parte del preset. Guarda credenciales en runtime config privado y autoriza identidades antes de invocar.
+`@luckys_luis/nuxt-laravelize-agents-cloudflare` usa RPC callable de Cloudflare Agents 0.17.x y conserva clase e identidad Durable Object. `@luckys_luis/nuxt-laravelize-agents-flue` separa conversaciones de agentes y runs de workflows con paquetes `1.0.0-beta.9` fijados; sus offsets siguen opacos. Ninguno de los tres paquetes forma parte del preset. Guarda credenciales en runtime config privado y autoriza identidades antes de invocar.
 
 ## Compatibilidad y limites
 
@@ -56,4 +56,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/agent-sdk`](../agent-sdk/README.es.md).
+[`@luckys_luis/nuxt-laravelize-agent-sdk`](../agent-sdk/README.es.md).

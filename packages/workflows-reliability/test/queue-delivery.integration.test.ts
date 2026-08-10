@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { Resolver, Token } from '@nuxt-laravelize/core/runtime'
-import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
-import { QueueFake } from '@nuxt-laravelize/queue/testing'
-import { createEnvelope, OutboxProcessor } from '@nuxt-laravelize/reliability'
-import { createQueueOutboxDelivery, inboxStoreToken, ReliableHandlerRegistry, reliableHandlerRegistryToken, ReliableMessageJob } from '@nuxt-laravelize/reliability-queue/runtime'
-import { InMemoryReliabilityStore } from '@nuxt-laravelize/reliability/testing'
-import { defineStep, defineWorkflow, InMemoryWorkflowStore, WorkflowManager, WorkflowRegistry } from '@nuxt-laravelize/workflows'
+import type { Resolver, Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { TransactionManager, UnitOfWork } from '@luckys_luis/nuxt-laravelize-database/runtime'
+import { QueueFake } from '@luckys_luis/nuxt-laravelize-queue/testing'
+import { createEnvelope, OutboxProcessor } from '@luckys_luis/nuxt-laravelize-reliability'
+import { createQueueOutboxDelivery, inboxStoreToken, ReliableHandlerRegistry, reliableHandlerRegistryToken, ReliableMessageJob } from '@luckys_luis/nuxt-laravelize-reliability-queue/runtime'
+import { InMemoryReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability/testing'
+import { defineStep, defineWorkflow, InMemoryWorkflowStore, WorkflowManager, WorkflowRegistry } from '@luckys_luis/nuxt-laravelize-workflows'
 import { registerWorkflowWakeHandler, TransactionalWorkflowStore, WorkflowWakeReconciler, workflowWakeMessageType } from '../src/index.js'
 
 describe('workflow wake-up delivery', () => {

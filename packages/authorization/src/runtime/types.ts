@@ -1,4 +1,4 @@
-import type { Actor, ExecutionContextSnapshot } from '@nuxt-laravelize/execution-context/runtime'
+import type { Actor, ExecutionContextSnapshot } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 
 export type AuthorizationDecision
   = | Readonly<{ allowed: true, code?: string, reason?: string }>

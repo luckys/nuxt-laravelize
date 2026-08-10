@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line, @typescript-eslint/no-useless-constructor */
 import { describe, expect, it, vi } from 'vitest'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { InMemoryJobRegistry, JOB_TAGS_METADATA_KEY, Job, JobMetadataContributorRegistry, JobReleasedError, JobRunner, JobSerializer, MAX_JOB_METADATA_KEYS, MAX_JOB_TAGS, isJobReleasedError, readJobTags } from '../../src/runtime/index'
 
 class Probe extends Job { readonly payload = {}; constructor() { super() } handle() {} }

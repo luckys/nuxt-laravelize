@@ -1,5 +1,5 @@
 import { useRuntimeConfig } from '#imports'
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 import { HmacUrlSigner } from '../../signed-urls/HmacUrlSigner'
 import { ValidateSignature } from '../../signed-urls/ValidateSignature'

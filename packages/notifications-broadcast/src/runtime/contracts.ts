@@ -1,4 +1,4 @@
-import type { JsonValue } from '@nuxt-laravelize/broadcasting/runtime'
+import type { JsonValue } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
 
 export type BroadcastNotificationJsonObject = { [key: string]: JsonValue }
 

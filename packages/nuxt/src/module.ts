@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
-import Authorization from '@nuxt-laravelize/authorization'
-import ReliabilityQueue from '@nuxt-laravelize/reliability-queue'
+import Authorization from '@luckys_luis/nuxt-laravelize-authorization'
+import ReliabilityQueue from '@luckys_luis/nuxt-laravelize-reliability-queue'
 import { addServerImports, addServerPlugin, addTemplate, createResolver, defineNuxtModule, installModule } from '@nuxt/kit'
 import type { NuxtModule } from 'nuxt/schema'
 import type { ModuleOptions as I18nModuleOptions } from 'nuxt-i18n-micro'
@@ -36,30 +36,30 @@ const inlineI18nMicroPackages = [
 ]
 
 const module: NuxtModule = defineNuxtModule({
-  meta: { name: '@nuxt-laravelize/nuxt', configKey: 'laravelize', compatibility: { nuxt: '>=4.3.0 <5' } },
+  meta: { name: '@luckys_luis/nuxt-laravelize', configKey: 'laravelize', compatibility: { nuxt: '>=4.3.0 <5' } },
   moduleDependencies: {
-    '@nuxt-laravelize/audit': {},
-    '@nuxt-laravelize/broadcasting': {},
-    '@nuxt-laravelize/cache': {},
-    '@nuxt-laravelize/core': {},
-    '@nuxt-laravelize/execution-context': {},
-    '@nuxt-laravelize/execution-context-queue': {},
-    '@nuxt-laravelize/database': {},
-    '@nuxt-laravelize/events': {},
-    '@nuxt-laravelize/encryption': {},
-    '@nuxt-laravelize/queue': {},
-    '@nuxt-laravelize/rate-limiter': {},
-    '@nuxt-laravelize/routes': {},
-    '@nuxt-laravelize/events-queue': {},
-    '@nuxt-laravelize/filesystem': {},
-    '@nuxt-laravelize/mail': {},
-    '@nuxt-laravelize/http': {},
-    '@nuxt-laravelize/hashing': {},
-    '@nuxt-laravelize/notifications': {},
-    '@nuxt-laravelize/observability': {},
-    '@nuxt-laravelize/pennant': {},
-    '@nuxt-laravelize/scout': {},
-    '@nuxt-laravelize/validation': {},
+    '@luckys_luis/nuxt-laravelize-audit': {},
+    '@luckys_luis/nuxt-laravelize-broadcasting': {},
+    '@luckys_luis/nuxt-laravelize-cache': {},
+    '@luckys_luis/nuxt-laravelize-core': {},
+    '@luckys_luis/nuxt-laravelize-execution-context': {},
+    '@luckys_luis/nuxt-laravelize-execution-context-queue': {},
+    '@luckys_luis/nuxt-laravelize-database': {},
+    '@luckys_luis/nuxt-laravelize-events': {},
+    '@luckys_luis/nuxt-laravelize-encryption': {},
+    '@luckys_luis/nuxt-laravelize-queue': {},
+    '@luckys_luis/nuxt-laravelize-rate-limiter': {},
+    '@luckys_luis/nuxt-laravelize-routes': {},
+    '@luckys_luis/nuxt-laravelize-events-queue': {},
+    '@luckys_luis/nuxt-laravelize-filesystem': {},
+    '@luckys_luis/nuxt-laravelize-mail': {},
+    '@luckys_luis/nuxt-laravelize-http': {},
+    '@luckys_luis/nuxt-laravelize-hashing': {},
+    '@luckys_luis/nuxt-laravelize-notifications': {},
+    '@luckys_luis/nuxt-laravelize-observability': {},
+    '@luckys_luis/nuxt-laravelize-pennant': {},
+    '@luckys_luis/nuxt-laravelize-scout': {},
+    '@luckys_luis/nuxt-laravelize-validation': {},
   },
   async setup(_options, nuxt) {
     await installModule(Authorization, {}, nuxt)
@@ -80,7 +80,7 @@ const module: NuxtModule = defineNuxtModule({
         // The packed preset is otherwise externalized, leaving Nitro virtual imports unresolved during prerender.
         nitroConfig.externals ??= {}
         nitroConfig.externals.inline ??= []
-        if (!nitroConfig.externals.inline.includes('@nuxt-laravelize/nuxt')) nitroConfig.externals.inline.push('@nuxt-laravelize/nuxt')
+        if (!nitroConfig.externals.inline.includes('@luckys_luis/nuxt-laravelize')) nitroConfig.externals.inline.push('@luckys_luis/nuxt-laravelize')
         if (!nitroConfig.externals.inline.includes(localizationPlugin)) nitroConfig.externals.inline.push(localizationPlugin)
         for (const packageName of inlineI18nMicroPackages) if (!nitroConfig.externals.inline.includes(packageName)) nitroConfig.externals.inline.push(packageName)
         nitroConfig.alias['#laravelize/i18n-plural'] = resolve(nuxt.options.buildDir, 'i18n.plural.mjs')

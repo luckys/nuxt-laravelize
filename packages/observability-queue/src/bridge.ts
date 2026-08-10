@@ -1,9 +1,9 @@
 /* eslint-disable @stylistic/max-statements-per-line, no-empty */
-import type { Container } from '@nuxt-laravelize/core/runtime'
-import { ExecutionContext, executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import type { Observability, PropagationCarrier } from '@nuxt-laravelize/observability/runtime'
-import { safeErrorType, sanitizeCarrier } from '@nuxt-laravelize/observability/runtime'
-import { isJobReleasedError, JOB_DISPATCH_METADATA_KEY, MAX_JOB_METADATA_KEYS, type JobExecutionDescriptor, type JobMetadataContributorRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import type { Container } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { ExecutionContext, executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import type { Observability, PropagationCarrier } from '@luckys_luis/nuxt-laravelize-observability/runtime'
+import { safeErrorType, sanitizeCarrier } from '@luckys_luis/nuxt-laravelize-observability/runtime'
+import { isJobReleasedError, JOB_DISPATCH_METADATA_KEY, MAX_JOB_METADATA_KEYS, type JobExecutionDescriptor, type JobMetadataContributorRegistry, type JobRunner, type SerializedJob } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 const KEY = 'laravelize.trace.v1'
 const INSTALLATION = 'laravelize.observability.queue'

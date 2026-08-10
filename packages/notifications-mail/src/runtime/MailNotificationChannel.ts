@@ -1,5 +1,5 @@
-import { Mailable, type Attachment, type Mailer } from '@nuxt-laravelize/mail/runtime'
-import type { Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from '@nuxt-laravelize/notifications/runtime'
+import { Mailable, type Attachment, type Mailer } from '@luckys_luis/nuxt-laravelize-mail/runtime'
+import type { Notifiable, Notification, NotificationChannel, NotificationDeliveryContext } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 
 const MAX_RECIPIENTS = 50
 const MAX_ADDRESS = 320

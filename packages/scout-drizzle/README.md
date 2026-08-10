@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/scout-drizzle`
+# `@luckys_luis/nuxt-laravelize-scout-drizzle`
 
 [Espanol](./README.es.md) | English
 
@@ -7,7 +7,7 @@ PostgreSQL, SQLite, and Turso/libSQL search engines for Nuxt Laravelize Scout
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/scout-drizzle @nuxt-laravelize/scout drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-scout-drizzle @luckys_luis/nuxt-laravelize-scout drizzle-orm
 ```
 
 ## Package-specific usage
@@ -18,7 +18,7 @@ pnpm add @nuxt-laravelize/scout-drizzle @nuxt-laravelize/scout drizzle-orm
 Choose PostgreSQL, local SQLite, or Turso/libSQL and pass explicit filter and sort allowlists. Apply the matching migration before indexing; values are parameterized and unlisted fields remain unavailable.
 
 ```ts
-import { registerDrizzlePostgresDriver } from '@nuxt-laravelize/scout-drizzle/postgres'
+import { registerDrizzlePostgresDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/postgres'
 
 registerDrizzlePostgresDriver(scout, 'postgres', db, {
   filterableFields: ['status', 'locale'],
@@ -45,7 +45,7 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Scout search
 
-`@nuxt-laravelize/scout` provides portable searchable-model and engine contracts, a fluent builder, bulk import, and the server auto-import `useScout(event)`. Configure `laravelizeScout.driver` (default: `memory`). Engines are named, lazy, and cached; register adapters in an application provider before selecting them. `@nuxt-laravelize/scout-drizzle` provides PostgreSQL, local SQLite, and Turso/libSQL helpers as `/postgres`, `/sqlite`, and `/turso` subpaths.
+`@luckys_luis/nuxt-laravelize-scout` provides portable searchable-model and engine contracts, a fluent builder, bulk import, and the server auto-import `useScout(event)`. Configure `laravelizeScout.driver` (default: `memory`). Engines are named, lazy, and cached; register adapters in an application provider before selecting them. `@luckys_luis/nuxt-laravelize-scout-drizzle` provides PostgreSQL, local SQLite, and Turso/libSQL helpers as `/postgres`, `/sqlite`, and `/turso` subpaths.
 
 ```ts
 const scout = useScout(event)
@@ -63,8 +63,8 @@ scout.use('postgres')
 ```
 
 ```ts
-import { registerDrizzleSQLiteDriver } from '@nuxt-laravelize/scout-drizzle/sqlite'
-import { registerTursoDriver } from '@nuxt-laravelize/scout-drizzle/turso'
+import { registerDrizzleSQLiteDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/sqlite'
+import { registerTursoDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/turso'
 
 // Local Drizzle SQLite database (for example drizzle-orm/better-sqlite3)
 registerDrizzleSQLiteDriver(scout, 'sqlite', sqliteDb, allowlists)
@@ -82,4 +82,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/scout`](../scout/README.md), [`@nuxt-laravelize/migrations-drizzle`](../migrations-drizzle/README.md).
+[`@luckys_luis/nuxt-laravelize-scout`](../scout/README.md), [`@luckys_luis/nuxt-laravelize-migrations-drizzle`](../migrations-drizzle/README.md).

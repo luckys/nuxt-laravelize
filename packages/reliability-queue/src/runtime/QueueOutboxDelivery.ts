@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import type { Queue } from '@nuxt-laravelize/queue/runtime'
-import { sanitizeErrorSummary, type DeliveryResult, type MessageEnvelope } from '@nuxt-laravelize/reliability'
+import type { Queue } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { sanitizeErrorSummary, type DeliveryResult, type MessageEnvelope } from '@luckys_luis/nuxt-laravelize-reliability'
 import { ReliableMessageJob } from './ReliableMessageJob'
 
 export type QueueOutboxDeliveryOptions = { queue?: string, retryDelayMs?: number }

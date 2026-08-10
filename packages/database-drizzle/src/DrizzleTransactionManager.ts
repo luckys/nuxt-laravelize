@@ -1,4 +1,4 @@
-import type { AfterCommitHook, TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
+import type { AfterCommitHook, TransactionManager, UnitOfWork } from '@luckys_luis/nuxt-laravelize-database/runtime'
 
 export interface DrizzleAsyncTransactionSource<Session> {
   transaction<Result>(callback: (session: Session) => Promise<Result>): PromiseLike<Result>

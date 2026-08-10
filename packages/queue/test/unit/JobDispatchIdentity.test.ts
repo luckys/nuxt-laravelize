@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { fingerprintJobPayload, InMemoryJobRegistry, Job, JobAdmissionMetadataContributorRegistry, JobMetadataContributorRegistry, JobRunner, JobSerializer, readJobDispatchIdentity } from '../../src/runtime'
 
 class PayloadJob extends Job<Record<string, unknown>> {

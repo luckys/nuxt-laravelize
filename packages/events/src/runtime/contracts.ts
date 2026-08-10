@@ -1,4 +1,4 @@
-import type { Resolver, Token } from '@nuxt-laravelize/core/runtime'
+import type { Resolver, Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 export type EventConstructor<E = unknown> = new (...args: never[]) => E
 

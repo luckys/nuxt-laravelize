@@ -1,7 +1,7 @@
 import routes from '#laravelize/routes'
-import { BroadcastEventListener, PrivateChannel, type InMemoryBroadcaster } from '@nuxt-laravelize/broadcasting/runtime'
-import { jobRegistryToken } from '@nuxt-laravelize/queue/runtime'
-import { ReliableHandlerRegistry, ReliableMessageJob, reliableHandlerRegistryToken } from '@nuxt-laravelize/reliability-queue/runtime'
+import { BroadcastEventListener, PrivateChannel, type InMemoryBroadcaster } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
+import { jobRegistryToken } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { ReliableHandlerRegistry, ReliableMessageJob, reliableHandlerRegistryToken } from '@luckys_luis/nuxt-laravelize-reliability-queue/runtime'
 
 export default defineEventHandler(async (event) => {
   const channels = useBroadcastChannels(event)

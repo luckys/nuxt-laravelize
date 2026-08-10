@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { DeadLetterOperationConflictError, validateDeadLetterKey, type DeadLetterMutationResult, type DeadLetterOperationReceipt, type DeadLetterOperationStore } from '@nuxt-laravelize/dead-letter'
+import { DeadLetterOperationConflictError, validateDeadLetterKey, type DeadLetterMutationResult, type DeadLetterOperationReceipt, type DeadLetterOperationStore } from '@luckys_luis/nuxt-laravelize-dead-letter'
 import type { DrizzleReliabilityDatabase } from './base.js'
 
 type Row = Record<string, unknown>

@@ -1,4 +1,4 @@
-import { S3UploadConfirmationInProgressError, type S3UploadIssuance, type S3UploadIssuanceStore, type S3UploadReservation } from '@nuxt-laravelize/filesystem-aws'
+import { S3UploadConfirmationInProgressError, type S3UploadIssuance, type S3UploadIssuanceStore, type S3UploadReservation } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 
 export interface RedisS3UploadIssuanceClient {
   eval(script: string, numberOfKeys: number, ...args: Array<string | number>): Promise<unknown>

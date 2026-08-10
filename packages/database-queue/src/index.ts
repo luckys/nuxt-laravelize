@@ -1,5 +1,5 @@
-import type { UnitOfWork } from '@nuxt-laravelize/database/runtime'
-import type { Job, PushOptions, Queue } from '@nuxt-laravelize/queue/runtime'
+import type { UnitOfWork } from '@luckys_luis/nuxt-laravelize-database/runtime'
+import type { Job, PushOptions, Queue } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 export class AfterCommitQueueDispatchError extends Error {
   readonly committed = true

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { OutboxWorker } from '@nuxt-laravelize/reliability'
-import { runOutboxWorkerCli } from '@nuxt-laravelize/reliability/cli'
+import { OutboxWorker } from '@luckys_luis/nuxt-laravelize-reliability'
+import { runOutboxWorkerCli } from '@luckys_luis/nuxt-laravelize-reliability/cli'
 import type { OutgoingWebhookProcessor } from '../index.js'
 
 await runOutboxWorkerCli({

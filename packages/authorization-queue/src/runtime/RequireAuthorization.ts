@@ -1,7 +1,7 @@
-import { AbilityNotDefinedError, AuthorizationDeniedError, authorizationRegistryToken, authorizationToken, type AuthorizationRegistry } from '@nuxt-laravelize/authorization/runtime'
-import type { Container } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { isNonRetryableJobError, NonRetryableJobError, type JobExecutionDescriptor, type JobExecutionMiddleware, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { AbilityNotDefinedError, AuthorizationDeniedError, authorizationRegistryToken, authorizationToken, type AuthorizationRegistry } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
+import type { Container } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { isNonRetryableJobError, NonRetryableJobError, type JobExecutionDescriptor, type JobExecutionMiddleware, type JobRunner, type SerializedJob } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 export interface QueueAuthorizationResource {
   readonly resourceType: string

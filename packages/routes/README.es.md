@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/routes`
+# `@luckys_luis/nuxt-laravelize-routes`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Helpers de URL tipados generados desde declaraciones explicitas
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/routes
+pnpm add @luckys_luis/nuxt-laravelize-routes
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/routes'],
+  modules: ['@luckys_luis/nuxt-laravelize-routes'],
 })
 ```
 
@@ -34,11 +34,11 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Rutas tipadas
 
-`@nuxt-laravelize/routes` genera `#laravelize/routes` desde declaraciones explicitas y esta incluido en el preset. Solo infiere parametros de URL y metodos HTTP; intencionalmente **no infiere** bodies de request ni responses.
+`@luckys_luis/nuxt-laravelize-routes` genera `#laravelize/routes` desde declaraciones explicitas y esta incluido en el preset. Solo infiere parametros de URL y metodos HTTP; intencionalmente **no infiere** bodies de request ni responses.
 
 ```ts
 // routes.ts
-import { route } from '@nuxt-laravelize/routes/runtime'
+import { route } from '@luckys_luis/nuxt-laravelize-routes/runtime'
 
 export default {
   users: {
@@ -58,7 +58,7 @@ routes.users.show({ user: 42 }, { query: { preview: true } })
 // { method: 'GET', url: '/users/42?preview=1' }
 ```
 
-Los valores de path se codifican. Los arrays catch-all conservan sus segmentos, mientras `.` y `..` se rechazan para impedir URLs con traversal. Las keys query se ordenan, los arrays conservan su orden, los booleanos usan `1`/`0` y los valores nullish se omiten. Los autores de paquetes pueden registrar declaraciones con `addRoutesDeclaration()` desde `@nuxt-laravelize/routes/kit`.
+Los valores de path se codifican. Los arrays catch-all conservan sus segmentos, mientras `.` y `..` se rechazan para impedir URLs con traversal. Las keys query se ordenan, los arrays conservan su orden, los booleanos usan `1`/`0` y los valores nullish se omiten. Los autores de paquetes pueden registrar declaraciones con `addRoutesDeclaration()` desde `@luckys_luis/nuxt-laravelize-routes/kit`.
 
 ## Compatibilidad y limites
 
@@ -68,4 +68,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/http`](../http/README.es.md), [`@nuxt-laravelize/nuxt`](../nuxt/README.es.md).
+[`@luckys_luis/nuxt-laravelize-http`](../http/README.es.md), [`@luckys_luis/nuxt-laravelize`](../nuxt/README.es.md).

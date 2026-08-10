@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/events-queue",
+  "name": "@luckys_luis/nuxt-laravelize-events-queue",
   "version": "0.2.0",
   "description": "Queued-listener adapter joining Nuxt Laravelize events and queue",
   "license": "MIT",
@@ -28,9 +28,9 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/events": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-events": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-queue": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

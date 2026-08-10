@@ -1,6 +1,6 @@
-import type { Token } from '@nuxt-laravelize/core/runtime'
-import type { Listener, QueuedListenerAdapter } from '@nuxt-laravelize/events/runtime'
-import type { InMemoryJobRegistry, Queue } from '@nuxt-laravelize/queue/runtime'
+import type { Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { Listener, QueuedListenerAdapter } from '@luckys_luis/nuxt-laravelize-events/runtime'
+import type { InMemoryJobRegistry, Queue } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 import type { EventRegistry, SerializableEventConstructor } from './EventRegistry'
 import { ListenerJob } from './ListenerJob'

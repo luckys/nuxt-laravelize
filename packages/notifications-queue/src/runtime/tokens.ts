@@ -1,5 +1,5 @@
-import { createToken } from '@nuxt-laravelize/core/runtime'
-import type { InboxStore } from '@nuxt-laravelize/reliability'
+import { createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { InboxStore } from '@luckys_luis/nuxt-laravelize-reliability'
 import type { NotificationQueueRuntimeOptions } from './contracts'
 import type { NotificationCodecRegistry, RecipientResolverRegistry } from './registries'
 import type { QueuedNotificationDispatcher } from './QueuedNotificationDispatcher'

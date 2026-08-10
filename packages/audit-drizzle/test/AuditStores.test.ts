@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DrizzlePostgresAuditStore, DrizzleSQLiteAuditStore, TursoAuditStore } from '../src'
-import type { AuditEntry } from '@nuxt-laravelize/audit/runtime'
+import type { AuditEntry } from '@luckys_luis/nuxt-laravelize-audit/runtime'
 
 const entry: AuditEntry = { schemaVersion: 1, id: 'a-1', occurredAt: '2026-01-02T03:04:05.000Z', action: 'patient.viewed', outcome: 'success', target: { type: 'patient', id: 'p-1' }, metadata: { safe: true }, locale: 'es', executionId: 'e-1', correlationId: 'c-1', source: { type: 'test' } }
 describe('audit stores', () => {

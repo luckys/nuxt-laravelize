@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/authorization`
+# `@luckys_luis/nuxt-laravelize-authorization`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Portable centralized authorization for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/authorization
+pnpm add @luckys_luis/nuxt-laravelize-authorization
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/authorization'],
+  modules: ['@luckys_luis/nuxt-laravelize-authorization'],
 })
 ```
 
@@ -26,7 +26,7 @@ export default defineNuxtConfig({
 Register abilities and resource policies once during boot, then resolve the scoped authorizer at the application boundary. The default principal resolver denies until the application supplies a trusted current principal.
 
 ```ts
-import { authorizationRegistryToken } from '@nuxt-laravelize/authorization/runtime'
+import { authorizationRegistryToken } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
 
 const registry = container.make(authorizationRegistryToken)
 registry.registerAbility('invoice.view', ({ principal, tenantId }) => {
@@ -50,7 +50,7 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Authorization
 
-`@nuxt-laravelize/authorization` is included in the preset. Its core is H3-independent: resolve `authorizationToken` in HTTP, queues, workflows or CLI scopes, and use the auto-imported `useAuthorization(event)` only at the HTTP boundary. Register global abilities and resource policies once through the singleton `authorizationRegistryToken`; resource types are explicit stable keys and duplicate registrations fail immediately.
+`@luckys_luis/nuxt-laravelize-authorization` is included in the preset. Its core is H3-independent: resolve `authorizationToken` in HTTP, queues, workflows or CLI scopes, and use the auto-imported `useAuthorization(event)` only at the HTTP boundary. Register global abilities and resource policies once through the singleton `authorizationRegistryToken`; resource types are explicit stable keys and duplicate registrations fail immediately.
 
 The scoped authorizer calls the overrideable `principalResolverToken` to reload the current principal. Propagated or serialized execution-context snapshots are metadata, never credentials. For queue contexts, an ordinary principal result is centrally denied and serialized actor/tenant values never reach abilities. Return `trustQueuePrincipal(principal, { actor, tenantId })` only after the application independently authenticates delegation or current worker identity, including the supplied actor and optional tenant. A principal-only wrapper is denied, and trusted values must not be copied from envelope claims without independent verification. The default resolver returns no principal and therefore denies. `inspect` returns a bounded typed decision, while `allows`, `denies`, `authorize`, `any`, and `none` provide convenience behavior. The resource ability name `before` is reserved for the policy hook; the requested action must exist before the hook runs, and `null`/`undefined` means continue. Portable denial and undefined-ability errors contain no H3 dependency; map denials to 403 in HTTP code.
 
@@ -62,4 +62,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/authorization-queue`](../authorization-queue/README.md), [`@nuxt-laravelize/http`](../http/README.md).
+[`@luckys_luis/nuxt-laravelize-authorization-queue`](../authorization-queue/README.md), [`@luckys_luis/nuxt-laravelize-http`](../http/README.md).

@@ -1,7 +1,7 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type { H3Event } from 'h3'
 import { createError, getQuery, readBody } from 'h3'
-import { Validator } from '@nuxt-laravelize/validation/runtime'
+import { Validator } from '@luckys_luis/nuxt-laravelize-validation/runtime'
 
 import type { FormRequest } from './FormRequest'
 

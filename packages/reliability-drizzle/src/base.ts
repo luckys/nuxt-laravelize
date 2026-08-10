@@ -1,6 +1,6 @@
 import { sql, type SQL } from 'drizzle-orm'
-import { canonicalizeEnvelope, createEnvelope, normalizeReliabilityPruneOptions, OutboxMessageConflictError, sanitizeErrorSummary, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxAppendOptions, type OutboxStore, type PrunableReliabilityStore, type ReliabilityPruneOptions, type ReliabilityPruneResult, type StoredMessage } from '@nuxt-laravelize/reliability'
-import type { UnitOfWork } from '@nuxt-laravelize/database/runtime'
+import { canonicalizeEnvelope, createEnvelope, normalizeReliabilityPruneOptions, OutboxMessageConflictError, sanitizeErrorSummary, type ClaimOptions, type InboxClaim, type InboxStore, type MessageEnvelope, type MessageNamespace, type OutboxAppendOptions, type OutboxStore, type PrunableReliabilityStore, type ReliabilityPruneOptions, type ReliabilityPruneResult, type StoredMessage } from '@luckys_luis/nuxt-laravelize-reliability'
+import type { UnitOfWork } from '@luckys_luis/nuxt-laravelize-database/runtime'
 
 export interface DrizzleReliabilityDatabase {
   execute(query: SQL): unknown | PromiseLike<unknown>

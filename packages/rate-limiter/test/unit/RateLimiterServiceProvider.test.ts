@@ -1,5 +1,5 @@
-import { cacheToken, InMemoryCache } from '@nuxt-laravelize/cache/runtime'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { cacheToken, InMemoryCache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { describe, expect, it } from 'vitest'
 
 import { RateLimiter } from '../../src/runtime/RateLimiter'

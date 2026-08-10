@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
-import { createToken, type Token } from '@nuxt-laravelize/core/runtime'
+import { createToken, type Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { isJob, type Job, type JobSerializer, type SerializedJob } from './Job'
 import { MAX_JOB_PRIORITY, type JobHandle, type PushOptions } from './Queue'
 

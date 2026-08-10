@@ -1,4 +1,4 @@
-import { DeadLetterAdapterError, DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, DeadLetterUnmanagedLegacyError } from '@nuxt-laravelize/dead-letter'
+import { DeadLetterAdapterError, DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, DeadLetterUnmanagedLegacyError } from '@luckys_luis/nuxt-laravelize-dead-letter'
 
 export interface DeadLetterHttpProblem { statusCode: number, code: string }
 

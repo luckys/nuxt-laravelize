@@ -1,8 +1,8 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { randomUUID } from 'node:crypto'
 import Redis from 'ioredis'
-import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { InMemoryJobRegistry, Job, JobRunner, JobSerializer, NonRetryableJobError, queueBatchContextToken, type QueueBatchContext } from '@nuxt-laravelize/queue/runtime'
+import { createContainer, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { InMemoryJobRegistry, Job, JobRunner, JobSerializer, NonRetryableJobError, queueBatchContextToken, type QueueBatchContext } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { describe, expect, it, vi } from 'vitest'
 import { BullMQConnection } from '../../src/runtime/BullMQConnection'
 import { BullMQQueue } from '../../src/runtime/BullMQQueue'

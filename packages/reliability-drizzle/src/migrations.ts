@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import { defineMigration, defineSource, executeSqlScript, migrationId } from '@nuxt-laravelize/migrations'
-import type { Migration, MigrationDialect, MigrationSource } from '@nuxt-laravelize/migrations'
+import { defineMigration, defineSource, executeSqlScript, migrationId } from '@luckys_luis/nuxt-laravelize-migrations'
+import type { Migration, MigrationDialect, MigrationSource } from '@luckys_luis/nuxt-laravelize-migrations'
 
 const namespace = 'nuxt-laravelize.reliability-drizzle'
 type MigrationFile<D extends MigrationDialect> = Readonly<{ dialect: D, name: string, file: string, dependsOn?: string }>

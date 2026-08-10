@@ -1,8 +1,8 @@
-import type { Resolver } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { notificationManagerToken } from '@nuxt-laravelize/notifications/runtime'
-import { isNonRetryableJobError, Job, NonRetryableJobError } from '@nuxt-laravelize/queue/runtime'
-import { ConsumerFailure, createEnvelope, InboxConsumer, type MessageExecutionContext } from '@nuxt-laravelize/reliability'
+import type { Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { notificationManagerToken } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
+import { isNonRetryableJobError, Job, NonRetryableJobError } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { ConsumerFailure, createEnvelope, InboxConsumer, type MessageExecutionContext } from '@luckys_luis/nuxt-laravelize-reliability'
 import { validateQueuedNotificationPayload, type QueuedNotificationPayload } from './payload'
 import { notificationCodecRegistryToken, notificationInboxStoreToken, notificationQueueOptionsToken, recipientResolverRegistryToken } from './tokens'
 
@@ -41,7 +41,7 @@ export class QueuedNotificationJob extends Job<QueuedNotificationPayload> {
       owner: options.inboxOwner ?? 'laravelize.notifications',
       signal: options.signal,
     })
-    const result = await consumer.consume(createEnvelope({ id: this.payload.deliveryId, type: QueuedNotificationJob.jobName, occurredAt: this.payload.occurredAt, payload: this.payload as unknown as import('@nuxt-laravelize/reliability').JsonValue, ...(this.payload.tenantId ? { context: { tenantId: this.payload.tenantId } } : {}) }))
+    const result = await consumer.consume(createEnvelope({ id: this.payload.deliveryId, type: QueuedNotificationJob.jobName, occurredAt: this.payload.occurredAt, payload: this.payload as unknown as import('@luckys_luis/nuxt-laravelize-reliability').JsonValue, ...(this.payload.tenantId ? { context: { tenantId: this.payload.tenantId } } : {}) }))
     if (result === 'busy' || result === 'retry') throw new Error(`Notification inbox requested ${result}`)
     if (result === 'dead') throw new NonRetryableJobError('NOTIFICATION_INBOX_DEAD', 'Notification delivery was marked dead by the inbox')
   }

@@ -1,5 +1,5 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { DeadLetterAdapterRegistry, DeadLetterManager } from '@nuxt-laravelize/dead-letter'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { DeadLetterAdapterRegistry, DeadLetterManager } from '@luckys_luis/nuxt-laravelize-dead-letter'
 import { deadLetterAdapterRegistryToken, deadLetterManagerToken } from '../tokens'
 
 export default class DeadLetterOperationsServiceProvider implements ServiceProvider {

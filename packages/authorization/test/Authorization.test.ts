@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ExecutionContext } from '@nuxt-laravelize/execution-context/runtime'
+import { ExecutionContext } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 import { Authorization, AuthorizationRegistry, AbilityNotDefinedError, DuplicateAbilityError, DuplicateResourceTypeError, allow, deny, trustQueuePrincipal } from '../src/runtime/index'
 
 const context = (actor = true) => ExecutionContext.create({ source: { type: 'test' }, ...(actor ? { actor: { type: 'user' as const, id: 'user-1' }, tenantId: 'tenant-1' } : {}) }, () => 'id')

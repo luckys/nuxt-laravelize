@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm'
-import type { AcquireResult, IdempotencyRecord, IdempotencyState, IdempotencyStore, StoredResponse } from '@nuxt-laravelize/idempotency/runtime'
+import type { AcquireResult, IdempotencyRecord, IdempotencyState, IdempotencyStore, StoredResponse } from '@luckys_luis/nuxt-laravelize-idempotency/runtime'
 
 export type IdempotencyQueryExecutor = (query: SQL) => unknown | PromiseLike<unknown>
 type Row = Record<string, unknown>

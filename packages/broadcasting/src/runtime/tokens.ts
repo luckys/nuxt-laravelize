@@ -1,5 +1,5 @@
-import { createToken } from '@nuxt-laravelize/core/runtime'
-import type { Listener } from '@nuxt-laravelize/events/runtime'
+import { createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { Listener } from '@luckys_luis/nuxt-laravelize-events/runtime'
 import type { Broadcaster, BroadcastingManager } from './Broadcasting'
 import type { ChannelRegistry } from './ChannelRegistry'
 

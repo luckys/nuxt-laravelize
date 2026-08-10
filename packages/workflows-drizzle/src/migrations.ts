@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import { defineMigration, defineSource, executeSqlScript } from '@nuxt-laravelize/migrations'
-import type { Migration, MigrationDialect, MigrationSource } from '@nuxt-laravelize/migrations'
+import { defineMigration, defineSource, executeSqlScript } from '@luckys_luis/nuxt-laravelize-migrations'
+import type { Migration, MigrationDialect, MigrationSource } from '@luckys_luis/nuxt-laravelize-migrations'
 
 const namespace = 'nuxt-laravelize.workflows-drizzle'
 

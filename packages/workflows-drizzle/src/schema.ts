@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { bigint, boolean, check, index, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
-import type { WorkflowSnapshot, WorkflowState } from '@nuxt-laravelize/workflows'
+import type { WorkflowSnapshot, WorkflowState } from '@luckys_luis/nuxt-laravelize-workflows'
 
 export const workflows = pgTable('workflows', {
   id: text('id').primaryKey(), workflowName: text('workflow_name').notNull(), workflowVersion: text('workflow_version').notNull(), startKey: text('start_key').notNull(), canonicalInput: text('canonical_input').notNull(), snapshot: jsonb('snapshot').$type<WorkflowSnapshot>().notNull(), state: text('state').$type<WorkflowState>().notNull(), revision: bigint('revision', { mode: 'number' }).notNull(), cancellationRequested: boolean('cancellation_requested').notNull(), leaseToken: text('lease_token'), leaseExpiresAt: bigint('lease_expires_at', { mode: 'number' }), createdAt: bigint('created_at', { mode: 'number' }).notNull(), updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),

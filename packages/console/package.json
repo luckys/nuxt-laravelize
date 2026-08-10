@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/console",
+  "name": "@luckys_luis/nuxt-laravelize-console",
   "version": "0.2.0",
   "description": "Typed, dependency-injected console command runtime for Nuxt Laravelize",
   "license": "MIT",
@@ -33,9 +33,9 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/execution-context": "workspace:^",
-    "@nuxt-laravelize/observability": "workspace:^"
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-execution-context": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-observability": "workspace:^"
   },
   "devDependencies": {
     "@types/node": "latest",

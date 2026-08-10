@@ -1,5 +1,5 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { observabilityToken } from '@nuxt-laravelize/observability/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { observabilityToken } from '@luckys_luis/nuxt-laravelize-observability/runtime'
 import { OtelObservability, type OtelObservabilityOptions } from './OtelObservability'
 
 export class OtelObservabilityServiceProvider implements ServiceProvider {

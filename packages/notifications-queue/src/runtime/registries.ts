@@ -1,6 +1,6 @@
-import { NonRetryableJobError } from '@nuxt-laravelize/queue/runtime'
-import type { JsonValue } from '@nuxt-laravelize/reliability'
-import type { Notifiable, Notification } from '@nuxt-laravelize/notifications/runtime'
+import { NonRetryableJobError } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import type { JsonValue } from '@luckys_luis/nuxt-laravelize-reliability'
+import type { Notifiable, Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 import type { NotificationCodec, RecipientResolver, ResolvedRecipient } from './contracts'
 import { assertJson } from './json'
 

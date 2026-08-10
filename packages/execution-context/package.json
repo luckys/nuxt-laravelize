@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/execution-context",
+  "name": "@luckys_luis/nuxt-laravelize-execution-context",
   "version": "0.2.0",
   "description": "Portable execution context and Nitro request integration",
   "license": "MIT",
@@ -36,7 +36,7 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

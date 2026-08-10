@@ -1,5 +1,5 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { jobRegistryToken } from '@nuxt-laravelize/queue/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { jobRegistryToken } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { ReliableHandlerRegistry } from '../ReliableHandlerRegistry'
 import { ReliableMessageJob } from '../ReliableMessageJob'
 import { reliableHandlerRegistryToken } from '../tokens'

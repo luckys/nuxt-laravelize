@@ -1,4 +1,4 @@
-import type { Resolver } from '@nuxt-laravelize/core/runtime'
+import type { Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
 
@@ -11,7 +11,7 @@ export const MAX_JOB_METADATA_KEYS = 64
 
 const EMPTY_JOB_TAGS: readonly string[] = Object.freeze([])
 const RESERVED_METADATA_KEYS = new Set(['__proto__', 'prototype', 'constructor', JOB_TAGS_METADATA_KEY, JOB_DISPATCH_METADATA_KEY])
-const JOB_BRAND = Symbol.for('@nuxt-laravelize/queue/job')
+const JOB_BRAND = Symbol.for('@luckys_luis/nuxt-laravelize-queue/job')
 const DISPATCH_ID = /^\w[\w.:-]{0,127}$/
 const PAYLOAD_FINGERPRINT = /^sha256:[a-f0-9]{64}$/
 const MAX_PAYLOAD_DEPTH = 64

@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/notifications-queue",
+  "name": "@luckys_luis/nuxt-laravelize-notifications-queue",
   "version": "0.2.0",
   "description": "Durable queued delivery bridge for Nuxt Laravelize notifications",
   "license": "MIT",
@@ -28,12 +28,12 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/execution-context": "workspace:^",
-    "@nuxt-laravelize/execution-context-queue": "workspace:^",
-    "@nuxt-laravelize/notifications": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^",
-    "@nuxt-laravelize/reliability": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-execution-context": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-execution-context-queue": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-notifications": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-queue": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-reliability": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

@@ -1,12 +1,12 @@
 /* eslint-disable @stylistic/max-statements-per-line, @typescript-eslint/no-useless-constructor */
 import { describe, expect, it } from 'vitest'
-import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { currentExecutionContextOptional } from '@nuxt-laravelize/execution-context/runtime/server'
-import { fakeExecutionContext } from '@nuxt-laravelize/execution-context/testing'
+import { createContainer, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { currentExecutionContextOptional } from '@luckys_luis/nuxt-laravelize-execution-context/runtime/server'
+import { fakeExecutionContext } from '@luckys_luis/nuxt-laravelize-execution-context/testing'
 import { installExecutionContextQueuePropagation } from '../../execution-context-queue/src/runtime/propagation'
-import { ObservabilityFake } from '@nuxt-laravelize/observability/testing'
-import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobReleasedError, JobRunner, JobSerializer } from '@nuxt-laravelize/queue/runtime'
+import { ObservabilityFake } from '@luckys_luis/nuxt-laravelize-observability/testing'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobReleasedError, JobRunner, JobSerializer } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { installQueueObservability, queueTraceMetadata } from '../src/bridge'
 
 class Probe extends Job { static override jobName = 'probe'; static seen: unknown; readonly payload = {}; constructor() { super() } override tags() { return ['diagnostic:private-id'] } async handle(resolver: Resolver) { Probe.seen = resolver.has(executionContextToken) ? resolver.make(executionContextToken).snapshot() : undefined; await Promise.resolve() } }

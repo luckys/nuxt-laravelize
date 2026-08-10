@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import type { AuditEntry, AuditStore } from '@nuxt-laravelize/audit/runtime'
+import type { AuditEntry, AuditStore } from '@luckys_luis/nuxt-laravelize-audit/runtime'
 import type { DrizzleAuditDatabase } from './postgres'
 import { sqliteAuditEntries } from './sqlite-schema'
 

@@ -1,4 +1,4 @@
-import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { describe, expect, it } from 'vitest'
 import Provider from '../src/runtime/server/DeadLetterOperationsServiceProvider'
 import { deadLetterAdapterRegistryToken, deadLetterManagerToken } from '../src/runtime/tokens'

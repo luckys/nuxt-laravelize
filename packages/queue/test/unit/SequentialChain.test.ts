@@ -11,7 +11,7 @@ class ChainJob extends Job<{ value: unknown }> {
   handle() {}
 }
 
-const bundledJobBrand = Symbol.for('@nuxt-laravelize/queue/job')
+const bundledJobBrand = Symbol.for('@luckys_luis/nuxt-laravelize-queue/job')
 class ForeignBundledJob {
   static readonly jobName = 'foreign-bundled-job'
   static readonly tries = 1

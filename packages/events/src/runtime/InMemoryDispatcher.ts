@@ -1,4 +1,4 @@
-import type { Resolver, Token } from '@nuxt-laravelize/core/runtime'
+import type { Resolver, Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 import type { Dispatcher, EventConstructor, EventSubscriber, Listener, QueuedListenerAdapter, ShouldQueue } from './contracts'
 import { EventListenerRegistry } from './EventListenerRegistry'

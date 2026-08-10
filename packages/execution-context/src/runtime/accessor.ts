@@ -1,4 +1,4 @@
-import { createToken, type Resolver } from '@nuxt-laravelize/core/runtime'
+import { createToken, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import type { ExecutionContext } from './ExecutionContext'
 
 export const executionContextToken = createToken<ExecutionContext>('laravelize.execution-context')

@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/hashing`
+# `@luckys_luis/nuxt-laravelize-hashing`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Hashing PBKDF2 versionado y deteccion de rehash
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/hashing
+pnpm add @luckys_luis/nuxt-laravelize-hashing
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/hashing'],
+  modules: ['@luckys_luis/nuxt-laravelize-hashing'],
 })
 ```
 
@@ -33,10 +33,10 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Hashing
 
-`@nuxt-laravelize/hashing` proporciona hashing de passwords mediante PBKDF2-SHA-256 y Web Crypto.
+`@luckys_luis/nuxt-laravelize-hashing` proporciona hashing de passwords mediante PBKDF2-SHA-256 y Web Crypto.
 
 ```bash
-pnpm add @nuxt-laravelize/hashing
+pnpm add @luckys_luis/nuxt-laravelize-hashing
 ```
 
 ```ts
@@ -52,7 +52,7 @@ Los hashes incluyen salt aleatorio de 128 bits, identificador de algoritmo y num
 
 El valor por defecto es 600.000 iteraciones. Mide el hardware de produccion antes de aumentarlo y configura `runtimeConfig.laravelizeHashing.iterations` de forma consistente entre instancias. Costes embebidos superiores a 10.000.000 se rechazan antes de derivar una clave para limitar riesgo de denegacion de servicio por hashes no confiables o corruptos.
 
-El hashing es unidireccional y esta pensado para passwords. Usa `@nuxt-laravelize/encryption` cuando debas recuperar el valor original. Aplica rate limiting a endpoints de autenticacion por separado; el hashing no evita intentos online.
+El hashing es unidireccional y esta pensado para passwords. Usa `@luckys_luis/nuxt-laravelize-encryption` cuando debas recuperar el valor original. Aplica rate limiting a endpoints de autenticacion por separado; el hashing no evita intentos online.
 
 ## Compatibilidad y limites
 
@@ -62,4 +62,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/encryption`](../encryption/README.es.md).
+[`@luckys_luis/nuxt-laravelize-encryption`](../encryption/README.es.md).

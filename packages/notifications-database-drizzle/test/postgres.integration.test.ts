@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import type { DatabaseNotificationRecord } from '@nuxt-laravelize/notifications-database/runtime'
+import type { DatabaseNotificationRecord } from '@luckys_luis/nuxt-laravelize-notifications-database/runtime'
 import { DrizzlePostgresDatabaseNotificationStore } from '../src/postgres'
 
 const databaseUrl = process.env.DATABASE_URL

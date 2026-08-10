@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { S3UploadConfirmationInProgressError, type S3UploadIssuance, type S3UploadIssuanceStore } from '@nuxt-laravelize/filesystem-aws'
+import { S3UploadConfirmationInProgressError, type S3UploadIssuance, type S3UploadIssuanceStore } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 import { RedisS3UploadIssuanceCorruptionError, RedisS3UploadIssuanceStore, type RedisS3UploadIssuanceClient } from '../../src'
 
 interface Entry { fields: Record<string, string>, expiresAt: number }

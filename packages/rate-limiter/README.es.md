@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/rate-limiter`
+# `@luckys_luis/nuxt-laravelize-rate-limiter`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Rate limiting de ventana fija sobre cache y middleware Nitro
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/rate-limiter
+pnpm add @luckys_luis/nuxt-laravelize-rate-limiter
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/rate-limiter'],
+  modules: ['@luckys_luis/nuxt-laravelize-rate-limiter'],
 })
 ```
 
@@ -33,10 +33,10 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Rate limiting
 
-`@nuxt-laravelize/rate-limiter` proporciona limites de ventana fija respaldados por cache. El preset completo lo registra automaticamente; una instalacion granular puede agregarlo directamente.
+`@luckys_luis/nuxt-laravelize-rate-limiter` proporciona limites de ventana fija respaldados por cache. El preset completo lo registra automaticamente; una instalacion granular puede agregarlo directamente.
 
 ```bash
-pnpm add @nuxt-laravelize/rate-limiter
+pnpm add @luckys_luis/nuxt-laravelize-rate-limiter
 ```
 
 Consume un intento con el autoimport `useRateLimiter(event)`. La metadata devuelta sirve para respuestas y logs de aplicacion.
@@ -82,4 +82,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/cache`](../cache/README.es.md), [`@nuxt-laravelize/queue-middleware`](../queue-middleware/README.es.md).
+[`@luckys_luis/nuxt-laravelize-cache`](../cache/README.es.md), [`@luckys_luis/nuxt-laravelize-queue-middleware`](../queue-middleware/README.es.md).

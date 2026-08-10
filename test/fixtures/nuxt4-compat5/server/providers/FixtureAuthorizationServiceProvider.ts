@@ -1,5 +1,5 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { AuthorizationRegistry, allow, authorizationRegistryToken, principalResolverToken } from '@nuxt-laravelize/authorization/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { AuthorizationRegistry, allow, authorizationRegistryToken, principalResolverToken } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
 
 export default class FixtureAuthorizationServiceProvider implements ServiceProvider {
   register(container: Container): void {

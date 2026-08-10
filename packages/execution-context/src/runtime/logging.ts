@@ -1,4 +1,4 @@
-import type { LogContext, Logger } from '@nuxt-laravelize/core/runtime'
+import type { LogContext, Logger } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import type { ExecutionContext } from './ExecutionContext'
 
 const fields = (context: ExecutionContext): LogContext => {

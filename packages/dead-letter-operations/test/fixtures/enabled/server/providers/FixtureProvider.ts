@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line */
-import { authorizationToken } from '@nuxt-laravelize/authorization/runtime'
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { MemoryDeadLetterAdapter } from '@nuxt-laravelize/dead-letter/testing'
+import { authorizationToken } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { MemoryDeadLetterAdapter } from '@luckys_luis/nuxt-laravelize-dead-letter/testing'
 import { deadLetterAdapterRegistryToken } from '../../../../../src/runtime/tokens'
 
 export default class FixtureProvider implements ServiceProvider {

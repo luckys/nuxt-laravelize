@@ -1,6 +1,6 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { currentExecutionContextOptional } from '@nuxt-laravelize/execution-context/runtime/server'
-import { jobMetadataContributorsToken, jobRunnerToken } from '@nuxt-laravelize/queue/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { currentExecutionContextOptional } from '@luckys_luis/nuxt-laravelize-execution-context/runtime/server'
+import { jobMetadataContributorsToken, jobRunnerToken } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { installExecutionContextQueuePropagation } from '../propagation'
 
 export default class ExecutionContextQueueServiceProvider implements ServiceProvider {

@@ -1,5 +1,5 @@
-import { createToken, type Logger, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { ExecutionContextAccessor, type ExecutionContextSnapshot } from '@nuxt-laravelize/execution-context/runtime'
+import { createToken, type Logger, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { ExecutionContextAccessor, type ExecutionContextSnapshot } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 
 export type AuditOutcome = 'success' | 'denied' | 'failure'
 export type AuditScalar = string | number | boolean | null

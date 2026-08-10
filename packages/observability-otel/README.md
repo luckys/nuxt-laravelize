@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/observability-otel`
+# `@luckys_luis/nuxt-laravelize-observability-otel`
 
 [Espanol](./README.es.md) | English
 
@@ -7,7 +7,7 @@ OpenTelemetry API adapter for Nuxt Laravelize observability
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/observability-otel
+pnpm add @luckys_luis/nuxt-laravelize-observability-otel
 ```
 
 ## Package-specific usage
@@ -18,8 +18,8 @@ pnpm add @nuxt-laravelize/observability-otel
 The adapter consumes the OpenTelemetry API and the providers already configured by the application. It does not install a global SDK or exporter; pass provider, propagator, flush, and shutdown hooks explicitly when needed.
 
 ```ts
-import { OtelObservability } from '@nuxt-laravelize/observability-otel'
-import { observabilityToken } from '@nuxt-laravelize/observability/runtime'
+import { OtelObservability } from '@luckys_luis/nuxt-laravelize-observability-otel'
+import { observabilityToken } from '@luckys_luis/nuxt-laravelize-observability/runtime'
 
 const observability = new OtelObservability({
   instrumentationName: 'orders-api',
@@ -44,7 +44,7 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Observability and OpenTelemetry
 
-`@nuxt-laravelize/observability` is included in the preset as a zero-cost no-op foundation. Its runtime contracts do not depend on H3. Application providers may override `observabilityToken`; register the override after module providers. `@nuxt-laravelize/observability-otel` and `@nuxt-laravelize/observability-queue` remain opt-in. The OTel adapter uses only `@opentelemetry/api` at runtime and never installs globals, an SDK, or exporters.
+`@luckys_luis/nuxt-laravelize-observability` is included in the preset as a zero-cost no-op foundation. Its runtime contracts do not depend on H3. Application providers may override `observabilityToken`; register the override after module providers. `@luckys_luis/nuxt-laravelize-observability-otel` and `@luckys_luis/nuxt-laravelize-observability-queue` remain opt-in. The OTel adapter uses only `@opentelemetry/api` at runtime and never installs globals, an SDK, or exporters.
 
 Incoming HTTP trace trust is disabled by default. Baggage is always discarded. Built-in integrations never capture payloads, bodies, raw URLs/query, secrets, arbitrary headers, IPs, error messages/stacks, or actor/tenant/workflow/message/job IDs as metric labels. IDs are not captured by default. Metric dimensions are fixed; job and queue names require explicit allowlists and otherwise become `other`.
 
@@ -60,4 +60,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/observability`](../observability/README.md).
+[`@luckys_luis/nuxt-laravelize-observability`](../observability/README.md).

@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/rate-limiter",
+  "name": "@luckys_luis/nuxt-laravelize-rate-limiter",
   "version": "0.2.0",
   "description": "Cache-backed rate limiting for Nuxt Laravelize",
   "license": "MIT",
@@ -28,8 +28,8 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/cache": "workspace:^",
-    "@nuxt-laravelize/core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-cache": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

@@ -1,6 +1,6 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { queuedListenerAdapterToken } from '@nuxt-laravelize/events/runtime'
-import { jobRegistryToken, queueToken } from '@nuxt-laravelize/queue/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { queuedListenerAdapterToken } from '@luckys_luis/nuxt-laravelize-events/runtime'
+import { jobRegistryToken, queueToken } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 import { EventRegistry } from '../EventRegistry'
 import { QueueListenerAdapter } from '../QueueListenerAdapter'

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Authorization, AuthorizationRegistry, authorizationRegistryToken, authorizationToken, deny, trustQueuePrincipal, type AuthorizationContext, type PrincipalResolver } from '@nuxt-laravelize/authorization/runtime'
-import { createContainer, type Container } from '@nuxt-laravelize/core/runtime'
-import { ExecutionContext, executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { InMemoryJobRegistry, InMemoryQueue, Job, JobRunner, NonRetryableJobError } from '@nuxt-laravelize/queue/runtime'
+import { Authorization, AuthorizationRegistry, authorizationRegistryToken, authorizationToken, deny, trustQueuePrincipal, type AuthorizationContext, type PrincipalResolver } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
+import { createContainer, type Container } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { ExecutionContext, executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { InMemoryJobRegistry, InMemoryQueue, Job, JobRunner, NonRetryableJobError } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { QueueAuthorizationUnavailableError, RequireAuthorization } from '../src/runtime'
 
 class ProtectedJob extends Job {

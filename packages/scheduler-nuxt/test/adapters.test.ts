@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { defineSchedule } from '@nuxt-laravelize/scheduler'
+import { defineSchedule } from '@luckys_luis/nuxt-laravelize-scheduler'
 import { createCloudflareScheduledHandler, createNodeNitroCronConfig, createVercelCronHandler, toVercelCrons } from '../src/adapters'
 
 describe('platform scheduler adapters', () => {

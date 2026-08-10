@@ -1,4 +1,4 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { InMemoryJobRegistry } from '../JobRegistry'
 import { JobRunner } from '../JobRunner'
 import { InMemoryQueue } from '../InMemoryQueue'

@@ -1,4 +1,4 @@
-import type { JsonValue } from '@nuxt-laravelize/reliability'
+import type { JsonValue } from '@luckys_luis/nuxt-laravelize-reliability'
 import { assertJson } from './json'
 import { validateReference, validateType, validateVersion, type EncodedNotification, type RecipientReference } from './registries'
 

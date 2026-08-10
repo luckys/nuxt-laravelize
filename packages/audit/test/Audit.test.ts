@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createContainer, type Logger } from '@nuxt-laravelize/core/runtime'
-import { ExecutionContext, executionContextToken, ExecutionContextAccessor } from '@nuxt-laravelize/execution-context/runtime'
+import { createContainer, type Logger } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { ExecutionContext, executionContextToken, ExecutionContextAccessor } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 import { AuditFake } from '../src/runtime/testing'
 import { DefaultAuditRecorder, InMemoryAuditStore, type AuditStore } from '../src/runtime'
 

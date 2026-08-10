@@ -3,7 +3,7 @@ import { Queue, Worker } from 'bullmq'
 import Redis from 'ioredis'
 import { describe, expect, it } from 'vitest'
 import { BullMQDeadLetterAdapter } from '../../src/runtime/BullMQDeadLetterAdapter.js'
-import { MemoryDeadLetterOperationStore } from '@nuxt-laravelize/dead-letter/testing'
+import { MemoryDeadLetterOperationStore } from '@luckys_luis/nuxt-laravelize-dead-letter/testing'
 
 const redisUrl = process.env.REDIS_URL
 const redisRequired = process.env.QUEUE_BULLMQ_REDIS_REQUIRED === '1'

@@ -1,6 +1,6 @@
-import type { Resolver, Token } from '@nuxt-laravelize/core/runtime'
-import type { Listener } from '@nuxt-laravelize/events/runtime'
-import { Job } from '@nuxt-laravelize/queue/runtime'
+import type { Resolver, Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { Listener } from '@luckys_luis/nuxt-laravelize-events/runtime'
+import { Job } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 import { eventRegistryToken } from './tokens'
 

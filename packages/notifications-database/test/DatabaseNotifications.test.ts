@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Notification } from '@nuxt-laravelize/notifications/runtime'
+import { Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 import { DatabaseNotificationChannel, DatabaseNotificationIdempotencyConflictError, InMemoryDatabaseNotificationStore, InvalidDatabaseNotificationError, type NotificationJsonObject } from '../src/runtime/index'
 
 class StoredNotification extends Notification {

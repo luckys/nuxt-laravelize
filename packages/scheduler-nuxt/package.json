@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/scheduler-nuxt",
+  "name": "@luckys_luis/nuxt-laravelize-scheduler-nuxt",
   "version": "0.2.0",
   "description": "Opt-in Nuxt 4 and Nitro 2 scheduler integration",
   "license": "MIT",
@@ -40,8 +40,8 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/cache": "workspace:^",
-    "@nuxt-laravelize/scheduler": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-cache": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-scheduler": "workspace:^",
     "@nuxt/kit": "^4.5.2",
     "jiti": "^2.6.1"
   },
@@ -49,7 +49,7 @@
     "nuxt": ">=4.4.5 <5"
   },
   "devDependencies": {
-    "@nuxt-laravelize/cache-redis": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-cache-redis": "workspace:^",
     "@nuxt/module-builder": "^1.0.3",
     "@nuxt/test-utils": "^4.1.0",
     "@types/node": "latest",

@@ -1,4 +1,4 @@
-import type { FailedJobCallback, FailedJobInfo, Job } from '@nuxt-laravelize/queue/runtime'
+import type { FailedJobCallback, FailedJobInfo, Job } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 export class FailureReporter {
   readonly #callbacks: FailedJobCallback[] = []

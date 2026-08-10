@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/filesystem-aws`
+# `@luckys_luis/nuxt-laravelize-filesystem-aws`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Adapter filesystem opcional para S3 con AWS SDK, compatible con la API S3 de R2
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/filesystem-aws
+pnpm add @luckys_luis/nuxt-laravelize-filesystem-aws
 ```
 
 ## Uso especifico del package
@@ -18,7 +18,7 @@ pnpm add @nuxt-laravelize/filesystem-aws
 Usa el factory para el cliente AWS SDK estandar o inyecta puertos compatibles de comandos y firma para tests y runtimes propios. Las credenciales permanecen en configuracion solo de servidor. El adapter soporta URLs temporales, uploads directos con confirmacion SHA-256, streams y multipart cuando sus capacidades estan disponibles.
 
 ```ts
-import { createAwsS3Filesystem } from '@nuxt-laravelize/filesystem-aws'
+import { createAwsS3Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 
 const archive = createAwsS3Filesystem({
   bucket: 'app-archive',
@@ -43,10 +43,10 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Filesystem
 
-`@nuxt-laravelize/filesystem` proporciona discos nombrados al estilo Laravel sobre un contrato portable orientado a bytes.
+`@luckys_luis/nuxt-laravelize-filesystem` proporciona discos nombrados al estilo Laravel sobre un contrato portable orientado a bytes.
 
 ```bash
-pnpm add @nuxt-laravelize/filesystem
+pnpm add @luckys_luis/nuxt-laravelize-filesystem
 ```
 
 El preset completo registra un disco en memoria por defecto. Usa `useFilesystem(event, disk?)` en handlers Nitro.
@@ -68,10 +68,10 @@ export default defineEventHandler(async (event) => {
 | `FilesystemManager` | Registra y resuelve discos nombrados. |
 | `FilesystemFake` | Fake en memoria con assertions y reset. |
 
-El `InMemoryFilesystem` portable sirve para tests, desarrollo o archivos efimeros en un proceso. Para despliegues Node persistentes, registra `LocalFilesystem` desde `@nuxt-laravelize/filesystem/node` en un provider propio:
+El `InMemoryFilesystem` portable sirve para tests, desarrollo o archivos efimeros en un proceso. Para despliegues Node persistentes, registra `LocalFilesystem` desde `@luckys_luis/nuxt-laravelize-filesystem/node` en un provider propio:
 
 ```ts
-import { LocalFilesystem } from '@nuxt-laravelize/filesystem/node'
+import { LocalFilesystem } from '@luckys_luis/nuxt-laravelize-filesystem/node'
 
 manager.register('reports', new LocalFilesystem('/srv/app/storage/reports'))
 ```
@@ -81,7 +81,7 @@ manager.register('reports', new LocalFilesystem('/srv/app/storage/reports'))
 Los adapters cloud son paquetes opcionales y el preset completo no los instala:
 
 ```ts
-import { CloudflareR2Filesystem } from '@nuxt-laravelize/filesystem-cloudflare'
+import { CloudflareR2Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-cloudflare'
 
 manager.register('uploads', new CloudflareR2Filesystem(env.UPLOADS, {
   prefix: 'production/uploads',
@@ -92,7 +92,7 @@ manager.register('uploads', new CloudflareR2Filesystem(env.UPLOADS, {
 El adapter Cloudflare es estructural y nativo del binding: no importa tipos de Workers ni el AWS SDK. El binding debe proporcionar `get`, `head`, `put`, `delete` y `list` paginado. Para AWS S3, o Cloudflare R2 mediante su API compatible con S3 fuera de Workers, usa el paquete AWS aislado:
 
 ```ts
-import { createAwsS3Filesystem } from '@nuxt-laravelize/filesystem-aws'
+import { createAwsS3Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 
 manager.register('archive', createAwsS3Filesystem({
   bucket: 'app-archive',
@@ -113,7 +113,7 @@ El comportamiento avanzado es opcional y se descubre con guards como `isTemporar
 Crea autoridad de upload directo con `createDirectUploadPolicy()`. Las politicas son valores JSON congelados y requieren un path normalizado dentro de `keyPrefix`, `maxBytes` positivo, allowlist MIME, actor, tenant y expiracion maxima de siete dias. El checksum sigue opcional en el contrato portable para adapters con otro mecanismo de promocion inmutable, pero S3 exige SHA-256 exacto para emitir. S3 devuelve un POST prefirmado cuya policy impone `content-length-range` desde cero hasta `maxBytes` y condiciones exactas para key, MIME seleccionado, metadata actor/tenant y checksum. Envia los campos devueltos sin modificarlos. Tras el upload, llama `confirmUpload(grant)` con el grant confiable retenido en server y continua solo si tamaño, MIME seleccionado, metadata y checksum del provider coinciden.
 
 ```ts
-import { createDirectUploadPolicy, isDirectUploadFilesystem, isUploadConfirmationFilesystem } from '@nuxt-laravelize/filesystem/runtime'
+import { createDirectUploadPolicy, isDirectUploadFilesystem, isUploadConfirmationFilesystem } from '@luckys_luis/nuxt-laravelize-filesystem/runtime'
 
 const policy = createDirectUploadPolicy({
   path: `quarantine/${crypto.randomUUID()}`,
@@ -135,7 +135,7 @@ const confirmed = await files.confirmUpload(grant)
 
 La metadata actor/tenant del formulario son valores de correlacion restringidos por la policy firmada, no autenticacion. Los wrappers scoped ligan la emision a la audiencia canonica del scope y validan el limite exacto del prefijo devuelto. La confirmacion S3 reserva atomicamente el registro canonico por ID aleatorio: intentos concurrentes fallan, errores del provider o de metadata/checksum liberan la reserva para reintentar hasta expirar, y el exito lo elimina atomicamente, liberando capacidad acotada de inmediato y rechazando el replay de `confirmUpload()`. El POST prefirmado emitido por el provider es una autoridad separada y sigue reutilizable hasta su expiracion firmada; confirmar no lo revoca ni debe simular una revocacion inexistente. Usa TTL corto, una key privada y unica de cuarentena por emision, procesamiento idempotente/con deduplicacion de eventos y lifecycle cleanup del provider. El store por defecto es local al proceso; un `S3UploadIssuanceStore` durable compartido debe implementar `reserve`, `release` y `complete` condicionales y atomicos. El checksum S3 obligatorio hace que un POST repetido solo pueda reemplazar con bytes y metadata identicos. Confirmar no es inspeccionar contenido, escanear virus ni autorizar. Autentica y autoriza la emision por separado, escanea/transforma en una queue o workflow y libera solo el objeto aceptado. Nunca registres URLs ni campos firmados. El binding R2 no puede firmar y sus guards de URL fallan intencionadamente; usa el adapter S3-compatible con credenciales solo server.
 
-Para confirmacion multi-instancia, inyecta `RedisS3UploadIssuanceStore` desde `@nuxt-laravelize/filesystem-aws-redis`. Sus transiciones Lua de una sola key usan tiempo Redis, conservan el TTL de la policy, comprueban audience antes de revelar la reserva, aplican fencing por token a release/completion y rechazan registros corruptos. Usa un prefijo propio y Redis persistente; un failover Redis asincrono aun puede perder estado confirmado, por lo que los uploads permanecen en cuarentena y el procesamiento posterior debe ser idempotente.
+Para confirmacion multi-instancia, inyecta `RedisS3UploadIssuanceStore` desde `@luckys_luis/nuxt-laravelize-filesystem-aws-redis`. Sus transiciones Lua de una sola key usan tiempo Redis, conservan el TTL de la policy, comprueban audience antes de revelar la reserva, aplican fencing por token a release/completion y rechazan registros corruptos. Usa un prefijo propio y Redis persistente; un failover Redis asincrono aun puede perder estado confirmado, por lo que los uploads permanecen en cuarentena y el procesamiento posterior debe ser idempotente.
 
 `scopedFilesystem(files, prefix)` aplica confinamiento a ambos operandos y cada capacidad opcional expuesta. `readOnlyFilesystem(files)` rechaza mutaciones base y omite metodos opcionales mutables. `quarantineFilesystem()` proporciona operaciones explicitas `disk`, `release()` y `reject()` sin scan implicito. El `release({ accepted: true, path, checksum: { algorithm: 'sha256', value } }, destination, destinationPath?)` seguro solo acepta evidencia confiable del scanner/workflow para el path normalizado y digest exacto; lee un snapshot coherente de bytes, verifica y escribe esos mismos bytes, y conserva el source de cuarentena en todos los casos exitosos. Un reemplazo concurrente no se promociona ni se elimina. Nunca aceptes evidencia de release desde un cliente. El cleanup es una accion posterior y explicita mediante `reject()` o lifecycle del provider, solo despues de que el caller garantice un path/version inmutable; `release()` no hace read-then-delete porque el contrato portable no ofrece delete condicional/versionado. El mutable `ReadFallbackFilesystem(primary, fallback, tombstones)` exige un `FilesystemTombstoneStore` async explicito; en produccion debe ser durable, compartido y namespaced para ese par logico. Los tombstones son historial autoritativo monotono y nunca se limpian automaticamente. Delete registra antes de retirar el primario. Un move de compatibilidad entre paths distintos crea primero el destino primario, registra el tombstone del source y despues retira el source primario; no es atomico, por lo que un crash o fallo de delete puede dejar ambos objetos primarios, mientras un fallo de destino deja el source visible y sin tombstone. Los writers concurrentes del source requieren serializacion externa o fencing del provider porque el contrato portable no ofrece move condicional. Un path primario presente sigue visible aunque tenga tombstone; si desaparece despues, el fallback obsoleto permanece bloqueado. `read`, `readText`, `size` y `exists` vuelven a comprobar el tombstone tras operar sobre fallback y hacen una unica comprobacion acotada del primario para preferir un reemplazo concurrente; `list()` conserva deliberadamente semantica de snapshot. La compactacion no forma parte del API runtime: solo puede hacerla administracion tras verificar delete/retention del fallback, con politicas explicitas de crecimiento, retencion, backup y monitorizacion. `InMemoryFilesystemTombstoneStore` es process-local para testing/desarrollo, nunca default de produccion. Errores de autorizacion, integridad u otros nunca activan fallback.
 
@@ -149,4 +149,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/filesystem`](../filesystem/README.es.md), [`@nuxt-laravelize/filesystem-aws-redis`](../filesystem-aws-redis/README.es.md).
+[`@luckys_luis/nuxt-laravelize-filesystem`](../filesystem/README.es.md), [`@luckys_luis/nuxt-laravelize-filesystem-aws-redis`](../filesystem-aws-redis/README.es.md).

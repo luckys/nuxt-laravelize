@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { migrationSourceFor, postgresMigrationSource, sqliteMigrationSource } from '../src/migrations.js'
-import type { MigrationDialect, MigrationSource } from '@nuxt-laravelize/migrations'
+import type { MigrationDialect, MigrationSource } from '@luckys_luis/nuxt-laravelize-migrations'
 
 async function expectMigration<D extends MigrationDialect>(dialect: D, source: MigrationSource<D>, name: string) {
   expect(migrationSourceFor(dialect)).toBe(source)

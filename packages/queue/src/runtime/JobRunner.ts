@@ -1,4 +1,4 @@
-import type { Container } from '@nuxt-laravelize/core/runtime'
+import type { Container } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 import { JOB_DISPATCH_METADATA_KEY, MAX_JOB_METADATA_KEYS, readJobDispatchIdentity, snapshotJobPayload, trustJobAdmission, type Job, type JobSerializer, type SerializedJob } from './Job'
 import type { InMemoryJobRegistry, JobConstructor } from './JobRegistry'

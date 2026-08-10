@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/notifications-broadcast",
+  "name": "@luckys_luis/nuxt-laravelize-notifications-broadcast",
   "version": "0.1.0",
   "description": "Tenant-fenced realtime broadcast channel for Nuxt Laravelize notifications",
   "license": "MIT",
@@ -28,10 +28,10 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/broadcasting": "workspace:^",
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/execution-context": "workspace:^",
-    "@nuxt-laravelize/notifications": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-broadcasting": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-execution-context": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-notifications": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

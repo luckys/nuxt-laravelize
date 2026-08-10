@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/broadcasting",
+  "name": "@luckys_luis/nuxt-laravelize-broadcasting",
   "version": "0.1.0",
   "description": "Server-side Laravel-style broadcasting for Nuxt",
   "license": "MIT",
@@ -32,8 +32,8 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/events": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-events": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

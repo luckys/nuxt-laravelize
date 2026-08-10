@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Authorization, AuthorizationRegistry, authorizationRegistryToken, authorizationToken, principalResolverToken, trustQueuePrincipal } from '@nuxt-laravelize/authorization/runtime'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { ExecutionContext, executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { InMemoryJobRegistry, Job, JobAdmissionMetadataContributorRegistry, JobMetadataContributorRegistry, JobRunner, JobSerializer, readJobDispatchIdentity } from '@nuxt-laravelize/queue/runtime'
+import { Authorization, AuthorizationRegistry, authorizationRegistryToken, authorizationToken, principalResolverToken, trustQueuePrincipal } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { ExecutionContext, executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { InMemoryJobRegistry, Job, JobAdmissionMetadataContributorRegistry, JobMetadataContributorRegistry, JobRunner, JobSerializer, readJobDispatchIdentity } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { installQueueDelegation, QUEUE_DELEGATION_METADATA_KEY, QueueDelegationDeniedError, QueueDelegationUnavailableError, type QueueDelegationAuthenticator, type QueueDelegationClaimsV1, type QueueDelegationIssueContext, type QueueDelegationIssuer, type QueueDelegationVerifier } from '../src/runtime'
 import { RequireAuthorization } from '../src/runtime/RequireAuthorization'
 

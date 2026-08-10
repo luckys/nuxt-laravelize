@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/notifications-mail",
+  "name": "@luckys_luis/nuxt-laravelize-notifications-mail",
   "version": "0.2.0",
   "description": "Validated mail channel for Nuxt Laravelize notifications",
   "license": "MIT",
@@ -28,9 +28,9 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/mail": "workspace:^",
-    "@nuxt-laravelize/notifications": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-mail": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-notifications": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

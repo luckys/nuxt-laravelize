@@ -1,4 +1,4 @@
-import { isAtomicFixedWindowCache, type Cache } from '@nuxt-laravelize/cache/runtime'
+import { isAtomicFixedWindowCache, type Cache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 
 export interface RateLimitResult {
   readonly allowed: boolean

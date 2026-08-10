@@ -18,10 +18,10 @@ export function isMissingDefaultDeclaration(path: string, rootDir: string): bool
 }
 
 const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
-  meta: { name: '@nuxt-laravelize/routes', configKey: 'laravelizeRoutes', compatibility: { nuxt: '>=4.3.0 <5' } },
+  meta: { name: '@luckys_luis/nuxt-laravelize-routes', configKey: 'laravelizeRoutes', compatibility: { nuxt: '>=4.3.0 <5' } },
   defaults: { declarations: ['routes.ts'], baseURL: '' },
   async setup(options, nuxt) {
-    const runtimeEntry = createRequire(import.meta.url).resolve('@nuxt-laravelize/routes/runtime')
+    const runtimeEntry = createRequire(import.meta.url).resolve('@luckys_luis/nuxt-laravelize-routes/runtime')
     const declarationPaths = (): string[] => [...new Set([...options.declarations, ...getRoutesDeclarations(nuxt)])]
       .map(path => isAbsolute(path) ? path : resolve(nuxt.options.rootDir, path))
     const load = async (): Promise<RouteTree> => {
@@ -39,11 +39,11 @@ const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule
       write: true,
     })
     nuxt.options.alias['#laravelize/routes'] = template.dst
-    nuxt.options.alias['@nuxt-laravelize/routes/runtime'] = runtimeEntry
+    nuxt.options.alias['@luckys_luis/nuxt-laravelize-routes/runtime'] = runtimeEntry
     ;(nuxt.hooks as { hook(name: 'nitro:config', callback: (config: { alias?: Record<string, string> }) => void): void }).hook('nitro:config', (config) => {
       config.alias ??= {}
       config.alias['#laravelize/routes'] = template.dst
-      config.alias['@nuxt-laravelize/routes/runtime'] = runtimeEntry
+      config.alias['@luckys_luis/nuxt-laravelize-routes/runtime'] = runtimeEntry
     })
     nuxt.hook('builder:watch', async (_event, path) => {
       const changed = resolve(nuxt.options.srcDir, path)

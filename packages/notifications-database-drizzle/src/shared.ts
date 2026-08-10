@@ -1,4 +1,4 @@
-import { DatabaseNotificationIdempotencyConflictError, databaseNotificationTenantScope, normalizeDatabaseNotificationId, normalizeDatabaseNotificationQuery, normalizeDatabaseNotificationRecipient, normalizeDatabaseNotificationRecord, normalizeReadAt, type DatabaseNotificationPage, type DatabaseNotificationQuery, type DatabaseNotificationRecipient, type DatabaseNotificationRecord } from '@nuxt-laravelize/notifications-database/runtime'
+import { DatabaseNotificationIdempotencyConflictError, databaseNotificationTenantScope, normalizeDatabaseNotificationId, normalizeDatabaseNotificationQuery, normalizeDatabaseNotificationRecipient, normalizeDatabaseNotificationRecord, normalizeReadAt, type DatabaseNotificationPage, type DatabaseNotificationQuery, type DatabaseNotificationRecipient, type DatabaseNotificationRecord } from '@luckys_luis/nuxt-laravelize-notifications-database/runtime'
 
 export interface DrizzlePostgresDatabaseNotificationDatabase {
   execute(query: import('drizzle-orm').SQL): unknown | PromiseLike<unknown>

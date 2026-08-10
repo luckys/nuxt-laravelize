@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/dead-letter-operations",
+  "name": "@luckys_luis/nuxt-laravelize-dead-letter-operations",
   "version": "0.1.0",
   "description": "Opt-in, fail-closed dead-letter operations console for Nuxt Laravelize",
   "license": "MIT",
@@ -32,9 +32,9 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/authorization": "workspace:^",
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/dead-letter": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-authorization": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-dead-letter": "workspace:^",
     "@nuxt/kit": "^4.5.2",
     "h3": "^1.15.11",
     "nitropack": "^2.13.4"

@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/console`
+# `@luckys_luis/nuxt-laravelize-console`
 
 [Espanol](./README.es.md) | English
 
@@ -7,7 +7,7 @@ Typed, dependency-injected console command runtime for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/console
+pnpm add @luckys_luis/nuxt-laravelize-console
 ```
 
 ## Package-specific usage
@@ -26,7 +26,7 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Console
 
-`@nuxt-laravelize/console` registers typed commands without a global command facade. `CommandRegistry` rejects duplicate names; argument and option schemas own parsing, defaults, aliases, validation, and help. `ConsoleRunner` creates one Laravelize application scope per invocation, binds a `cli` execution context, propagates abort signals, records bounded logs/spans, normalizes exit codes, and always disposes the scope. The portable entrypoint never reads process globals. Use `/node` for TTY/process adapters and `/testing` for deterministic terminal, prompt, and process fakes. Prompts fail closed unless an interactive adapter is installed.
+`@luckys_luis/nuxt-laravelize-console` registers typed commands without a global command facade. `CommandRegistry` rejects duplicate names; argument and option schemas own parsing, defaults, aliases, validation, and help. `ConsoleRunner` creates one Laravelize application scope per invocation, binds a `cli` execution context, propagates abort signals, records bounded logs/spans, normalizes exit codes, and always disposes the scope. The portable entrypoint never reads process globals. Use `/node` for TTY/process adapters and `/testing` for deterministic terminal, prompt, and process fakes. Prompts fail closed unless an interactive adapter is installed.
 
 ```ts
 const registry = new CommandRegistry().register(defineCommand({
@@ -47,4 +47,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/core`](../core/README.md), [`@nuxt-laravelize/execution-context`](../execution-context/README.md), [`@nuxt-laravelize/testing`](../testing/README.md).
+[`@luckys_luis/nuxt-laravelize-core`](../core/README.md), [`@luckys_luis/nuxt-laravelize-execution-context`](../execution-context/README.md), [`@luckys_luis/nuxt-laravelize-testing`](../testing/README.md).

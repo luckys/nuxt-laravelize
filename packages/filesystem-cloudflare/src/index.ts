@@ -1,5 +1,5 @@
-import type { FileContents, Filesystem, FilesystemStream } from '@nuxt-laravelize/filesystem/runtime'
-import { FileNotFoundError, normalizeStoragePath, toBytes } from '@nuxt-laravelize/filesystem/runtime'
+import type { FileContents, Filesystem, FilesystemStream } from '@luckys_luis/nuxt-laravelize-filesystem/runtime'
+import { FileNotFoundError, normalizeStoragePath, toBytes } from '@luckys_luis/nuxt-laravelize-filesystem/runtime'
 
 export interface R2ObjectBodyLike { arrayBuffer(): Promise<ArrayBuffer>, body?: ReadableStream<Uint8Array> }
 export interface R2ObjectLike { size: number }

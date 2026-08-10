@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createContainer, createToken, type Resolver } from '@nuxt-laravelize/core/runtime'
+import { createContainer, createToken, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 import { EventListenerRegistry } from '../../src/runtime/EventListenerRegistry'
 import { InMemoryDispatcher } from '../../src/runtime/InMemoryDispatcher'

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { PrivateChannel } from '@nuxt-laravelize/broadcasting/runtime'
+import { PrivateChannel } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
 import { PusherBroadcaster } from '../src/index.js'
 
 describe('PusherBroadcaster', () => {

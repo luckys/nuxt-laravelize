@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { and, eq, inArray, sql, type SQL } from 'drizzle-orm'
-import type { ScoutManager, SearchDocument, SearchEngine, SearchHit, SearchPage, SearchRequest, SearchValue, Searchable } from '@nuxt-laravelize/scout/runtime'
+import type { ScoutManager, SearchDocument, SearchEngine, SearchHit, SearchPage, SearchRequest, SearchValue, Searchable } from '@luckys_luis/nuxt-laravelize-scout/runtime'
 import { scoutDocuments } from './schema'
 
 export { scoutDocuments } from './schema'

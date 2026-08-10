@@ -1,4 +1,4 @@
-import { createToken } from '@nuxt-laravelize/core/runtime'
+import { createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 import type { Dispatcher, QueuedListenerAdapter } from './contracts'
 import type { EventListenerRegistry } from './EventListenerRegistry'

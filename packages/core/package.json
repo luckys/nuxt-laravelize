@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/core",
+  "name": "@luckys_luis/nuxt-laravelize-core",
   "version": "0.2.0",
   "description": "Framework-neutral container and provider lifecycle for Nuxt Laravelize",
   "license": "MIT",

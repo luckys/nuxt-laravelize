@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/queue-bullmq",
+  "name": "@luckys_luis/nuxt-laravelize-queue-bullmq",
   "version": "0.2.0",
   "description": "Node-only BullMQ driver and worker for Nuxt Laravelize",
   "license": "MIT",
@@ -32,9 +32,9 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/dead-letter": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-dead-letter": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-queue": "workspace:^",
     "@nuxt/kit": "^4.5.2",
     "bullmq": "^5.77.3",
     "ioredis": "^5.10.1"

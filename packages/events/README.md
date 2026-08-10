@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/events`
+# `@luckys_luis/nuxt-laravelize-events`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Synchronous events and listeners for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/events
+pnpm add @luckys_luis/nuxt-laravelize-events
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/events'],
+  modules: ['@luckys_luis/nuxt-laravelize-events'],
 })
 ```
 
@@ -34,15 +34,15 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Events
 
-`@nuxt-laravelize/events` dispatches events synchronously. Listener definitions registered during boot are shared with request and worker dispatchers, while listener instances and their dependencies are resolved from the current scope.
+`@luckys_luis/nuxt-laravelize-events` dispatches events synchronously. Listener definitions registered during boot are shared with request and worker dispatchers, while listener instances and their dependencies are resolved from the current scope.
 
 ```bash
-pnpm add @nuxt-laravelize/events
+pnpm add @luckys_luis/nuxt-laravelize-events
 ```
 
 ```ts
-import { createContainer, createToken } from '@nuxt-laravelize/core/runtime'
-import { InMemoryDispatcher, type Listener } from '@nuxt-laravelize/events/runtime'
+import { createContainer, createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { InMemoryDispatcher, type Listener } from '@luckys_luis/nuxt-laravelize-events/runtime'
 
 class UserRegistered {
   constructor(readonly userId: string) {}
@@ -74,7 +74,7 @@ await events.dispatch(new UserRegistered('user_1'))
 Application providers that register listeners during boot should resolve `eventListenerRegistryToken`; an `EventSubscriber` can receive that registry directly from the provider. `dispatcher.listen()`, `listenAny()`, and `subscribe()` remain local to the current request or worker dispatcher and never leak registrations into sibling scopes.
 
 ```ts
-import { EventFake } from '@nuxt-laravelize/events/testing'
+import { EventFake } from '@luckys_luis/nuxt-laravelize-events/testing'
 
 const events = new EventFake()
 await events.dispatch(new UserRegistered('user_1'))
@@ -89,4 +89,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/events-queue`](../events-queue/README.md), [`@nuxt-laravelize/queue`](../queue/README.md).
+[`@luckys_luis/nuxt-laravelize-events-queue`](../events-queue/README.md), [`@luckys_luis/nuxt-laravelize-queue`](../queue/README.md).

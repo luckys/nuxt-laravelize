@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/database",
+  "name": "@luckys_luis/nuxt-laravelize-database",
   "version": "0.2.0",
   "description": "ORM-neutral factories and seeders for Nuxt Laravelize",
   "license": "MIT",
@@ -31,7 +31,7 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

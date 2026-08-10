@@ -1,4 +1,4 @@
-import type { Container } from '@nuxt-laravelize/core/runtime'
+import type { Container } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import type { H3Event } from 'h3'
 import type { IdempotencyStore } from '../store'
 import { idempotencyStoreToken } from '../tokens'

@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line, @stylistic/lines-between-class-members */
 import { sql, type SQL } from 'drizzle-orm'
 import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core'
-import type { ScoutManager, SearchDocument, SearchEngine, SearchHit, SearchPage, SearchRequest, SearchValue, Searchable } from '@nuxt-laravelize/scout/runtime'
+import type { ScoutManager, SearchDocument, SearchEngine, SearchHit, SearchPage, SearchRequest, SearchValue, Searchable } from '@luckys_luis/nuxt-laravelize-scout/runtime'
 import { sqliteScoutDocuments } from './sqlite-schema'
 
 export { sqliteScoutDocuments } from './sqlite-schema'

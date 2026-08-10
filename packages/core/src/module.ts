@@ -13,7 +13,7 @@ export interface ModuleOptions {
 
 const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
   meta: {
-    name: '@nuxt-laravelize/core',
+    name: '@luckys_luis/nuxt-laravelize-core',
     configKey: 'laravelizeCore',
     compatibility: { nuxt: '>=4.3.0 <5' },
   },

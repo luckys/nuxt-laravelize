@@ -1,4 +1,4 @@
-import { InMemoryCache } from '@nuxt-laravelize/cache/runtime'
+import { InMemoryCache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 import { describe, expect, it } from 'vitest'
 
 import { RateLimiter } from '../../src/runtime/RateLimiter'
