@@ -1,4 +1,4 @@
-import type { DeadLetterDetail, DeadLetterDisposition, DeadLetterKey, DeadLetterMutationResult, DeadLetterSummary } from '@nuxt-laravelize/dead-letter'
+import type { DeadLetterDetail, DeadLetterDisposition, DeadLetterKey, DeadLetterMutationResult, DeadLetterSummary } from '@luckys_luis/nuxt-laravelize-dead-letter'
 
 export type { DeadLetterDetail, DeadLetterDisposition, DeadLetterKey, DeadLetterMutationResult, DeadLetterSummary }
 export interface OperationsFiltersValue { source: string, namespace: string, type: string, disposition: '' | DeadLetterDisposition }

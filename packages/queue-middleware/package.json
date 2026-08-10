@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/queue-middleware",
+  "name": "@luckys_luis/nuxt-laravelize-queue-middleware",
   "version": "0.1.0",
   "description": "Portable overlap, rate-limit and exception-throttle middleware for Nuxt Laravelize queues",
   "license": "MIT",
@@ -28,10 +28,10 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/cache": "workspace:^",
-    "@nuxt-laravelize/core": "workspace:^",
-    "@nuxt-laravelize/queue": "workspace:^",
-    "@nuxt-laravelize/rate-limiter": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-cache": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-queue": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-rate-limiter": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

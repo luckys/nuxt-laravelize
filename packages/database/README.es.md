@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/database`
+# `@luckys_luis/nuxt-laravelize-database`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Factories y seeders independientes del ORM
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/database
+pnpm add @luckys_luis/nuxt-laravelize-database
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/database'],
+  modules: ['@luckys_luis/nuxt-laravelize-database'],
 })
 ```
 
@@ -33,14 +33,14 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Database
 
-`@nuxt-laravelize/database` proporciona factories, seeders y contratos explicitos de transaccion/unit of work independientes del ORM. Tu aplicacion proporciona callbacks o adapters de persistencia; las relaciones se componen explicitamente sin metadata ORM.
+`@luckys_luis/nuxt-laravelize-database` proporciona factories, seeders y contratos explicitos de transaccion/unit of work independientes del ORM. Tu aplicacion proporciona callbacks o adapters de persistencia; las relaciones se componen explicitamente sin metadata ORM.
 
 ```bash
-pnpm add @nuxt-laravelize/database
+pnpm add @luckys_luis/nuxt-laravelize-database
 ```
 
 ```ts
-import { Factory, builtInFaker, recycle } from '@nuxt-laravelize/database/runtime'
+import { Factory, builtInFaker, recycle } from '@luckys_luis/nuxt-laravelize-database/runtime'
 
 interface UserDraft { name: string, email: string, active: boolean, teamId?: string }
 
@@ -93,7 +93,7 @@ const draft = await new (class extends Factory<UserDraft> {
 La composicion siempre ejecuta definition -> states -> sequence -> `for` -> `has` -> overrides de llamada. Para cada item creado ejecuta draft -> todos los hooks before -> persistencia -> todos los hooks after, de forma secuencial y fail-fast. `make()` es sincrono y deliberadamente no ejecuta hooks lifecycle. Una factory relacionada reutilizada conserva count/state y reinicia su indice de sequence local para cada raiz mientras su stream Faker avanza normalmente; no existe un pool recycle oculto. Una factory de `for()` debe producir exactamente un item, mientras `has()` conserva su forma escalar/array. Los composers deben devolver un objeto raiz completo o parcial.
 
 ```ts
-import { DefaultSeederRegistry, Seeder } from '@nuxt-laravelize/database/runtime'
+import { DefaultSeederRegistry, Seeder } from '@luckys_luis/nuxt-laravelize-database/runtime'
 
 class UserSeeder extends Seeder {
   async run() { await new UserFactory().create(saveUser) }
@@ -129,7 +129,7 @@ Omite `--class` para ejecutar todos los seeders registrados en el orden del regi
 ### Transacciones y unit of work
 
 ```ts
-import { DrizzleTransactionManager } from '@nuxt-laravelize/database-drizzle'
+import { DrizzleTransactionManager } from '@luckys_luis/nuxt-laravelize-database-drizzle'
 
 const transactions = new DrizzleTransactionManager(db)
 await transactions.transaction(async (unitOfWork) => {
@@ -143,14 +143,14 @@ Los repositorios reciben `unitOfWork.session` explicitamente para compartir la t
 
 ### Dispatch best-effort a queue despues del commit
 
-`@nuxt-laravelize/database-queue` conecta los contratos explicitos de unit of work y queue sin introducir discovery ambiental de transacciones.
+`@luckys_luis/nuxt-laravelize-database-queue` conecta los contratos explicitos de unit of work y queue sin introducir discovery ambiental de transacciones.
 
 ```bash
-pnpm add @nuxt-laravelize/database @nuxt-laravelize/queue @nuxt-laravelize/database-queue
+pnpm add @luckys_luis/nuxt-laravelize-database @luckys_luis/nuxt-laravelize-queue @luckys_luis/nuxt-laravelize-database-queue
 ```
 
 ```ts
-import { dispatchAfterCommit } from '@nuxt-laravelize/database-queue'
+import { dispatchAfterCommit } from '@luckys_luis/nuxt-laravelize-database-queue'
 
 await transactions.transaction(async (unitOfWork) => {
   await orders.save(unitOfWork.session, order)
@@ -172,4 +172,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/database-drizzle`](../database-drizzle/README.es.md), [`@nuxt-laravelize/database-queue`](../database-queue/README.es.md), [`@nuxt-laravelize/migrations`](../migrations/README.es.md).
+[`@luckys_luis/nuxt-laravelize-database-drizzle`](../database-drizzle/README.es.md), [`@luckys_luis/nuxt-laravelize-database-queue`](../database-queue/README.es.md), [`@luckys_luis/nuxt-laravelize-migrations`](../migrations/README.es.md).

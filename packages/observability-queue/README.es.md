@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/observability-queue`
+# `@luckys_luis/nuxt-laravelize-observability-queue`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Propagacion W3C acotada y telemetria semantica para jobs
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/observability-queue
+pnpm add @luckys_luis/nuxt-laravelize-observability-queue
 ```
 
 ## Uso especifico del package
@@ -18,7 +18,7 @@ pnpm add @nuxt-laravelize/observability-queue
 Instala el bridge con allowlists explicitas de jobs y queues. Propaga solo `traceparent` por defecto, crea consumer spans y mapea releases, fallos y completados a metricas acotadas.
 
 ```ts
-import { installQueueObservability } from '@nuxt-laravelize/observability-queue'
+import { installQueueObservability } from '@luckys_luis/nuxt-laravelize-observability-queue'
 
 installQueueObservability(admissionContributors, runner, observability, {
   jobs: ['billing.invoice.process.v1'],
@@ -37,7 +37,7 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Observabilidad y OpenTelemetry
 
-`@nuxt-laravelize/observability` se incluye en el preset como base no-op sin coste. Sus contratos runtime no dependen de H3. Los providers de la aplicación pueden sobrescribir `observabilityToken` si se registran después de los providers del módulo. `@nuxt-laravelize/observability-otel` y `@nuxt-laravelize/observability-queue` son opt-in. El adapter OTel usa solo `@opentelemetry/api` en runtime y nunca instala globals, SDK ni exporters.
+`@luckys_luis/nuxt-laravelize-observability` se incluye en el preset como base no-op sin coste. Sus contratos runtime no dependen de H3. Los providers de la aplicación pueden sobrescribir `observabilityToken` si se registran después de los providers del módulo. `@luckys_luis/nuxt-laravelize-observability-otel` y `@luckys_luis/nuxt-laravelize-observability-queue` son opt-in. El adapter OTel usa solo `@opentelemetry/api` en runtime y nunca instala globals, SDK ni exporters.
 
 Los consumidores de cola crean spans raíz por defecto. Activa `trustTraceContext: true` solo para carriers de confianza. Los metadatos persisten únicamente `traceparent`; `tracestate` requiere `propagateTracestate: true` y baggage nunca se persiste. Los callbacks terminales de fallo no son spans de proceso. Si también se instala execution-context, observabilidad sustituye solo la correlación trace/span y conserva la identidad y procedencia de ejecución del worker.
 
@@ -53,4 +53,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/observability`](../observability/README.es.md), [`@nuxt-laravelize/queue`](../queue/README.es.md), [`@nuxt-laravelize/execution-context-queue`](../execution-context-queue/README.es.md).
+[`@luckys_luis/nuxt-laravelize-observability`](../observability/README.es.md), [`@luckys_luis/nuxt-laravelize-queue`](../queue/README.es.md), [`@luckys_luis/nuxt-laravelize-execution-context-queue`](../execution-context-queue/README.es.md).

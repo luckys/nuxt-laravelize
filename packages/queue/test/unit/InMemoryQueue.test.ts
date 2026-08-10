@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/arrow-parens, @stylistic/max-statements-per-line */
 import { describe, expect, it, vi } from 'vitest'
-import { createContainer, type Resolver } from '@nuxt-laravelize/core/runtime'
+import { createContainer, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { InMemoryJobRegistry, InMemoryQueue, Job, JobMetadataContributorRegistry, JobRegistrationCollisionError, JobReleasedError, JobRunner, JobSerializer, MAX_QUEUE_CHAIN_STEPS, NonRetryableJobError, queueBatchContextToken, readJobDispatchIdentity, readJobTags } from '../../src/runtime/index'
 
 class TestJob extends Job<{ value: number }> {

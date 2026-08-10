@@ -1,4 +1,4 @@
-import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InMemoryIdempotencyStore } from '../../src/runtime/store'
 import { idempotencyStoreToken } from '../../src/runtime/tokens'

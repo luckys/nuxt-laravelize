@@ -1,6 +1,6 @@
 import { check, index, integer, jsonb, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
-import type { NotificationJsonObject } from '@nuxt-laravelize/notifications-database/runtime'
+import type { NotificationJsonObject } from '@luckys_luis/nuxt-laravelize-notifications-database/runtime'
 
 export const databaseNotifications = pgTable('database_notifications', {
   tenantScope: text('tenant_scope').notNull(),

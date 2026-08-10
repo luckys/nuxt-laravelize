@@ -1,6 +1,6 @@
-import type { Resolver } from '@nuxt-laravelize/core/runtime'
-import { Job } from '@nuxt-laravelize/queue/runtime'
-import { ConsumerFailure, InboxConsumer, createEnvelope, type MessageEnvelope } from '@nuxt-laravelize/reliability'
+import type { Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { Job } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { ConsumerFailure, InboxConsumer, createEnvelope, type MessageEnvelope } from '@luckys_luis/nuxt-laravelize-reliability'
 import { inboxStoreToken, reliableHandlerRegistryToken } from './tokens'
 import { UnknownReliableMessageError } from './ReliableHandlerRegistry'
 

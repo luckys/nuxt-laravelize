@@ -39,7 +39,7 @@ This document records Laravel-inspired capabilities that could add product value
 
 ### Authentication, Fortify, and Sanctum semantics
 
-Candidate packages: `@nuxt-laravelize/auth`, `@nuxt-laravelize/auth-better-auth`, and `@nuxt-laravelize/auth-drizzle`.
+Candidate packages: `@luckys_luis/nuxt-laravelize-auth`, `@luckys_luis/nuxt-laravelize-auth-better-auth`, and `@luckys_luis/nuxt-laravelize-auth-drizzle`.
 
 The portable package would define trusted session and principal contracts. An initial Better Auth adapter would provide the protocol implementation rather than introducing a new authentication engine. The feature should cover cookie sessions, login/logout, session rotation and revocation, password reset, email verification, password confirmation, TOTP and recovery codes, personal access tokens, token abilities, credential throttling, CSRF integration, and security audit events.
 
@@ -47,13 +47,13 @@ It must integrate with `principalResolverToken`, execution context, authorizatio
 
 ### Session, cookie, and CSRF primitives
 
-Candidate packages: `@nuxt-laravelize/session`, `@nuxt-laravelize/session-redis`, and `@nuxt-laravelize/csrf`.
+Candidate packages: `@luckys_luis/nuxt-laravelize-session`, `@luckys_luis/nuxt-laravelize-session-redis`, and `@luckys_luis/nuxt-laravelize-csrf`.
 
 These packages would support signed or server-side sessions, ID regeneration, flash data, session locks, memory/Redis/database stores, encrypted cookies, secure defaults, and SPA-compatible CSRF protection. They should remain usable without the authentication package.
 
 ### Console commands
 
-Candidate package: `@nuxt-laravelize/console`.
+Candidate package: `@luckys_luis/nuxt-laravelize-console`.
 
 Status: implemented as an opt-in portable runtime with Node and testing adapters.
 
@@ -61,7 +61,7 @@ The console runtime would provide typed command registration, arguments, options
 
 ### Unified migrations
 
-Candidate packages: `@nuxt-laravelize/migrations` and `@nuxt-laravelize/migrations-drizzle`.
+Candidate packages: `@luckys_luis/nuxt-laravelize-migrations` and `@luckys_luis/nuxt-laravelize-migrations-drizzle`.
 
 Status: implemented with transactional PostgreSQL/SQLite backends, explicit application discovery, console commands, and aggregate package sources.
 
@@ -69,7 +69,7 @@ The runner would discover application and package migrations, track IDs and chec
 
 ### Nuxt 4 scheduler
 
-Candidate package: `@nuxt-laravelize/scheduler-nuxt`.
+Candidate package: `@luckys_luis/nuxt-laravelize-scheduler-nuxt`.
 
 Status: implemented as an opt-in Nuxt 4/Nitro 2 module with timezone-aware provider triggers and Redis/Valkey locks.
 
@@ -77,25 +77,25 @@ The existing framework-neutral schedule definitions need a Nuxt 4-compatible exe
 
 ### Central exception handling
 
-Candidate package: `@nuxt-laravelize/exceptions`.
+Candidate package: `@luckys_luis/nuxt-laravelize-exceptions`.
 
 This boundary would register reporters and renderers, map domain errors to HTTP Problem Details, suppress selected reports, throttle repeated failures, attach correlation IDs, redact sensitive data, and integrate with observability. It should replace duplicated HTTP error translation without leaking stack traces, payloads, or secrets.
 
 ### Typed API contracts and OpenAPI
 
-Candidate packages: `@nuxt-laravelize/contracts` and `@nuxt-laravelize/openapi`.
+Candidate packages: `@luckys_luis/nuxt-laravelize-contracts` and `@luckys_luis/nuxt-laravelize-openapi`.
 
 A contract would declare method, path, path parameters, query, body, status-specific responses, errors, and authorization metadata once. Adapters could generate runtime validation, OpenAPI 3.1, typed `useHttp` calls, fixtures, and CI breaking-change reports. The design should extend `routes`, `validation`, Form Requests, resources, and pagination. Standard Schema implementations without introspection require explicit metadata or schema-specific adapters.
 
 ### Telescope-style diagnostics
 
-Candidate package: `@nuxt-laravelize/telescope`.
+Candidate package: `@luckys_luis/nuxt-laravelize-telescope`.
 
 The development dashboard could inspect requests, exceptions, logs, slow queries, jobs, events, mail, notifications, cache, outbound HTTP, webhooks, and workflows. Production use must be explicitly enabled and authorized. Request bodies and arbitrary headers stay disabled by default, secrets are redacted, and storage is bounded by retention limits.
 
 ### Horizon/Pulse-style operations
 
-Candidate packages: `@nuxt-laravelize/queue-operations` and `@nuxt-laravelize/pulse`, potentially sharing the existing dead-letter operations shell.
+Candidate packages: `@luckys_luis/nuxt-laravelize-queue-operations` and `@luckys_luis/nuxt-laravelize-pulse`, potentially sharing the existing dead-letter operations shell.
 
 The operations surface would report queue depth, throughput, latency, worker heartbeats, delayed/failed jobs, outbox lag, workflow stalls, scheduler runs, cache metrics, HTTP latency, and dead letters. Fenced and audited actions could retry, cancel, reconcile, pause, resume, and perform bounded bulk operations. Payload disclosure remains a separate privileged capability.
 
@@ -111,19 +111,19 @@ Remaining candidates include SMS, push, and Slack/Teams adapters. Lifecycle even
 
 ### Precognition
 
-Candidate package: `@nuxt-laravelize/precognition`.
+Candidate package: `@luckys_luis/nuxt-laravelize-precognition`.
 
 Vue composables would call the same server validation used by Form Requests without executing the controller. The feature should support field subsets, debounce, cancellation, transformed values, error bags, dirty state, and Standard Schema types.
 
 ### Socialite semantics
 
-Candidate package: `@nuxt-laravelize/socialite`, built after authentication.
+Candidate package: `@luckys_luis/nuxt-laravelize-socialite`, built after authentication.
 
 Initial providers could include GitHub, Google, Microsoft, Apple, Discord, and generic OpenID Connect. State, nonce, PKCE, explicit account linking, email takeover prevention, encrypted refresh tokens, and audited link/unlink events are mandatory.
 
 ### Echo and realtime clients
 
-Candidate packages: `@nuxt-laravelize/echo` and `@nuxt-laravelize/echo-pusher`.
+Candidate packages: `@luckys_luis/nuxt-laravelize-echo` and `@luckys_luis/nuxt-laravelize-echo-pusher`.
 
 The browser layer would provide SSR-safe Vue composables for public, private, and presence channels, typed events, subscription authentication, reconnect/resubscribe behavior, and automatic disposal. A self-hosted Reverb-style server should be considered only after the client contract is stable; Pusher remains the lower-risk first adapter.
 
@@ -135,11 +135,11 @@ Virus scanning and transformation remain application queue/workflow responsibili
 
 ### Database factory improvements
 
-Delivered in `@nuxt-laravelize/database/runtime`: indexed states/sequences, explicit nested `has`/`for` composition, local deterministic recycling, seeded Faker with a fixed clock, typed sync/async persistence adapters, callback compatibility, and sequential before/after hooks. Composition remains ORM-neutral and explicit; ORM metadata, implicit foreign keys, global recycle pools, bulk persistence/transactions, and an Eloquent clone are intentionally not provided.
+Delivered in `@luckys_luis/nuxt-laravelize-database/runtime`: indexed states/sequences, explicit nested `has`/`for` composition, local deterministic recycling, seeded Faker with a fixed clock, typed sync/async persistence adapters, callback compatibility, and sequential before/after hooks. Composition remains ORM-neutral and explicit; ORM metadata, implicit foreign keys, global recycle pools, bulk persistence/transactions, and an Eloquent clone are intentionally not provided.
 
 ### Cashier-style billing
 
-Candidate packages: `@nuxt-laravelize/cashier` and `@nuxt-laravelize/cashier-stripe`.
+Candidate packages: `@luckys_luis/nuxt-laravelize-cashier` and `@luckys_luis/nuxt-laravelize-cashier-stripe`.
 
 The first adapter could cover customers, subscriptions, trials, usage billing, invoices, Checkout, customer portal links, idempotent webhooks, and entitlement synchronization with Pennant. Billing state changes should use reliability and workflows for retry and compensation. Paddle or other providers would remain separate adapters.
 
@@ -161,7 +161,7 @@ The HTTP client could add named clients, retries and backoff, timeouts, request 
 
 ### Multi-tenancy guardrails
 
-Candidate packages: `@nuxt-laravelize/tenancy` and optional database adapters.
+Candidate packages: `@luckys_luis/nuxt-laravelize-tenancy` and optional database adapters.
 
 The feature would resolve a tenant from a trusted source, verify membership, require tenant context for selected handlers and jobs, scope cache/files/search, propagate tenant identity with worker reauthorization, and support PostgreSQL RLS/session-variable integrations. Context metadata alone must never be treated as authorization, and no ORM-independent package can promise complete query isolation.
 

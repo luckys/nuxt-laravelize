@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/workflows-reliability`
+# `@luckys_luis/nuxt-laravelize-workflows-reliability`
 
 [Espanol](./README.es.md) | English
 
@@ -7,7 +7,7 @@ Transactional workflow wake-ups through the Laravelize reliability outbox
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/workflows-reliability @nuxt-laravelize/workflows @nuxt-laravelize/reliability @nuxt-laravelize/database
+pnpm add @luckys_luis/nuxt-laravelize-workflows-reliability @luckys_luis/nuxt-laravelize-workflows @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-database
 ```
 
 ## Package-specific usage
@@ -40,7 +40,7 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Workflows and sagas
 
-`@nuxt-laravelize/workflows` implements persisted, linear workflows with versioned definitions, fenced renewable leases, retries, restart-safe attempts, cooperative in-flight cancellation, and reverse-order compensation.
+`@luckys_luis/nuxt-laravelize-workflows` implements persisted, linear workflows with versioned definitions, fenced renewable leases, retries, restart-safe attempts, cooperative in-flight cancellation, and reverse-order compensation.
 
 Versions are opaque, case-sensitive strings of 1–64 ASCII characters, with alphanumeric ends and `[A-Za-z0-9._-]` interiors; `latest`, `default`, and `current` are reserved case-insensitively. Resolution is exact, without fallback, latest aliases, or ranges. Never change handlers or steps under a published tuple; assign a new version. New source snapshots require `snapshotFormatVersion: 1`. Diagnostic `status` normalizes a legacy missing field and rejects unknown formats without requiring a deployed definition; execution exact-resolves even terminal/waiting rows before claim or mutation.
 
@@ -65,17 +65,17 @@ await workflows.run(started.id)
 
 The included in-memory store is volatile and intended for tests or local development. Production stores must implement atomic revision and lease fencing, including `renewLease()`. Configure `leaseDurationMs` and a shorter `heartbeatIntervalMs`; handler contexts receive `signal`, cancellation is observed at heartbeat cadence, and stale results are discarded after lease loss. Signals cannot undo accepted external effects, so handlers remain at-least-once and require stable idempotency keys.
 
-`@nuxt-laravelize/workflows-drizzle` supplies durable PostgreSQL, SQLite, and Turso stores. Workflow identity and canonical input are immutable; relational revision, cancellation and lease columns override serialized snapshots during hydration. Claims and commits are conditional row-returning statements, and stale or expired owners are fenced before state can be persisted. These stores also implement the optional `RecoverableWorkflowStore` capability, returning non-terminal IDs in bounded `(updatedAt, id)` cursor pages.
+`@luckys_luis/nuxt-laravelize-workflows-drizzle` supplies durable PostgreSQL, SQLite, and Turso stores. Workflow identity and canonical input are immutable; relational revision, cancellation and lease columns override serialized snapshots during hydration. Claims and commits are conditional row-returning statements, and stale or expired owners are fenced before state can be persisted. These stores also implement the optional `RecoverableWorkflowStore` capability, returning non-terminal IDs in bounded `(updatedAt, id)` cursor pages.
 
 ```ts
-import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'
+import { DrizzlePostgresWorkflowStore } from '@luckys_luis/nuxt-laravelize-workflows-drizzle/postgres'
 
 const workflows = new WorkflowManager(new DrizzlePostgresWorkflowStore(db), registry)
 ```
 
 ### Transactional outbox wake-ups
 
-`@nuxt-laravelize/workflows-reliability` atomically records each workflow mutation and its future wake-up in the reliability outbox. Atomicity requires the workflow adapter, outbox adapter, and `TransactionManager` to use the same physical database transaction and connection.
+`@luckys_luis/nuxt-laravelize-workflows-reliability` atomically records each workflow mutation and its future wake-up in the reliability outbox. Atomicity requires the workflow adapter, outbox adapter, and `TransactionManager` to use the same physical database transaction and connection.
 
 ```ts
 const workflowStore = new TransactionalWorkflowStore({
@@ -105,11 +105,11 @@ Run `DATABASE_URL=postgresql://... pnpm test:integration:postgres` to execute th
 
 ### Queue scheduling
 
-`@nuxt-laravelize/workflows-queue` schedules one authoritative workflow transition per queue job. Payloads contain only the workflow ID; workers reload the store and claim by revision and lease. Business retry deadlines create delayed successor jobs, while queue retries are reserved for transport, store, and publication failures.
+`@luckys_luis/nuxt-laravelize-workflows-queue` schedules one authoritative workflow transition per queue job. Payloads contain only the workflow ID; workers reload the store and claim by revision and lease. Business retry deadlines create delayed successor jobs, while queue retries are reserved for transport, store, and publication failures.
 
 ```ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/workflows-queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-workflows-queue'],
   laravelizeWorkflowsQueue: { queue: 'workflows', tries: 5, backoff: 5000 },
 })
 
@@ -131,4 +131,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/workflows`](../workflows/README.md), [`@nuxt-laravelize/reliability`](../reliability/README.md), [`@nuxt-laravelize/database`](../database/README.md).
+[`@luckys_luis/nuxt-laravelize-workflows`](../workflows/README.md), [`@luckys_luis/nuxt-laravelize-reliability`](../reliability/README.md), [`@luckys_luis/nuxt-laravelize-database`](../database/README.md).

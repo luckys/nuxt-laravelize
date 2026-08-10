@@ -2,7 +2,7 @@ import { isAbsolute, resolve } from 'node:path'
 import { createJiti } from 'jiti'
 import { addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit'
 import type { NuxtModule } from 'nuxt/schema'
-import { Schedule, defineSchedule, type NormalizedScheduledTask } from '@nuxt-laravelize/scheduler'
+import { Schedule, defineSchedule, type NormalizedScheduledTask } from '@luckys_luis/nuxt-laravelize-scheduler'
 import { compileNuxtSchedule, mergeNitro2SchedulerConfig, type MutableNitro2Config, type NitroTaskDefinition } from './compiler'
 
 export interface ModuleOptions {
@@ -14,7 +14,7 @@ export interface ModuleOptions {
 type Declaration = Schedule | readonly Schedule[] | ((schedule: Schedule) => void)
 
 const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
-  meta: { name: '@nuxt-laravelize/scheduler-nuxt', configKey: 'laravelizeScheduler', compatibility: { nuxt: '>=4.4.5 <5' } },
+  meta: { name: '@luckys_luis/nuxt-laravelize-scheduler-nuxt', configKey: 'laravelizeScheduler', compatibility: { nuxt: '>=4.4.5 <5' } },
   defaults: { enabled: false, schedules: [], tasks: {} },
   async setup(options, nuxt) {
     if (!options.enabled) return
@@ -67,7 +67,7 @@ function isSchedule(value: unknown): value is Schedule {
 export function renderSchedulerTaskModule(
   task: NormalizedScheduledTask,
   provider: string,
-  runtimeEntry = '@nuxt-laravelize/scheduler-nuxt/runtime',
+  runtimeEntry = '@luckys_luis/nuxt-laravelize-scheduler-nuxt/runtime',
 ): string {
   let serialized: string
   try {

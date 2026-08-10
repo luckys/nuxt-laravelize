@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line, no-empty */
 import { getHeader, getResponseStatus } from 'h3'
 import { defineNitroPlugin, useRuntimeConfig } from 'nitropack/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 import type { ActiveSpan, Observability } from '../contracts'
 import { noopObservability } from '../NoopObservability'
 import { observabilityToken } from '../tokens'

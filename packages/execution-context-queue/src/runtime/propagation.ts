@@ -1,6 +1,6 @@
-import { ExecutionContext, executionContextToken, type ExecutionContextSnapshot, type IdFactory } from '@nuxt-laravelize/execution-context/runtime'
-import { runWithExecutionContext, type currentExecutionContextOptional as Current } from '@nuxt-laravelize/execution-context/runtime/server'
-import { NonRetryableJobError, type JobMetadataContributorRegistry, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { ExecutionContext, executionContextToken, type ExecutionContextSnapshot, type IdFactory } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { runWithExecutionContext, type currentExecutionContextOptional as Current } from '@luckys_luis/nuxt-laravelize-execution-context/runtime/server'
+import { NonRetryableJobError, type JobMetadataContributorRegistry, type JobRunner, type SerializedJob } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 export const EXECUTION_CONTEXT_METADATA_KEY = 'laravelize.execution-context.v1'
 const installations = new WeakMap<JobMetadataContributorRegistry, WeakSet<JobRunner>>()

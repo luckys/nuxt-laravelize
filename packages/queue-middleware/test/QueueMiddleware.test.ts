@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { atomicFixedWindowCacheCapability, InMemoryCache } from '@nuxt-laravelize/cache/runtime'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { Job, JobReleasedError, NonRetryableJobError } from '@nuxt-laravelize/queue/runtime'
+import { atomicFixedWindowCacheCapability, InMemoryCache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { Job, JobReleasedError, NonRetryableJobError } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { ExceptionThrottleOpenError, ExceptionThrottlePredicateError, ExceptionThrottleRecordingError, JobOverlapLockLostError, RateLimited, ThrottlesExceptions, WithoutOverlapping } from '../src/runtime'
 
 class Probe extends Job {

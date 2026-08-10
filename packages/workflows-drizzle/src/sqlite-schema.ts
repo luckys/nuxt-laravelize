@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
-import type { WorkflowState } from '@nuxt-laravelize/workflows'
+import type { WorkflowState } from '@luckys_luis/nuxt-laravelize-workflows'
 
 export const sqliteWorkflows = sqliteTable('workflows', {
   id: text('id').primaryKey(), workflowName: text('workflow_name').notNull(), workflowVersion: text('workflow_version').notNull(), startKey: text('start_key').notNull(), canonicalInput: text('canonical_input').notNull(), snapshot: text('snapshot').notNull(), state: text('state').$type<WorkflowState>().notNull(), revision: integer('revision').notNull(), cancellationRequested: integer('cancellation_requested', { mode: 'boolean' }).notNull(), leaseToken: text('lease_token'), leaseExpiresAt: integer('lease_expires_at'), createdAt: integer('created_at').notNull(), updatedAt: integer('updated_at').notNull(),

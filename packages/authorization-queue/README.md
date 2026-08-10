@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/authorization-queue`
+# `@luckys_luis/nuxt-laravelize-authorization-queue`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Fail-closed queue authorization bridge for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/authorization-queue
+pnpm add @luckys_luis/nuxt-laravelize-authorization-queue
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/authorization-queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-authorization-queue'],
 })
 ```
 
@@ -33,12 +33,12 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Queue authorization
 
-`@nuxt-laravelize/authorization-queue` re-evaluates one registered application ability before selected queue jobs run. Configure selection in trusted worker startup code, not serialized metadata, and register it outside operational middleware with a lower `JobRunner` order. Normal denials become the privacy-bounded terminal code `QUEUE_AUTHORIZATION_DENIED`; resolver, identity-store and ability-handler outages during processing remain retryable failures.
+`@luckys_luis/nuxt-laravelize-authorization-queue` re-evaluates one registered application ability before selected queue jobs run. Configure selection in trusted worker startup code, not serialized metadata, and register it outside operational middleware with a lower `JobRunner` order. Normal denials become the privacy-bounded terminal code `QUEUE_AUTHORIZATION_DENIED`; resolver, identity-store and ability-handler outages during processing remain retryable failures.
 
 ```ts
-import { authorizationRegistryToken } from '@nuxt-laravelize/authorization/runtime'
-import { RequireAuthorization } from '@nuxt-laravelize/authorization-queue/runtime'
-import { jobRunnerToken } from '@nuxt-laravelize/queue/runtime'
+import { authorizationRegistryToken } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
+import { RequireAuthorization } from '@luckys_luis/nuxt-laravelize-authorization-queue/runtime'
+import { jobRunnerToken } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 const registry = container.make(authorizationRegistryToken)
 registry.registerAbility('queue.invoice.process', async ({ principal, tenantId }) => {
@@ -67,4 +67,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/authorization`](../authorization/README.md), [`@nuxt-laravelize/queue`](../queue/README.md), [`@nuxt-laravelize/execution-context-queue`](../execution-context-queue/README.md).
+[`@luckys_luis/nuxt-laravelize-authorization`](../authorization/README.md), [`@luckys_luis/nuxt-laravelize-queue`](../queue/README.md), [`@luckys_luis/nuxt-laravelize-execution-context-queue`](../execution-context-queue/README.md).

@@ -1,4 +1,4 @@
-import type { JsonValue } from '@nuxt-laravelize/reliability'
+import type { JsonValue } from '@luckys_luis/nuxt-laravelize-reliability'
 
 const encoder = new TextEncoder()
 const LIMITS = { bytes: 262_144, depth: 32, nodes: 10_000, keys: 1_000, array: 10_000, string: 65_536 } as const

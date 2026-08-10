@@ -1,8 +1,8 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import type { AfterCommitHook, UnitOfWork } from '@nuxt-laravelize/database/runtime'
-import { DrizzleSyncTransactionManager, DrizzleTransactionManager, type DrizzleAsyncTransactionSource, type DrizzleSyncTransactionSource } from '@nuxt-laravelize/database-drizzle'
-import { Job, type Queue } from '@nuxt-laravelize/queue/runtime'
-import { QueueFake } from '@nuxt-laravelize/queue/testing'
+import type { AfterCommitHook, UnitOfWork } from '@luckys_luis/nuxt-laravelize-database/runtime'
+import { DrizzleSyncTransactionManager, DrizzleTransactionManager, type DrizzleAsyncTransactionSource, type DrizzleSyncTransactionSource } from '@luckys_luis/nuxt-laravelize-database-drizzle'
+import { Job, type Queue } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { QueueFake } from '@luckys_luis/nuxt-laravelize-queue/testing'
 import { AfterCommitQueueDispatchError, dispatchAfterCommit } from '../src/index'
 
 class ProbeJob extends Job<{ value: string }> {

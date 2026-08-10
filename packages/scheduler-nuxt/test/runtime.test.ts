@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { defineSchedule, type ScheduledTask } from '@nuxt-laravelize/scheduler'
+import { defineSchedule, type ScheduledTask } from '@luckys_luis/nuxt-laravelize-scheduler'
 import { createGeneratedSchedulerTask, createSchedulerRunner, ProcessLocalLockProvider, runScheduledTaskIfDue, ScheduledMinuteGuard, SchedulerLockCapabilityError, SchedulerLockLostError, type SchedulerLockProvider, type SchedulerRunner } from '../src/runtime'
 
 const taskFrom = (declare: Parameters<typeof defineSchedule>[0]): ScheduledTask => defineSchedule(declare).all()[0]!

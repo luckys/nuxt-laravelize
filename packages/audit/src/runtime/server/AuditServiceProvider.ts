@@ -1,5 +1,5 @@
 import { useRuntimeConfig } from '#imports'
-import { ConsoleLogger, loggerToken, type Container, type ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import { ConsoleLogger, loggerToken, type Container, type ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { auditRecorderToken, auditStoreToken, DisabledAuditStore, InMemoryAuditStore, makeAuditRecorder } from '../index'
 
 export default class AuditServiceProvider implements ServiceProvider {

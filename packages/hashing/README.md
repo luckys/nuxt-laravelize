@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/hashing`
+# `@luckys_luis/nuxt-laravelize-hashing`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Portable password hashing for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/hashing
+pnpm add @luckys_luis/nuxt-laravelize-hashing
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/hashing'],
+  modules: ['@luckys_luis/nuxt-laravelize-hashing'],
 })
 ```
 
@@ -33,10 +33,10 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Hashing
 
-`@nuxt-laravelize/hashing` provides password hashing through PBKDF2-SHA-256 and Web Crypto.
+`@luckys_luis/nuxt-laravelize-hashing` provides password hashing through PBKDF2-SHA-256 and Web Crypto.
 
 ```bash
-pnpm add @nuxt-laravelize/hashing
+pnpm add @luckys_luis/nuxt-laravelize-hashing
 ```
 
 ```ts
@@ -52,7 +52,7 @@ Hashes include a random 128-bit salt, algorithm identifier and iteration count. 
 
 The default is 600,000 iterations. Benchmark production hardware before increasing it, and configure `runtimeConfig.laravelizeHashing.iterations` consistently across instances. Embedded costs above 10,000,000 are rejected before deriving a key to bound denial-of-service risk from untrusted or corrupted hash strings.
 
-Hashing is one-way and intended for passwords. Use `@nuxt-laravelize/encryption` when the original value must be recovered. Rate-limit authentication endpoints independently; password hashing does not prevent online guessing.
+Hashing is one-way and intended for passwords. Use `@luckys_luis/nuxt-laravelize-encryption` when the original value must be recovered. Rate-limit authentication endpoints independently; password hashing does not prevent online guessing.
 
 ## Compatibility and boundaries
 
@@ -62,4 +62,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/encryption`](../encryption/README.md).
+[`@luckys_luis/nuxt-laravelize-encryption`](../encryption/README.md).

@@ -1,4 +1,4 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { FeatureManager, InMemoryFeatureStore } from '../Pennant'
 import { featureManagerToken } from '../tokens'
 

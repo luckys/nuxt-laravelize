@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line, @stylistic/lines-between-class-members, unicorn/error-message */
 import { sql } from 'drizzle-orm'
-import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, DeadLetterUnmanagedLegacyError, deadLetterOperationFingerprint, sanitizeDeadLetterError, validateMutation, type DeadLetterAdapter, type DeadLetterDetail, type DeadLetterKey, type DeadLetterListRequest, type DeadLetterMutation, type DeadLetterMutationResult, type DeadLetterRetry, type DeadLetterSummary } from '@nuxt-laravelize/dead-letter'
-import { createEnvelope, type MessageEnvelope } from '@nuxt-laravelize/reliability'
+import { DeadLetterAmbiguousError, DeadLetterInvalidStateError, DeadLetterNotFoundError, DeadLetterOperationConflictError, DeadLetterStaleRevisionError, DeadLetterUnmanagedLegacyError, deadLetterOperationFingerprint, sanitizeDeadLetterError, validateMutation, type DeadLetterAdapter, type DeadLetterDetail, type DeadLetterKey, type DeadLetterListRequest, type DeadLetterMutation, type DeadLetterMutationResult, type DeadLetterRetry, type DeadLetterSummary } from '@luckys_luis/nuxt-laravelize-dead-letter'
+import { createEnvelope, type MessageEnvelope } from '@luckys_luis/nuxt-laravelize-reliability'
 import type { DrizzleReliabilityDatabase } from './base.js'
 
 type Row = Record<string, unknown>

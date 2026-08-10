@@ -1,6 +1,6 @@
 import Redis from 'ioredis'
 import { afterAll, describe, expect, it } from 'vitest'
-import { CacheLock } from '@nuxt-laravelize/cache/runtime'
+import { CacheLock } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 import { CacheCorruptionError, RedisCache } from '../../src/index'
 
 const redisUrl = process.env.REDIS_URL

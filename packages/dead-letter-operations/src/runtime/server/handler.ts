@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line */
-import { authorizationToken } from '@nuxt-laravelize/authorization/runtime'
-import type { DeadLetterAdapterRegistry, DeadLetterDisposition, DeadLetterKey, DeadLetterManager } from '@nuxt-laravelize/dead-letter'
+import { authorizationToken } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
+import type { DeadLetterAdapterRegistry, DeadLetterDisposition, DeadLetterKey, DeadLetterManager } from '@luckys_luis/nuxt-laravelize-dead-letter'
 import type { H3Event } from 'h3'
 import { getQuery, getRouterParam, setResponseHeaders } from 'h3'
 import { useRuntimeConfig } from 'nitropack/runtime'

@@ -1,4 +1,4 @@
-import { currentExecutionContextOptional } from '@nuxt-laravelize/execution-context/runtime/server'
+import { currentExecutionContextOptional } from '@luckys_luis/nuxt-laravelize-execution-context/runtime/server'
 
 export default defineEventHandler(async (event) => {
   const delay = Number(getQuery(event).delay ?? 0)

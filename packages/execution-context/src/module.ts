@@ -7,8 +7,8 @@ export interface ModuleOptions {
 }
 
 const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
-  meta: { name: '@nuxt-laravelize/execution-context', configKey: 'laravelizeExecutionContext', compatibility: { nuxt: '>=4.3.0 <5' } },
-  moduleDependencies: { '@nuxt-laravelize/core': {} },
+  meta: { name: '@luckys_luis/nuxt-laravelize-execution-context', configKey: 'laravelizeExecutionContext', compatibility: { nuxt: '>=4.3.0 <5' } },
+  moduleDependencies: { '@luckys_luis/nuxt-laravelize-core': {} },
   defaults: { correlationHeader: 'x-correlation-id', trustIncomingCorrelationHeader: false },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)

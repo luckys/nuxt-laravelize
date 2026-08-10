@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { ExecutionContext, executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { ExecutionContext, executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 import AuthorizationServiceProvider from '../src/runtime/server/AuthorizationServiceProvider'
 import { authorizationRegistryToken, authorizationToken, principalResolverToken } from '../src/runtime/index'
 

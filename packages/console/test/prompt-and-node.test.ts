@@ -1,5 +1,5 @@
 import { PassThrough } from 'node:stream'
-import { createToken, LaravelizeApplication, type Container, type ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import { createToken, LaravelizeApplication, type Container, type ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { describe, expect, it } from 'vitest'
 import { CommandRegistry, ConsoleRunner, defineCommand, EXIT_ABORTED, FailClosedPrompt, NonInteractivePromptError, type CommandHandler } from '../src/index'
 import { NodeProcessAdapter, NodePrompt, runNodeConsole } from '../src/node'

@@ -23,7 +23,7 @@ export interface FixedWindowState {
   readonly retryAfterMilliseconds: number
 }
 
-export const atomicFixedWindowCacheCapability: unique symbol = Symbol.for('@nuxt-laravelize/cache/atomic-fixed-window')
+export const atomicFixedWindowCacheCapability: unique symbol = Symbol.for('@luckys_luis/nuxt-laravelize-cache/atomic-fixed-window')
 
 export interface AtomicFixedWindowCache extends Cache {
   readonly [atomicFixedWindowCacheCapability]: { readonly atomic: true }
@@ -43,7 +43,7 @@ export function isAtomicFixedWindowCache(value: unknown): value is AtomicFixedWi
     && typeof candidate.clearFixedWindow === 'function'
 }
 
-export const distributedCacheCapability: unique symbol = Symbol.for('@nuxt-laravelize/cache/distributed-owner-atomic')
+export const distributedCacheCapability: unique symbol = Symbol.for('@luckys_luis/nuxt-laravelize-cache/distributed-owner-atomic')
 
 export interface DistributedCache extends Cache {
   readonly [distributedCacheCapability]: {

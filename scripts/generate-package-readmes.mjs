@@ -168,7 +168,7 @@ const examples = {
     en: {
       title: 'Register and evaluate an ability',
       text: 'Register abilities and resource policies once during boot, then resolve the scoped authorizer at the application boundary. The default principal resolver denies until the application supplies a trusted current principal.',
-      code: `import { authorizationRegistryToken } from '@nuxt-laravelize/authorization/runtime'
+      code: `import { authorizationRegistryToken } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
 
 const registry = container.make(authorizationRegistryToken)
 registry.registerAbility('invoice.view', ({ principal, tenantId }) => {
@@ -181,7 +181,7 @@ if (!await authorization.allows('invoice.view')) throw createError({ statusCode:
     es: {
       title: 'Registra y evalua una ability',
       text: 'Registra abilities y policies de recursos durante el boot y resuelve el authorizer scoped en el boundary de la aplicacion. El resolver de principal por defecto deniega hasta que la aplicacion aporte un principal confiable y actual.',
-      code: `import { authorizationRegistryToken } from '@nuxt-laravelize/authorization/runtime'
+      code: `import { authorizationRegistryToken } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
 
 const registry = container.make(authorizationRegistryToken)
 registry.registerAbility('invoice.view', ({ principal, tenantId }) => {
@@ -196,7 +196,7 @@ if (!await authorization.allows('invoice.view')) throw createError({ statusCode:
     en: {
       title: 'Derive and transport an execution context',
       text: 'Contexts are immutable, bounded, and JSON-safe. Derive child work to preserve correlation and set causation; use `enrich()` only after the application authenticates actor and tenant values.',
-      code: `import { useExecutionContext } from '@nuxt-laravelize/execution-context/runtime'
+      code: `import { useExecutionContext } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 
 const requestContext = useExecutionContext(event)
 const jobContext = requestContext.derive({
@@ -208,7 +208,7 @@ await queue.push(job, { executionContext: jobContext.snapshot() })`,
     es: {
       title: 'Deriva y transporta un contexto de ejecucion',
       text: 'Los contextos son inmutables, acotados y seguros para JSON. Deriva el trabajo hijo para conservar correlacion y causacion; usa `enrich()` solo despues de autenticar actor y tenant desde la aplicacion.',
-      code: `import { useExecutionContext } from '@nuxt-laravelize/execution-context/runtime'
+      code: `import { useExecutionContext } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 
 const requestContext = useExecutionContext(event)
 const jobContext = requestContext.derive({
@@ -222,7 +222,7 @@ await queue.push(job, { executionContext: jobContext.snapshot() })`,
     en: {
       title: 'Instrument a request without leaking sensitive data',
       text: 'The base package is a vendor-neutral no-op foundation. Replace the scoped token with an application implementation and keep attributes bounded; built-in instrumentation deliberately excludes bodies, raw URLs, secrets, and identity IDs.',
-      code: `import { observabilityToken } from '@nuxt-laravelize/observability/runtime'
+      code: `import { observabilityToken } from '@luckys_luis/nuxt-laravelize-observability/runtime'
 
 const span = useObservability(event).startSpan('invoice.load', {
   kind: 'server',
@@ -238,7 +238,7 @@ finally {
     es: {
       title: 'Instrumenta un request sin filtrar datos sensibles',
       text: 'El paquete base es una foundation no-op neutral al vendor. Reemplaza el token scoped por una implementacion de la aplicacion y conserva atributos acotados; la instrumentacion incluida excluye bodies, URLs raw, secrets e IDs de identidad.',
-      code: `import { observabilityToken } from '@nuxt-laravelize/observability/runtime'
+      code: `import { observabilityToken } from '@luckys_luis/nuxt-laravelize-observability/runtime'
 
 const span = useObservability(event).startSpan('invoice.load', {
   kind: 'server',
@@ -256,7 +256,7 @@ finally {
     en: {
       title: 'Define and invoke a runtime-neutral agent',
       text: 'Register a named runtime once, then keep application code independent from Cloudflare Agents, Flue, or a test fake. `invoke`, `dispatch`, and `observe` are separate capabilities; check them before selecting an operation.',
-      code: `import { AgentRuntimeRegistry, AgentSdkClient, defineAgent } from '@nuxt-laravelize/agent-sdk/runtime'
+      code: `import { AgentRuntimeRegistry, AgentSdkClient, defineAgent } from '@luckys_luis/nuxt-laravelize-agent-sdk/runtime'
 
 const support = defineAgent<{ question: string }, { answer: string }>({
   name: 'support',
@@ -275,7 +275,7 @@ for await (const event of support.observe(client, { receipt })) {
     es: {
       title: 'Define e invoca un agente neutral al runtime',
       text: 'Registra un runtime nombrado una sola vez y mantén el codigo de la aplicacion independiente de Cloudflare Agents, Flue o un fake de tests. `invoke`, `dispatch` y `observe` son capacidades separadas; compruebalas antes de elegir una operacion.',
-      code: `import { AgentSdkClient, defineAgent } from '@nuxt-laravelize/agent-sdk/runtime'
+      code: `import { AgentSdkClient, defineAgent } from '@luckys_luis/nuxt-laravelize-agent-sdk/runtime'
 
 const soporte = defineAgent<{ question: string }, { answer: string }>({
   name: 'support',
@@ -296,7 +296,7 @@ for await (const event of soporte.observe(client, { receipt })) {
     en: {
       title: 'Connect Cloudflare Agents',
       text: 'This adapter preserves the Cloudflare Agent class and Durable Object instance identity. Every call must supply an `instanceId`; the adapter exposes invoke, dispatch, and event observation but not resumable offsets.',
-      code: `import { CloudflareAgentRuntime } from '@nuxt-laravelize/agents-cloudflare'
+      code: `import { CloudflareAgentRuntime } from '@luckys_luis/nuxt-laravelize-agents-cloudflare'
 
 const runtime = new CloudflareAgentRuntime({
   host: process.env.CLOUDFLARE_AGENT_HOST,
@@ -313,7 +313,7 @@ console.log(result.result)`,
     es: {
       title: 'Conecta Cloudflare Agents',
       text: 'Este adapter conserva la identidad de la clase Agent y de la instancia Durable Object de Cloudflare. Cada llamada debe aportar `instanceId`; el adapter expone invoke, dispatch y observacion de eventos, pero no offsets reanudables.',
-      code: `import { CloudflareAgentRuntime } from '@nuxt-laravelize/agents-cloudflare'
+      code: `import { CloudflareAgentRuntime } from '@luckys_luis/nuxt-laravelize-agents-cloudflare'
 
 const runtime = new CloudflareAgentRuntime({
   host: process.env.CLOUDFLARE_AGENT_HOST,
@@ -332,7 +332,7 @@ console.log(result.result)`,
     en: {
       title: 'Connect Flue agents and workflows',
       text: 'The Flue adapter maps agent calls to persistent conversations and workflow calls to durable runs. Agent conversations require an instance ID; workflow observations can resume with an opaque offset supplied by Flue.',
-      code: `import { FlueAgentRuntime } from '@nuxt-laravelize/agents-flue'
+      code: `import { FlueAgentRuntime } from '@luckys_luis/nuxt-laravelize-agents-flue'
 
 const runtime = new FlueAgentRuntime({
   baseUrl: process.env.FLUE_BASE_URL,
@@ -350,7 +350,7 @@ console.log(result.result)`,
     es: {
       title: 'Conecta agentes y workflows de Flue',
       text: 'El adapter de Flue mapea llamadas de agentes a conversaciones persistentes y llamadas de workflows a runs durables. Las conversaciones de agentes requieren un ID de instancia; las observaciones de workflows pueden reanudarse con un offset opaco de Flue.',
-      code: `import { FlueAgentRuntime } from '@nuxt-laravelize/agents-flue'
+      code: `import { FlueAgentRuntime } from '@luckys_luis/nuxt-laravelize-agents-flue'
 
 const runtime = new FlueAgentRuntime({
   baseUrl: process.env.FLUE_BASE_URL,
@@ -370,7 +370,7 @@ console.log(result.result)`,
     en: {
       title: 'Persist audit entries with Drizzle',
       text: 'Choose the dialect-specific store and apply its migration source before binding it to `auditStoreToken`. PostgreSQL uses `execute(SQL)`; SQLite and Turso use their respective raw-client boundary.',
-      code: `import { DrizzlePostgresAuditStore } from '@nuxt-laravelize/audit-drizzle/postgres'
+      code: `import { DrizzlePostgresAuditStore } from '@luckys_luis/nuxt-laravelize-audit-drizzle/postgres'
 
 const auditStore = new DrizzlePostgresAuditStore(db)
 container.instance(auditStoreToken, auditStore)
@@ -384,7 +384,7 @@ await useAudit(event).record({
     es: {
       title: 'Persiste entradas de auditoria con Drizzle',
       text: 'Elige el store del dialecto y aplica su fuente de migracion antes de ligarlo a `auditStoreToken`. PostgreSQL usa `execute(SQL)`; SQLite y Turso usan su boundary de cliente raw correspondiente.',
-      code: `import { DrizzlePostgresAuditStore } from '@nuxt-laravelize/audit-drizzle/postgres'
+      code: `import { DrizzlePostgresAuditStore } from '@luckys_luis/nuxt-laravelize-audit-drizzle/postgres'
 
 const auditStore = new DrizzlePostgresAuditStore(db)
 container.instance(auditStoreToken, auditStore)
@@ -400,8 +400,8 @@ await useAudit(event).record({
     en: {
       title: 'Send broadcasts through Pusher Channels',
       text: 'This is a server adapter only. Keep the app secret in private server configuration, inject the broadcaster into the base broadcasting module, and configure browser subscriptions separately.',
-      code: `import { PusherBroadcaster } from '@nuxt-laravelize/broadcasting-pusher'
-import { broadcasterToken } from '@nuxt-laravelize/broadcasting/runtime'
+      code: `import { PusherBroadcaster } from '@luckys_luis/nuxt-laravelize-broadcasting-pusher'
+import { broadcasterToken } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
 
 container.instance(broadcasterToken, new PusherBroadcaster({
   appId: process.env.PUSHER_APP_ID,
@@ -413,8 +413,8 @@ container.instance(broadcasterToken, new PusherBroadcaster({
     es: {
       title: 'Envia broadcasts mediante Pusher Channels',
       text: 'Este es solo un adapter de servidor. Conserva el secret de la aplicacion en configuracion privada, inyecta el broadcaster en el modulo base y configura las suscripciones del navegador por separado.',
-      code: `import { PusherBroadcaster } from '@nuxt-laravelize/broadcasting-pusher'
-import { broadcasterToken } from '@nuxt-laravelize/broadcasting/runtime'
+      code: `import { PusherBroadcaster } from '@luckys_luis/nuxt-laravelize-broadcasting-pusher'
+import { broadcasterToken } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
 
 container.instance(broadcasterToken, new PusherBroadcaster({
   appId: process.env.PUSHER_APP_ID,
@@ -429,8 +429,8 @@ container.instance(broadcasterToken, new PusherBroadcaster({
       title: 'Use Redis or Valkey as the shared cache',
       text: 'Create one `RedisCache` with a mandatory application prefix and register it through `cacheToken`. The package does not own connection startup or shutdown, so the application can supervise the client lifecycle.',
       code: `import Redis from 'ioredis'
-import { RedisCache } from '@nuxt-laravelize/cache-redis'
-import { cacheToken } from '@nuxt-laravelize/cache/runtime'
+import { RedisCache } from '@luckys_luis/nuxt-laravelize-cache-redis'
+import { cacheToken } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 
 const redis = new Redis(process.env.REDIS_URL)
 container.instance(cacheToken, new RedisCache(redis, { prefix: 'orders:production:' }))
@@ -441,8 +441,8 @@ await useCache(event).put('invoice:42', { status: 'paid' }, 60)`,
       title: 'Usa Redis o Valkey como cache compartido',
       text: 'Crea un `RedisCache` con un prefijo obligatorio de aplicacion y registralo mediante `cacheToken`. El paquete no inicia ni cierra la conexion, para que la aplicacion controle el ciclo de vida del cliente.',
       code: `import Redis from 'ioredis'
-import { RedisCache } from '@nuxt-laravelize/cache-redis'
-import { cacheToken } from '@nuxt-laravelize/cache/runtime'
+import { RedisCache } from '@luckys_luis/nuxt-laravelize-cache-redis'
+import { cacheToken } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 
 const redis = new Redis(process.env.REDIS_URL)
 container.instance(cacheToken, new RedisCache(redis, { prefix: 'orders:production:' }))
@@ -454,7 +454,7 @@ await useCache(event).put('invoice:42', { status: 'paid' }, 60)`,
     en: {
       title: 'Run an explicit Drizzle transaction',
       text: 'The adapter keeps the session visible to application repositories and runs `afterCommit` hooks only after the native transaction confirms. Use the synchronous variant only with a synchronous SQLite driver.',
-      code: `import { DrizzleTransactionManager } from '@nuxt-laravelize/database-drizzle'
+      code: `import { DrizzleTransactionManager } from '@luckys_luis/nuxt-laravelize-database-drizzle'
 
 const transactions = new DrizzleTransactionManager(db)
 await transactions.transaction(async unitOfWork => {
@@ -465,7 +465,7 @@ await transactions.transaction(async unitOfWork => {
     es: {
       title: 'Ejecuta una transaccion Drizzle explicita',
       text: 'El adapter mantiene visible la session para los repositorios de la aplicacion y ejecuta `afterCommit` solo despues de confirmar la transaccion nativa. Usa la variante sincronica solo con un driver SQLite sincronico.',
-      code: `import { DrizzleTransactionManager } from '@nuxt-laravelize/database-drizzle'
+      code: `import { DrizzleTransactionManager } from '@luckys_luis/nuxt-laravelize-database-drizzle'
 
 const transactions = new DrizzleTransactionManager(db)
 await transactions.transaction(async unitOfWork => {
@@ -478,7 +478,7 @@ await transactions.transaction(async unitOfWork => {
     en: {
       title: 'Manage failed messages through an explicit adapter',
       text: 'Register exactly one dead-letter adapter and authorize every operation at the application boundary. Payloads and error summaries are separate sensitive capabilities; an envelope actor or tenant hint is never an authorization credential.',
-      code: `import { DeadLetterManager } from '@nuxt-laravelize/dead-letter'
+      code: `import { DeadLetterManager } from '@luckys_luis/nuxt-laravelize-dead-letter'
 
 const manager = new DeadLetterManager(adapter, { observer })
 const page = await manager.list({ source: 'orders', limit: 25 })
@@ -488,7 +488,7 @@ await manager.retry(item.key, { operationId: crypto.randomUUID() })`,
     es: {
       title: 'Gestiona mensajes fallidos mediante un adapter explicito',
       text: 'Registra exactamente un adapter dead-letter y autoriza cada operacion en el boundary de la aplicacion. Payloads y resumenes de error son capacidades sensibles separadas; el actor o tenant del envelope nunca es una credencial de autorizacion.',
-      code: `import { DeadLetterManager } from '@nuxt-laravelize/dead-letter'
+      code: `import { DeadLetterManager } from '@luckys_luis/nuxt-laravelize-dead-letter'
 
 const manager = new DeadLetterManager(adapter, { observer })
 const page = await manager.list({ source: 'orders', limit: 25 })
@@ -501,7 +501,7 @@ await manager.retry(item.key, { operationId: crypto.randomUUID() })`,
       title: 'Enable the fail-closed operations console',
       text: 'The dashboard is opt-in, uses exact canonical origins and literal non-overlapping paths, and registers no adapter or permissive ability for you. Configure the central authorization registry and the adapter registry in application code.',
       code: `export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/dead-letter-operations'],
+  modules: ['@luckys_luis/nuxt-laravelize-dead-letter-operations'],
   laravelizeDeadLetterOperations: {
     enabled: true,
     allowedOrigins: ['https://operations.example.com'],
@@ -514,7 +514,7 @@ await manager.retry(item.key, { operationId: crypto.randomUUID() })`,
       title: 'Activa la consola de operaciones fail-closed',
       text: 'El dashboard es opt-in, usa origins canonicos exactos y paths literales no solapados, y no registra ningun adapter ni ability permisiva. Configura el registry de autorizacion y el registry de adapters desde codigo de la aplicacion.',
       code: `export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/dead-letter-operations'],
+  modules: ['@luckys_luis/nuxt-laravelize-dead-letter-operations'],
   laravelizeDeadLetterOperations: {
     enabled: true,
     allowedOrigins: ['https://operations.example.com'],
@@ -528,7 +528,7 @@ await manager.retry(item.key, { operationId: crypto.randomUUID() })`,
     en: {
       title: 'Propagate execution context into a job',
       text: 'Install the bridge at the producer and worker boundaries. The snapshot carries correlation provenance only; it must never authorize the actor or tenant encoded in it.',
-      code: `import { runWithExecutionContext, useExecutionContext } from '@nuxt-laravelize/execution-context/runtime'
+      code: `import { runWithExecutionContext, useExecutionContext } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 
 await runWithExecutionContext(useExecutionContext(event), () =>
   useQueue(event).push(new SendReport({ reportId: 'report-1' })),
@@ -537,7 +537,7 @@ await runWithExecutionContext(useExecutionContext(event), () =>
     es: {
       title: 'Propaga el contexto de ejecucion a un job',
       text: 'Instala el bridge en los boundaries de productor y worker. El snapshot solo transporta procedencia de correlacion; nunca debe autorizar el actor o tenant codificado en el.',
-      code: `import { runWithExecutionContext, useExecutionContext } from '@nuxt-laravelize/execution-context/runtime'
+      code: `import { runWithExecutionContext, useExecutionContext } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
 
 await runWithExecutionContext(useExecutionContext(event), () =>
   useQueue(event).push(new SendReport({ reportId: 'report-1' })),
@@ -548,7 +548,7 @@ await runWithExecutionContext(useExecutionContext(event), () =>
     en: {
       title: 'Register the AWS S3 filesystem',
       text: 'Use the factory for the standard AWS SDK client, or inject compatible command and signing ports for tests and custom runtimes. Credentials stay in server-only configuration. The same adapter supports temporary URLs, direct uploads with SHA-256 confirmation, streams, and multipart operations when its capabilities are available.',
-      code: `import { createAwsS3Filesystem } from '@nuxt-laravelize/filesystem-aws'
+      code: `import { createAwsS3Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 
 const archive = createAwsS3Filesystem({
   bucket: 'app-archive',
@@ -565,7 +565,7 @@ const url = await archive.temporaryUrl?.('reports/2025.csv', {
     es: {
       title: 'Registra el filesystem AWS S3',
       text: 'Usa el factory para el cliente AWS SDK estandar o inyecta puertos compatibles de comandos y firma para tests y runtimes propios. Las credenciales permanecen en configuracion solo de servidor. El adapter soporta URLs temporales, uploads directos con confirmacion SHA-256, streams y multipart cuando sus capacidades estan disponibles.',
-      code: `import { createAwsS3Filesystem } from '@nuxt-laravelize/filesystem-aws'
+      code: `import { createAwsS3Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 
 const archive = createAwsS3Filesystem({
   bucket: 'app-archive',
@@ -585,8 +585,8 @@ const url = await archive.temporaryUrl?.('reports/2025.csv', {
       title: 'Make S3 upload confirmation restart-safe',
       text: 'Use the Redis issuance store when multiple Node instances can issue or confirm uploads. Its Lua transitions reserve, release, and complete one issuance with an owner token and Redis-controlled expiry.',
       code: `import Redis from 'ioredis'
-import { RedisS3UploadIssuanceStore } from '@nuxt-laravelize/filesystem-aws-redis'
-import { createAwsS3Filesystem } from '@nuxt-laravelize/filesystem-aws'
+import { RedisS3UploadIssuanceStore } from '@luckys_luis/nuxt-laravelize-filesystem-aws-redis'
+import { createAwsS3Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 
 const issuanceStore = new RedisS3UploadIssuanceStore(new Redis(process.env.REDIS_URL), {
   prefix: 'uploads:production:',
@@ -597,8 +597,8 @@ const uploads = createAwsS3Filesystem({ bucket, region, issuanceStore })`,
       title: 'Haz la confirmacion de uploads S3 resistente a reinicios',
       text: 'Usa el store de issuance Redis cuando varias instancias Node puedan emitir o confirmar uploads. Sus transiciones Lua reservan, liberan y completan una issuance con token de owner y expiracion controlada por Redis.',
       code: `import Redis from 'ioredis'
-import { RedisS3UploadIssuanceStore } from '@nuxt-laravelize/filesystem-aws-redis'
-import { createAwsS3Filesystem } from '@nuxt-laravelize/filesystem-aws'
+import { RedisS3UploadIssuanceStore } from '@luckys_luis/nuxt-laravelize-filesystem-aws-redis'
+import { createAwsS3Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-aws'
 
 const issuanceStore = new RedisS3UploadIssuanceStore(new Redis(process.env.REDIS_URL), {
   prefix: 'uploads:production:',
@@ -610,7 +610,7 @@ const uploads = createAwsS3Filesystem({ bucket, region, issuanceStore })`,
     en: {
       title: 'Use a Cloudflare R2 binding',
       text: 'The adapter accepts the structural R2 bucket contract and does not import Workers types or the AWS SDK. It supports byte operations, bounded paginated listing, and streaming; R2 bindings cannot sign temporary URLs or direct-upload forms.',
-      code: `import { CloudflareR2Filesystem } from '@nuxt-laravelize/filesystem-cloudflare'
+      code: `import { CloudflareR2Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-cloudflare'
 
 const files = new CloudflareR2Filesystem(env.UPLOADS, {
   prefix: 'production/uploads',
@@ -622,7 +622,7 @@ console.log(await files.list('reports'))`,
     es: {
       title: 'Usa un binding Cloudflare R2',
       text: 'El adapter acepta el contrato estructural del bucket R2 y no importa tipos de Workers ni AWS SDK. Soporta operaciones de bytes, listados paginados acotados y streaming; los bindings R2 no pueden firmar URLs temporales ni formularios de upload directo.',
-      code: `import { CloudflareR2Filesystem } from '@nuxt-laravelize/filesystem-cloudflare'
+      code: `import { CloudflareR2Filesystem } from '@luckys_luis/nuxt-laravelize-filesystem-cloudflare'
 
 const files = new CloudflareR2Filesystem(env.UPLOADS, {
   prefix: 'production/uploads',
@@ -636,16 +636,16 @@ console.log(await files.list('reports'))`,
     en: {
       title: 'Bind a durable idempotency store',
       text: 'Apply exactly one dialect migration before binding the store. PostgreSQL uses Drizzle `execute`; SQLite and Turso use `all` so conditional returning statements preserve lease fencing and replay data.',
-      code: `import { DrizzlePostgresIdempotencyStore } from '@nuxt-laravelize/idempotency-drizzle/postgres'
-import { idempotencyStoreToken } from '@nuxt-laravelize/idempotency/runtime'
+      code: `import { DrizzlePostgresIdempotencyStore } from '@luckys_luis/nuxt-laravelize-idempotency-drizzle/postgres'
+import { idempotencyStoreToken } from '@luckys_luis/nuxt-laravelize-idempotency/runtime'
 
 container.instance(idempotencyStoreToken, new DrizzlePostgresIdempotencyStore(db))`,
     },
     es: {
       title: 'Liga un store durable de idempotencia',
       text: 'Aplica exactamente una migracion del dialecto antes de ligar el store. PostgreSQL usa `execute` de Drizzle; SQLite y Turso usan `all` para que las sentencias condicionales con returning conserven fencing de leases y datos de replay.',
-      code: `import { DrizzlePostgresIdempotencyStore } from '@nuxt-laravelize/idempotency-drizzle/postgres'
-import { idempotencyStoreToken } from '@nuxt-laravelize/idempotency/runtime'
+      code: `import { DrizzlePostgresIdempotencyStore } from '@luckys_luis/nuxt-laravelize-idempotency-drizzle/postgres'
+import { idempotencyStoreToken } from '@luckys_luis/nuxt-laravelize-idempotency/runtime'
 
 container.instance(idempotencyStoreToken, new DrizzlePostgresIdempotencyStore(db))`,
     },
@@ -654,7 +654,7 @@ container.instance(idempotencyStoreToken, new DrizzlePostgresIdempotencyStore(db
     en: {
       title: 'Deliver a tenant-fenced broadcast notification',
       text: 'The notification chooses only its type, version, and bounded data. The recipient route supplies the opaque recipient and tenant identity; the package derives the private channel and fixed event name.',
-      code: `import { Notification } from '@nuxt-laravelize/notifications/runtime'
+      code: `import { Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 
 class InvoicePaid extends Notification {
   via() { return ['broadcast'] as const }
@@ -668,7 +668,7 @@ await notifications.send(recipient, new InvoicePaid())`,
     es: {
       title: 'Entrega una notificacion broadcast aislada por tenant',
       text: 'La notificacion solo elige tipo, version y datos acotados. La ruta del destinatario aporta el recipient y tenant opacos; el paquete deriva el canal privado y el nombre fijo del evento.',
-      code: `import { Notification } from '@nuxt-laravelize/notifications/runtime'
+      code: `import { Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 
 class InvoicePaid extends Notification {
   via() { return ['broadcast'] as const }
@@ -684,7 +684,7 @@ await notifications.send(recipient, new InvoicePaid())`,
     en: {
       title: 'Store and read database notifications',
       text: 'Persist only bounded, versioned JSON and let the recipient route define the tenant fence. The server helper provides cursor pagination and read-state mutations; production should replace the memory store with the Drizzle adapter.',
-      code: `import { Notification } from '@nuxt-laravelize/notifications/runtime'
+      code: `import { Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 
 class InvoicePaid extends Notification {
   via() { return ['database'] as const }
@@ -699,7 +699,7 @@ const page = await useDatabaseNotifications(event).list({ recipient, limit: 20 }
     es: {
       title: 'Guarda y lee notificaciones database',
       text: 'Persiste solo JSON acotado y versionado y deja que la ruta del destinatario defina el aislamiento de tenant. El helper server ofrece paginacion por cursor y mutaciones de lectura; en produccion reemplaza el store de memoria por el adapter Drizzle.',
-      code: `import { Notification } from '@nuxt-laravelize/notifications/runtime'
+      code: `import { Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 
 class InvoicePaid extends Notification {
   via() { return ['database'] as const }
@@ -716,16 +716,16 @@ const page = await useDatabaseNotifications(event).list({ recipient, limit: 20 }
     en: {
       title: 'Use the durable database-notification stores',
       text: 'Apply the PostgreSQL or SQLite migration and inject the matching store. Each operation derives the tenant scope from the trusted recipient and keeps duplicate content idempotent while rejecting conflicting reuse.',
-      code: `import { DrizzlePostgresDatabaseNotificationStore } from '@nuxt-laravelize/notifications-database-drizzle/postgres'
-import { databaseNotificationStoreToken } from '@nuxt-laravelize/notifications-database/runtime'
+      code: `import { DrizzlePostgresDatabaseNotificationStore } from '@luckys_luis/nuxt-laravelize-notifications-database-drizzle/postgres'
+import { databaseNotificationStoreToken } from '@luckys_luis/nuxt-laravelize-notifications-database/runtime'
 
 container.instance(databaseNotificationStoreToken, new DrizzlePostgresDatabaseNotificationStore(db))`,
     },
     es: {
       title: 'Usa stores durables de notificaciones database',
       text: 'Aplica la migracion PostgreSQL o SQLite e inyecta el store correspondiente. Cada operacion deriva el tenant scope desde el destinatario confiable, mantiene idempotente el contenido duplicado y rechaza reutilizaciones conflictivas.',
-      code: `import { DrizzlePostgresDatabaseNotificationStore } from '@nuxt-laravelize/notifications-database-drizzle/postgres'
-import { databaseNotificationStoreToken } from '@nuxt-laravelize/notifications-database/runtime'
+      code: `import { DrizzlePostgresDatabaseNotificationStore } from '@luckys_luis/nuxt-laravelize-notifications-database-drizzle/postgres'
+import { databaseNotificationStoreToken } from '@luckys_luis/nuxt-laravelize-notifications-database/runtime'
 
 container.instance(databaseNotificationStoreToken, new DrizzlePostgresDatabaseNotificationStore(db))`,
     },
@@ -794,7 +794,7 @@ await dispatcher.dispatch(recipient, new InvoicePaid())
     en: {
       title: 'Deliver a notification through a durable webhook',
       text: 'Keep the route opaque and resolve endpoint ownership, URL, and secret ID on the server. The notification payload cannot select a destination or signing key; the separate webhook worker resolves the secret at delivery time.',
-      code: `import { Notification } from '@nuxt-laravelize/notifications/runtime'
+      code: `import { Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 
 class OrderReady extends Notification {
   via() { return ['webhook'] as const }
@@ -810,7 +810,7 @@ await notifications.send({
     es: {
       title: 'Entrega una notificacion mediante webhook durable',
       text: 'Mantiene la ruta opaca y resuelve ownership del endpoint, URL y secret ID en el servidor. El payload no puede elegir destino ni clave de firma; el worker webhook separado resuelve el secret al entregar.',
-      code: `import { Notification } from '@nuxt-laravelize/notifications/runtime'
+      code: `import { Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 
 class OrderReady extends Notification {
   via() { return ['webhook'] as const }
@@ -828,8 +828,8 @@ await notifications.send({
     en: {
       title: 'Attach OpenTelemetry without owning the SDK',
       text: 'The adapter consumes the OpenTelemetry API and the providers already configured by the application. It does not install a global SDK or exporter; pass provider, propagator, flush, and shutdown hooks explicitly when needed.',
-      code: `import { OtelObservability } from '@nuxt-laravelize/observability-otel'
-import { observabilityToken } from '@nuxt-laravelize/observability/runtime'
+      code: `import { OtelObservability } from '@luckys_luis/nuxt-laravelize-observability-otel'
+import { observabilityToken } from '@luckys_luis/nuxt-laravelize-observability/runtime'
 
 const observability = new OtelObservability({
   instrumentationName: 'orders-api',
@@ -845,8 +845,8 @@ span.end()`,
     es: {
       title: 'Conecta OpenTelemetry sin aduenarse del SDK',
       text: 'El adapter consume la API de OpenTelemetry y los providers configurados por la aplicacion. No instala un SDK global ni exporters; pasa provider, propagator y hooks de flush/shutdown explicitamente cuando haga falta.',
-      code: `import { OtelObservability } from '@nuxt-laravelize/observability-otel'
-import { observabilityToken } from '@nuxt-laravelize/observability/runtime'
+      code: `import { OtelObservability } from '@luckys_luis/nuxt-laravelize-observability-otel'
+import { observabilityToken } from '@luckys_luis/nuxt-laravelize-observability/runtime'
 
 const observability = new OtelObservability({
   instrumentationName: 'orders-api',
@@ -864,7 +864,7 @@ span.end()`,
     en: {
       title: 'Instrument selected queue jobs',
       text: 'Install the bridge with explicit job and queue allowlists. It propagates `traceparent` only by default, creates consumer spans, and maps queue releases, failures, and completions to bounded metrics.',
-      code: `import { installQueueObservability } from '@nuxt-laravelize/observability-queue'
+      code: `import { installQueueObservability } from '@luckys_luis/nuxt-laravelize-observability-queue'
 
 installQueueObservability(admissionContributors, runner, observability, {
   jobs: ['billing.invoice.process.v1'],
@@ -875,7 +875,7 @@ installQueueObservability(admissionContributors, runner, observability, {
     es: {
       title: 'Instrumenta jobs seleccionados de la queue',
       text: 'Instala el bridge con allowlists explicitas de jobs y queues. Propaga solo `traceparent` por defecto, crea consumer spans y mapea releases, fallos y completados a metricas acotadas.',
-      code: `import { installQueueObservability } from '@nuxt-laravelize/observability-queue'
+      code: `import { installQueueObservability } from '@luckys_luis/nuxt-laravelize-observability-queue'
 
 installQueueObservability(admissionContributors, runner, observability, {
   jobs: ['billing.invoice.process.v1'],
@@ -888,7 +888,7 @@ installQueueObservability(admissionContributors, runner, observability, {
     en: {
       title: 'Bind a durable reliability store',
       text: 'Use the PostgreSQL, SQLite, or Turso adapter with the matching migrations. Keep business writes and `appendWith` on the same physical transaction and connection to close the dual-write gap.',
-      code: `import { DrizzlePostgresReliabilityStore } from '@nuxt-laravelize/reliability-drizzle/postgres'
+      code: `import { DrizzlePostgresReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability-drizzle/postgres'
 
 const store = new DrizzlePostgresReliabilityStore(db)
 await db.transaction(async tx => {
@@ -899,7 +899,7 @@ await db.transaction(async tx => {
     es: {
       title: 'Liga un store durable de reliability',
       text: 'Usa el adapter PostgreSQL, SQLite o Turso con sus migraciones correspondientes. Mantiene los writes de negocio y `appendWith` en la misma transaccion y conexion fisica para cerrar el dual-write gap.',
-      code: `import { DrizzlePostgresReliabilityStore } from '@nuxt-laravelize/reliability-drizzle/postgres'
+      code: `import { DrizzlePostgresReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability-drizzle/postgres'
 
 const store = new DrizzlePostgresReliabilityStore(db)
 await db.transaction(async tx => {
@@ -914,7 +914,7 @@ await db.transaction(async tx => {
       text: 'The Nuxt bridge registers `ReliableMessageJob` and reliable handlers without selecting a queue transport. Bind durable inbox/outbox stores and install BullMQ or another queue driver separately when production delivery is required.',
       code: `export default defineNuxtConfig({
   modules: [
-    '@nuxt-laravelize/reliability-queue',
+    '@luckys_luis/nuxt-laravelize-reliability-queue',
   ],
 })
 
@@ -928,7 +928,7 @@ await reliableHandlers.register('invoice.paid.v1', async message => {
       text: 'El bridge Nuxt registra `ReliableMessageJob` y handlers reliable sin elegir un transporte de queue. Liga stores Inbox/Outbox durables e instala BullMQ u otro driver por separado para entrega de produccion.',
       code: `export default defineNuxtConfig({
   modules: [
-    '@nuxt-laravelize/reliability-queue',
+    '@luckys_luis/nuxt-laravelize-reliability-queue',
   ],
 })
 
@@ -943,7 +943,7 @@ await reliableHandlers.register('invoice.paid.v1', async message => {
       title: 'Compile schedules into Nuxt-owned Nitro tasks',
       text: 'This opt-in module targets Nuxt 4 and Nitro 2. It does not replace Nitro; it compiles explicit declarations and executes them through an application-provided runtime scope. Protect generated cron endpoints with the deployment provider secret.',
       code: `export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/scheduler-nuxt'],
+  modules: ['@luckys_luis/nuxt-laravelize-scheduler-nuxt'],
   laravelizeScheduler: {
     definitions: './server/schedules.ts',
     cronSecret: process.env.CRON_SECRET,
@@ -954,7 +954,7 @@ await reliableHandlers.register('invoice.paid.v1', async message => {
       title: 'Compila schedules en tasks Nitro gestionados por Nuxt',
       text: 'Este modulo opt-in apunta a Nuxt 4 y Nitro 2. No reemplaza Nitro; compila declaraciones explicitas y las ejecuta mediante un scope runtime aportado por la aplicacion. Protege los endpoints cron generados con el secret del proveedor de deployment.',
       code: `export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/scheduler-nuxt'],
+  modules: ['@luckys_luis/nuxt-laravelize-scheduler-nuxt'],
   laravelizeScheduler: {
     definitions: './server/schedules.ts',
     cronSecret: process.env.CRON_SECRET,
@@ -966,7 +966,7 @@ await reliableHandlers.register('invoice.paid.v1', async message => {
     en: {
       title: 'Register a Drizzle search engine',
       text: 'Choose PostgreSQL, local SQLite, or Turso/libSQL and pass explicit filter and sort allowlists. Apply the matching migration before indexing; values are parameterized and unlisted fields remain unavailable.',
-      code: `import { registerDrizzlePostgresDriver } from '@nuxt-laravelize/scout-drizzle/postgres'
+      code: `import { registerDrizzlePostgresDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/postgres'
 
 registerDrizzlePostgresDriver(scout, 'postgres', db, {
   filterableFields: ['status', 'locale'],
@@ -977,7 +977,7 @@ scout.use('postgres')`,
     es: {
       title: 'Registra un motor de busqueda Drizzle',
       text: 'Elige PostgreSQL, SQLite local o Turso/libSQL y pasa allowlists explicitas de filtros y orden. Aplica la migracion correspondiente antes de indexar; los valores se parametrizan y los campos no listados permanecen inaccesibles.',
-      code: `import { registerDrizzlePostgresDriver } from '@nuxt-laravelize/scout-drizzle/postgres'
+      code: `import { registerDrizzlePostgresDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/postgres'
 
 registerDrizzlePostgresDriver(scout, 'postgres', db, {
   filterableFields: ['status', 'locale'],
@@ -990,8 +990,8 @@ scout.use('postgres')`,
     en: {
       title: 'Persist workflows with a Drizzle store',
       text: 'Use the dialect-specific store and migration, then pass it to `WorkflowManager`. Relational revision, cancellation, and lease columns are authoritative during hydration and stale workers are fenced by conditional writes.',
-      code: `import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'
-import { WorkflowManager } from '@nuxt-laravelize/workflows'
+      code: `import { DrizzlePostgresWorkflowStore } from '@luckys_luis/nuxt-laravelize-workflows-drizzle/postgres'
+import { WorkflowManager } from '@luckys_luis/nuxt-laravelize-workflows'
 
 const store = new DrizzlePostgresWorkflowStore(db)
 const workflows = new WorkflowManager(store, registry)
@@ -1000,8 +1000,8 @@ const started = await workflows.start(definition, { orderId }, 'orders:42')`,
     es: {
       title: 'Persiste workflows con un store Drizzle',
       text: 'Usa el store y migracion del dialecto correspondiente y pasalo a `WorkflowManager`. Las columnas relacionales de revision, cancelacion y lease son autoritativas al hidratar y los workers obsoletos se bloquean con writes condicionales.',
-      code: `import { DrizzlePostgresWorkflowStore } from '@nuxt-laravelize/workflows-drizzle/postgres'
-import { WorkflowManager } from '@nuxt-laravelize/workflows'
+      code: `import { DrizzlePostgresWorkflowStore } from '@luckys_luis/nuxt-laravelize-workflows-drizzle/postgres'
+import { WorkflowManager } from '@luckys_luis/nuxt-laravelize-workflows'
 
 const store = new DrizzlePostgresWorkflowStore(db)
 const workflows = new WorkflowManager(store, registry)
@@ -1013,7 +1013,7 @@ const started = await workflows.start(definition, { orderId }, 'orders:42')`,
       title: 'Schedule workflow transitions through a queue',
       text: 'Queue payloads contain only the workflow ID. The worker reloads the authoritative row and claims by revision and lease; business retry deadlines become delayed successors while transport failures use queue retries.',
       code: `export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/workflows-queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-workflows-queue'],
   laravelizeWorkflowsQueue: {
     queue: 'workflows',
     tries: 5,
@@ -1027,7 +1027,7 @@ await useWorkflows(event).start(definition, { orderId }, 'orders:42')`,
       title: 'Programa transiciones de workflows mediante una queue',
       text: 'Los payloads de queue solo contienen el ID del workflow. El worker recarga la fila autoritativa y reclama por revision y lease; los deadlines de retry de negocio se convierten en sucesores retrasados y los fallos de transporte usan retries de queue.',
       code: `export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/workflows-queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-workflows-queue'],
   laravelizeWorkflowsQueue: {
     queue: 'workflows',
     tries: 5,
@@ -1085,7 +1085,7 @@ function spanishDescriptions() {
     spanishRootReadme.split('\n').findIndex(line => line === '## Instalacion'),
   )
   for (const line of table) {
-    const match = line.match(/^\| `(@nuxt-laravelize\/[^`]+)` \| (.+) \|$/)
+    const match = line.match(/^\| `(@luckys_luis\/nuxt-laravelize(?:-[^`]+)?)` \| (.+) \|$/)
     if (match) descriptions.set(match[1], match[2])
   }
   return descriptions
@@ -1117,26 +1117,26 @@ function installCommand(directory, pkg) {
   const name = pkg.name
   if (directory === 'testing') return `pnpm add -D ${name}`
   if (directory === 'ai-sdk') return `pnpm add ${name} ai zod @ai-sdk/anthropic`
-  if (directory === 'agents-cloudflare') return `pnpm add ${name} @nuxt-laravelize/agent-sdk agents`
-  if (directory === 'agents-flue') return `pnpm add ${name} @nuxt-laravelize/agent-sdk @flue/runtime@1.0.0-beta.9 @flue/sdk@1.0.0-beta.9`
+  if (directory === 'agents-cloudflare') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-agent-sdk agents`
+  if (directory === 'agents-flue') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-agent-sdk @flue/runtime@1.0.0-beta.9 @flue/sdk@1.0.0-beta.9`
   if (directory === 'cache-redis') return `pnpm add ${name} ioredis`
-  if (directory === 'filesystem-aws-redis') return `pnpm add ${name} @nuxt-laravelize/filesystem-aws ioredis`
+  if (directory === 'filesystem-aws-redis') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-filesystem-aws ioredis`
   if (directory === 'database-drizzle') return `pnpm add ${name} drizzle-orm`
-  if (directory === 'audit-drizzle') return `pnpm add ${name} @nuxt-laravelize/audit drizzle-orm`
-  if (directory === 'idempotency-drizzle') return `pnpm add ${name} @nuxt-laravelize/idempotency drizzle-orm`
-  if (directory === 'reliability-drizzle') return `pnpm add ${name} @nuxt-laravelize/reliability drizzle-orm`
-  if (directory === 'notifications-database-drizzle') return `pnpm add ${name} @nuxt-laravelize/notifications-database drizzle-orm`
-  if (directory === 'scout-drizzle') return `pnpm add ${name} @nuxt-laravelize/scout drizzle-orm`
-  if (directory === 'workflows-drizzle') return `pnpm add ${name} @nuxt-laravelize/workflows drizzle-orm`
-  if (directory === 'migrations-drizzle') return `pnpm add ${name} @nuxt-laravelize/migrations drizzle-orm`
-  if (directory === 'database-queue') return `pnpm add ${name} @nuxt-laravelize/database @nuxt-laravelize/queue`
-  if (directory === 'broadcasting-pusher') return `pnpm add ${name} @nuxt-laravelize/broadcasting`
-  if (directory === 'queue-bullmq') return `pnpm add ${name} @nuxt-laravelize/queue bullmq ioredis`
-  if (directory === 'workflows-reliability') return `pnpm add ${name} @nuxt-laravelize/workflows @nuxt-laravelize/reliability @nuxt-laravelize/database`
-  if (directory === 'workflows-queue') return `pnpm add ${name} @nuxt-laravelize/workflows @nuxt-laravelize/queue`
-  if (directory === 'reliability-queue') return `pnpm add ${name} @nuxt-laravelize/reliability @nuxt-laravelize/queue`
-  if (directory === 'notifications-queue') return `pnpm add ${name} @nuxt-laravelize/notifications @nuxt-laravelize/queue @nuxt-laravelize/reliability`
-  if (directory === 'notifications-webhook') return `pnpm add ${name} @nuxt-laravelize/notifications @nuxt-laravelize/reliability @nuxt-laravelize/webhooks`
+  if (directory === 'audit-drizzle') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-audit drizzle-orm`
+  if (directory === 'idempotency-drizzle') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-idempotency drizzle-orm`
+  if (directory === 'reliability-drizzle') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-reliability drizzle-orm`
+  if (directory === 'notifications-database-drizzle') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-notifications-database drizzle-orm`
+  if (directory === 'scout-drizzle') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-scout drizzle-orm`
+  if (directory === 'workflows-drizzle') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-workflows drizzle-orm`
+  if (directory === 'migrations-drizzle') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-migrations drizzle-orm`
+  if (directory === 'database-queue') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-database @luckys_luis/nuxt-laravelize-queue`
+  if (directory === 'broadcasting-pusher') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-broadcasting`
+  if (directory === 'queue-bullmq') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-queue bullmq ioredis`
+  if (directory === 'workflows-reliability') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-workflows @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-database`
+  if (directory === 'workflows-queue') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-workflows @luckys_luis/nuxt-laravelize-queue`
+  if (directory === 'reliability-queue') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-queue`
+  if (directory === 'notifications-queue') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-notifications @luckys_luis/nuxt-laravelize-queue @luckys_luis/nuxt-laravelize-reliability`
+  if (directory === 'notifications-webhook') return `pnpm add ${name} @luckys_luis/nuxt-laravelize-notifications @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-webhooks`
   return `pnpm add ${name}`
 }
 
@@ -1158,7 +1158,7 @@ function entrypointTable(pkg, spanish) {
 function related(directory, spanish) {
   const values = relatedByPackage[directory] ?? []
   if (!values.length) return ''
-  const links = values.map(value => `[\`@nuxt-laravelize/${value}\`](../${value}/README${spanish ? '.es' : ''}.md)`).join(', ')
+  const links = values.map(value => `[\`${value === 'nuxt' ? '@luckys_luis/nuxt-laravelize' : `@luckys_luis/nuxt-laravelize-${value}`}\`](../${value}/README${spanish ? '.es' : ''}.md)`).join(', ')
   return spanish ? `## Paquetes relacionados\n\n${links}.` : `## Related packages\n\n${links}.`
 }
 

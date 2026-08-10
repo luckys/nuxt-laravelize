@@ -1,7 +1,7 @@
-import { Authorization, authorizationRegistryToken, authorizationToken, principalResolverToken, resolveTrustedQueueContext, type PrincipalResolver, type TrustedQueuePrincipalResolution } from '@nuxt-laravelize/authorization/runtime'
-import type { Container } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken, type Actor, type ExecutionContextSnapshot } from '@nuxt-laravelize/execution-context/runtime'
-import { NonRetryableJobError, readJobDispatchIdentity, type JobAdmissionContextV1, type JobAdmissionMetadataContributorRegistry, type JobDispatchIdentityV1, type JobRunner, type SerializedJob } from '@nuxt-laravelize/queue/runtime'
+import { Authorization, authorizationRegistryToken, authorizationToken, principalResolverToken, resolveTrustedQueueContext, type PrincipalResolver, type TrustedQueuePrincipalResolution } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
+import type { Container } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken, type Actor, type ExecutionContextSnapshot } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { NonRetryableJobError, readJobDispatchIdentity, type JobAdmissionContextV1, type JobAdmissionMetadataContributorRegistry, type JobDispatchIdentityV1, type JobRunner, type SerializedJob } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 export const QUEUE_DELEGATION_METADATA_KEY = 'laravelize.authorization.queue-delegation.v1'
 export const MAX_QUEUE_DELEGATION_CREDENTIAL_LENGTH = 8_192

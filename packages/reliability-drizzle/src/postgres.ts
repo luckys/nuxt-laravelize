@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import type { ClaimOptions, StoredMessage } from '@nuxt-laravelize/reliability'
+import type { ClaimOptions, StoredMessage } from '@luckys_luis/nuxt-laravelize-reliability'
 import { DrizzleReliabilityStore } from './base.js'
 
 export class DrizzlePostgresReliabilityStore extends DrizzleReliabilityStore {

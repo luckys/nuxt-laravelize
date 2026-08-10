@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/workflows",
+  "name": "@luckys_luis/nuxt-laravelize-workflows",
   "version": "0.1.0",
   "description": "Portable persisted linear workflows and sagas",
   "license": "MIT",

@@ -1,4 +1,4 @@
-import { atomicFixedWindowCacheCapabilities, atomicFixedWindowCacheCapability, distributedCacheCapability, distributedOwnerAtomicCacheCapabilities, type AtomicFixedWindowCache, type CacheTtl, type DistributedCache, type FixedWindowState } from '@nuxt-laravelize/cache/runtime'
+import { atomicFixedWindowCacheCapabilities, atomicFixedWindowCacheCapability, distributedCacheCapability, distributedOwnerAtomicCacheCapabilities, type AtomicFixedWindowCache, type CacheTtl, type DistributedCache, type FixedWindowState } from '@luckys_luis/nuxt-laravelize-cache/runtime'
 import { CacheCorruptionError, defaultCacheSerializer, type JsonCacheValue, numericPayloadPrefix } from './JsonCacheSerializer'
 
 /* eslint-disable @stylistic/max-statements-per-line -- compact command adapter methods keep Redis operations auditable */

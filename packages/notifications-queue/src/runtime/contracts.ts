@@ -1,5 +1,5 @@
-import type { Notifiable, Notification } from '@nuxt-laravelize/notifications/runtime'
-import type { InboxStore, JsonValue } from '@nuxt-laravelize/reliability'
+import type { Notifiable, Notification } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
+import type { InboxStore, JsonValue } from '@luckys_luis/nuxt-laravelize-reliability'
 
 export interface NotificationCodec<T extends Notification = Notification> {
   readonly type: string

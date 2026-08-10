@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Notification, type NotificationDeliveryContext, type Notifiable } from '@nuxt-laravelize/notifications/runtime'
+import { Notification, type NotificationDeliveryContext, type Notifiable } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 import { MailNotificationChannel, type MailNotificationContent } from '../src/runtime/index'
 
 class WelcomeNotification extends Notification {

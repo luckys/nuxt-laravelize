@@ -1,4 +1,4 @@
-import type { Listener } from '@nuxt-laravelize/events/runtime'
+import type { Listener } from '@luckys_luis/nuxt-laravelize-events/runtime'
 import type { BroadcastingManager, ShouldBroadcast } from './Broadcasting'
 import { assertJsonObject } from './Broadcasting'
 

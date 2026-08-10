@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line, no-empty */
 import { context, metrics, propagation, ROOT_CONTEXT, SpanKind as OtelKind, SpanStatusCode, trace, type Context, type MeterProvider, type TextMapPropagator, type TracerProvider } from '@opentelemetry/api'
-import type { ActiveSpan, Counter, Histogram, Observability, PropagationCarrier, SpanKind, SpanOptions, UpDownCounter } from '@nuxt-laravelize/observability/runtime'
-import { sanitizeCarrier, validateAttributes, validateName } from '@nuxt-laravelize/observability/runtime'
+import type { ActiveSpan, Counter, Histogram, Observability, PropagationCarrier, SpanKind, SpanOptions, UpDownCounter } from '@luckys_luis/nuxt-laravelize-observability/runtime'
+import { sanitizeCarrier, validateAttributes, validateName } from '@luckys_luis/nuxt-laravelize-observability/runtime'
 
 export interface OtelObservabilityOptions {
   tracerProvider?: TracerProvider
@@ -30,7 +30,7 @@ export class OtelObservability implements Observability {
   #shutdownPromise?: Promise<void>
   constructor(options: OtelObservabilityOptions = {}) {
     this.#options = options
-    const name = options.instrumentationName ?? '@nuxt-laravelize/observability'
+    const name = options.instrumentationName ?? '@luckys_luis/nuxt-laravelize-observability'
     this.#tracer = (options.tracerProvider ?? trace.getTracerProvider()).getTracer(name)
     this.#meter = (options.meterProvider ?? metrics.getMeterProvider()).getMeter(name)
     this.#propagator = options.propagator ?? propagation

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { currentExecutionContextOptional, runWithExecutionContext } from '@nuxt-laravelize/execution-context/runtime/server'
-import { fakeExecutionContext } from '@nuxt-laravelize/execution-context/testing'
-import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer, jobSerializerToken } from '@nuxt-laravelize/queue/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { currentExecutionContextOptional, runWithExecutionContext } from '@luckys_luis/nuxt-laravelize-execution-context/runtime/server'
+import { fakeExecutionContext } from '@luckys_luis/nuxt-laravelize-execution-context/testing'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer, jobSerializerToken } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { EXECUTION_CONTEXT_METADATA_KEY, installExecutionContextQueuePropagation } from '../src/runtime/propagation'
 
 class ProbeJob extends Job {

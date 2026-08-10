@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/events-queue`
+# `@luckys_luis/nuxt-laravelize-events-queue`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Integracion de listeners encolados entre eventos y colas
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/events-queue
+pnpm add @luckys_luis/nuxt-laravelize-events-queue
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/events-queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-events-queue'],
 })
 ```
 
@@ -33,10 +33,10 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Listeners encolados
 
-`@nuxt-laravelize/events-queue` conecta listeners marcados con `shouldQueue: true` a una cola sin acoplar los paquetes base.
+`@luckys_luis/nuxt-laravelize-events-queue` conecta listeners marcados con `shouldQueue: true` a una cola sin acoplar los paquetes base.
 
 ```bash
-pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
+pnpm add @luckys_luis/nuxt-laravelize-events @luckys_luis/nuxt-laravelize-queue @luckys_luis/nuxt-laravelize-events-queue
 ```
 
 ```ts
@@ -65,4 +65,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/events`](../events/README.es.md), [`@nuxt-laravelize/queue`](../queue/README.es.md).
+[`@luckys_luis/nuxt-laravelize-events`](../events/README.es.md), [`@luckys_luis/nuxt-laravelize-queue`](../queue/README.es.md).

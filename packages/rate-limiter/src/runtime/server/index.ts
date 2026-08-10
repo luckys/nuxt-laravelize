@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { useContainer } from '@nuxt-laravelize/core/runtime/server'
+import { useContainer } from '@luckys_luis/nuxt-laravelize-core/runtime/server'
 
 import type { RateLimiter } from '../RateLimiter'
 import { rateLimiterToken } from '../tokens'

@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/cache",
+  "name": "@luckys_luis/nuxt-laravelize-cache",
   "version": "0.2.0",
   "description": "Portable cache contracts and in-memory driver for Nuxt Laravelize",
   "license": "MIT",
@@ -32,7 +32,7 @@
     "pack:test": "pnpm pack --pack-destination ../../.pack"
   },
   "dependencies": {
-    "@nuxt-laravelize/core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
     "@nuxt/kit": "^4.5.2"
   },
   "peerDependencies": {

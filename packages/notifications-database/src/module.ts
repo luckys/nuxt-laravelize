@@ -1,5 +1,5 @@
 import { addServerImports, createResolver, defineNuxtModule } from '@nuxt/kit'
-import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import { addLaravelizeProvider } from '@luckys_luis/nuxt-laravelize-core/kit'
 import type { NuxtModule } from 'nuxt/schema'
 
 export interface ModuleOptions {
@@ -8,8 +8,8 @@ export interface ModuleOptions {
 }
 
 const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
-  meta: { name: '@nuxt-laravelize/notifications-database', configKey: 'laravelizeNotificationsDatabase', compatibility: { nuxt: '>=4.3.0 <5' } },
-  moduleDependencies: { '@nuxt-laravelize/execution-context': {}, '@nuxt-laravelize/notifications': {} },
+  meta: { name: '@luckys_luis/nuxt-laravelize-notifications-database', configKey: 'laravelizeNotificationsDatabase', compatibility: { nuxt: '>=4.3.0 <5' } },
+  moduleDependencies: { '@luckys_luis/nuxt-laravelize-execution-context': {}, '@luckys_luis/nuxt-laravelize-notifications': {} },
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
     const configured = typeof nuxt.options.runtimeConfig.laravelizeNotificationsDatabase === 'object' ? nuxt.options.runtimeConfig.laravelizeNotificationsDatabase : {}

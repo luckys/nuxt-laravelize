@@ -1,7 +1,7 @@
-import { broadcastingManagerToken } from '@nuxt-laravelize/broadcasting/runtime'
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { notificationChannelRegistryToken } from '@nuxt-laravelize/notifications/runtime'
+import { broadcastingManagerToken } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { notificationChannelRegistryToken } from '@luckys_luis/nuxt-laravelize-notifications/runtime'
 import { BroadcastNotificationChannel } from '../BroadcastNotificationChannel'
 
 export default class NotificationsBroadcastServiceProvider implements ServiceProvider {

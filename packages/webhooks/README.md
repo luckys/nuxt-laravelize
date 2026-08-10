@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/webhooks`
+# `@luckys_luis/nuxt-laravelize-webhooks`
 
 [Espanol](./README.es.md) | English
 
@@ -7,7 +7,7 @@ Reliable signed outgoing and idempotent incoming webhooks
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/webhooks
+pnpm add @luckys_luis/nuxt-laravelize-webhooks
 ```
 
 ## Package-specific usage
@@ -25,23 +25,23 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Reliability and webhooks
 
-`@nuxt-laravelize/reliability` provides versioned JSON-safe envelopes, leased outbox processing, and inbox deduplication. The preset includes `@nuxt-laravelize/reliability-queue` so reliable handlers and `ReliableMessageJob` are registered, but deliberately binds no volatile production store. Every production application must bind durable, shared Inbox and Outbox stores; `reliability-drizzle` is optional. Webhooks remain a framework-neutral opt-in. Delivery is **at least once**: retries, lease expiry, worker crashes, and acknowledgement ambiguity (the effect committed but its acknowledgement was lost) can all repeat a message, so every handler and webhook receiver must be idempotent.
+`@luckys_luis/nuxt-laravelize-reliability` provides versioned JSON-safe envelopes, leased outbox processing, and inbox deduplication. The preset includes `@luckys_luis/nuxt-laravelize-reliability-queue` so reliable handlers and `ReliableMessageJob` are registered, but deliberately binds no volatile production store. Every production application must bind durable, shared Inbox and Outbox stores; `reliability-drizzle` is optional. Webhooks remain a framework-neutral opt-in. Delivery is **at least once**: retries, lease expiry, worker crashes, and acknowledgement ambiguity (the effect committed but its acknowledgement was lost) can all repeat a message, so every handler and webhook receiver must be idempotent.
 
-Dead-letter management is opt-in through `@nuxt-laravelize/dead-letter`; the preset installs no administrative adapter. Applications must authorize list/view/payload/error-summary/retry/discard and the stronger inbox-retry ability. Payload, error summaries, and tenant hints are opt-in and envelope identity is never authorization. Adapter capabilities fail closed when omitted. Reliability supports retry scheduling and discard; BullMQ supports immediate retry only. Inbox retry can repeat side effects. Reliability receipts are bounded operation idempotency/audit metadata, not full attempt history. Active dead evidence is retained by default. BullMQ fencing is optimistic; its adapter lists bounded snapshots of at most 1000 retained failed jobs and rejects larger sources, which require a narrower queue or retention policy. No bulk actions are provided.
+Dead-letter management is opt-in through `@luckys_luis/nuxt-laravelize-dead-letter`; the preset installs no administrative adapter. Applications must authorize list/view/payload/error-summary/retry/discard and the stronger inbox-retry ability. Payload, error summaries, and tenant hints are opt-in and envelope identity is never authorization. Adapter capabilities fail closed when omitted. Reliability supports retry scheduling and discard; BullMQ supports immediate retry only. Inbox retry can repeat side effects. Reliability receipts are bounded operation idempotency/audit metadata, not full attempt history. Active dead evidence is retained by default. BullMQ fencing is optimistic; its adapter lists bounded snapshots of at most 1000 retained failed jobs and rejects larger sources, which require a narrower queue or retention policy. No bulk actions are provided.
 
-Install `@nuxt-laravelize/dead-letter-operations` separately for the optional operations dashboard. It is disabled by default and absent from the preset. Enabling it requires at least one exact canonical `allowedOrigins` value; configure literal nonoverlapping `pagePath` and `apiPath`, register adapters from an application provider, and define the dead-letter abilities centrally. The fixed API independently authorizes every endpoint, exposes payload only through its dedicated endpoint, never exposes tenant hints, requires revision-fenced CSRF-guarded JSON mutations, and returns 503 when no adapter exists. See the package README for configuration.
+Install `@luckys_luis/nuxt-laravelize-dead-letter-operations` separately for the optional operations dashboard. It is disabled by default and absent from the preset. Enabling it requires at least one exact canonical `allowedOrigins` value; configure literal nonoverlapping `pagePath` and `apiPath`, register adapters from an application provider, and define the dead-letter abilities centrally. The fixed API independently authorizes every endpoint, exposes payload only through its dedicated endpoint, never exposes tenant hints, requires revision-fenced CSRF-guarded JSON mutations, and returns 503 when no adapter exists. See the package README for configuration.
 
 ```bash
-pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
+pnpm add @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-webhooks
 # Optional durable Drizzle adapter:
-pnpm add @nuxt-laravelize/reliability-drizzle drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-reliability-drizzle drizzle-orm
 ```
 
 The envelope execution-context snapshot is correlation provenance only. It **MUST NOT** authorize a tenant, actor, role, or resource. Re-authenticate and re-authorize against trusted current application state inside the consumer.
 
 ```ts
-import { createEnvelope } from '@nuxt-laravelize/reliability'
-import { DrizzlePostgresReliabilityStore } from '@nuxt-laravelize/reliability-drizzle/postgres'
+import { createEnvelope } from '@luckys_luis/nuxt-laravelize-reliability'
+import { DrizzlePostgresReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability-drizzle/postgres'
 
 const store = new DrizzlePostgresReliabilityStore(db)
 const envelope = createEnvelope({
@@ -71,10 +71,10 @@ pnpm exec outbox-work --once --config ./outbox-worker.config.js
 pnpm exec webhook-work --config ./webhook-worker.config.js
 ```
 
-`@nuxt-laravelize/webhooks` supplies `OutgoingWebhookProcessor`, raw-body HMAC verification, and `WebhookInboxReceiver`. Its transport is **Node-only** because it uses Node DNS, crypto, buffers, and server-side fetch. Resolve signing secrets at delivery time; only `secretId` belongs in an outbox payload. Production constructors require durable outbox/inbox stores.
+`@luckys_luis/nuxt-laravelize-webhooks` supplies `OutgoingWebhookProcessor`, raw-body HMAC verification, and `WebhookInboxReceiver`. Its transport is **Node-only** because it uses Node DNS, crypto, buffers, and server-side fetch. Resolve signing secrets at delivery time; only `secretId` belongs in an outbox payload. Production constructors require durable outbox/inbox stores.
 
 ```ts
-import { OutgoingWebhookProcessor, createWebhookEnvelope } from '@nuxt-laravelize/webhooks'
+import { OutgoingWebhookProcessor, createWebhookEnvelope } from '@luckys_luis/nuxt-laravelize-webhooks'
 
 await store.append(createWebhookEnvelope({
   url: 'https://hooks.example.com/orders',
@@ -100,4 +100,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/reliability`](../reliability/README.md), [`@nuxt-laravelize/notifications-webhook`](../notifications-webhook/README.md).
+[`@luckys_luis/nuxt-laravelize-reliability`](../reliability/README.md), [`@luckys_luis/nuxt-laravelize-notifications-webhook`](../notifications-webhook/README.md).

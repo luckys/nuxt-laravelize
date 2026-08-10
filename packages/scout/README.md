@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/scout`
+# `@luckys_luis/nuxt-laravelize-scout`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Portable full-text search contracts and builder for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/scout
+pnpm add @luckys_luis/nuxt-laravelize-scout
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/scout'],
+  modules: ['@luckys_luis/nuxt-laravelize-scout'],
 })
 ```
 
@@ -33,7 +33,7 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Scout search
 
-`@nuxt-laravelize/scout` provides portable searchable-model and engine contracts, a fluent builder, bulk import, and the server auto-import `useScout(event)`. Configure `laravelizeScout.driver` (default: `memory`). Engines are named, lazy, and cached; register adapters in an application provider before selecting them. `@nuxt-laravelize/scout-drizzle` provides PostgreSQL, local SQLite, and Turso/libSQL helpers as `/postgres`, `/sqlite`, and `/turso` subpaths.
+`@luckys_luis/nuxt-laravelize-scout` provides portable searchable-model and engine contracts, a fluent builder, bulk import, and the server auto-import `useScout(event)`. Configure `laravelizeScout.driver` (default: `memory`). Engines are named, lazy, and cached; register adapters in an application provider before selecting them. `@luckys_luis/nuxt-laravelize-scout-drizzle` provides PostgreSQL, local SQLite, and Turso/libSQL helpers as `/postgres`, `/sqlite`, and `/turso` subpaths.
 
 ```ts
 const scout = useScout(event)
@@ -51,8 +51,8 @@ scout.use('postgres')
 ```
 
 ```ts
-import { registerDrizzleSQLiteDriver } from '@nuxt-laravelize/scout-drizzle/sqlite'
-import { registerTursoDriver } from '@nuxt-laravelize/scout-drizzle/turso'
+import { registerDrizzleSQLiteDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/sqlite'
+import { registerTursoDriver } from '@luckys_luis/nuxt-laravelize-scout-drizzle/turso'
 
 // Local Drizzle SQLite database (for example drizzle-orm/better-sqlite3)
 registerDrizzleSQLiteDriver(scout, 'sqlite', sqliteDb, allowlists)
@@ -70,4 +70,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/scout-drizzle`](../scout-drizzle/README.md), [`@nuxt-laravelize/authorization`](../authorization/README.md).
+[`@luckys_luis/nuxt-laravelize-scout-drizzle`](../scout-drizzle/README.md), [`@luckys_luis/nuxt-laravelize-authorization`](../authorization/README.md).

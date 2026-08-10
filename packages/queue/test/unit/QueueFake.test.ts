@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { describe, expect, it, vi } from 'vitest'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer } from '../../src/runtime'
 import { QueueFake } from '../../src/runtime/testing'
 

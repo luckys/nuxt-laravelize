@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { readFile } from 'node:fs/promises'
 import { drizzle } from 'drizzle-orm/sqlite-proxy'
 import { describe, expect, it, vi } from 'vitest'
-import { DatabaseNotificationIdempotencyConflictError, type DatabaseNotificationRecord } from '@nuxt-laravelize/notifications-database/runtime'
+import { DatabaseNotificationIdempotencyConflictError, type DatabaseNotificationRecord } from '@luckys_luis/nuxt-laravelize-notifications-database/runtime'
 import { DrizzlePostgresDatabaseNotificationStore } from '../src/postgres'
 import { DrizzleSQLiteDatabaseNotificationStore } from '../src/sqlite'
 

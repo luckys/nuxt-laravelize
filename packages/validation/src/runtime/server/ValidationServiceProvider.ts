@@ -1,4 +1,4 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 import { Validator } from '../Validator'
 import { validatorToken } from '../tokens'

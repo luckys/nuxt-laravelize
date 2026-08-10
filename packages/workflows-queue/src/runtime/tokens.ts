@@ -1,5 +1,5 @@
-import { createToken, type Token } from '@nuxt-laravelize/core/runtime'
-import type { WorkflowManager, WorkflowRegistry, WorkflowStore } from '@nuxt-laravelize/workflows'
+import { createToken, type Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import type { WorkflowManager, WorkflowRegistry, WorkflowStore } from '@luckys_luis/nuxt-laravelize-workflows'
 import type { WorkflowCoordinator } from './WorkflowCoordinator'
 import type { ResolvedWorkflowsQueueOptions } from './options'
 

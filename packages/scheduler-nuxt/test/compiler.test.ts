@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defineSchedule } from '@nuxt-laravelize/scheduler'
+import { defineSchedule } from '@luckys_luis/nuxt-laravelize-scheduler'
 import { compileNuxtSchedule, mergeNitro2SchedulerConfig } from '../src/compiler'
 
 describe('Nuxt Nitro 2 schedule compiler', () => {

@@ -1,4 +1,4 @@
-import type { Logger } from '@nuxt-laravelize/core/runtime'
+import type { Logger } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import type { Notifiable, Notification, NotificationChannel } from './contracts'
 
 export class LogChannel implements NotificationChannel {

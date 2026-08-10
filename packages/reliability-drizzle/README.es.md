@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/reliability-drizzle`
+# `@luckys_luis/nuxt-laravelize-reliability-drizzle`
 
 [English](./README.md) | Espanol
 
@@ -7,7 +7,7 @@ Stores durables opcionales para PostgreSQL, SQLite y Turso
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/reliability-drizzle @nuxt-laravelize/reliability drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-reliability-drizzle @luckys_luis/nuxt-laravelize-reliability drizzle-orm
 ```
 
 ## Uso especifico del package
@@ -18,7 +18,7 @@ pnpm add @nuxt-laravelize/reliability-drizzle @nuxt-laravelize/reliability drizz
 Usa el adapter PostgreSQL, SQLite o Turso con sus migraciones correspondientes. Mantiene los writes de negocio y `appendWith` en la misma transaccion y conexion fisica para cerrar el dual-write gap.
 
 ```ts
-import { DrizzlePostgresReliabilityStore } from '@nuxt-laravelize/reliability-drizzle/postgres'
+import { DrizzlePostgresReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability-drizzle/postgres'
 
 const store = new DrizzlePostgresReliabilityStore(db)
 await db.transaction(async tx => {
@@ -42,23 +42,23 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Reliability y webhooks
 
-`@nuxt-laravelize/reliability` proporciona envelopes JSON-safe versionados, procesamiento outbox con leases y deduplicacion inbox. El preset incluye `@nuxt-laravelize/reliability-queue` para registrar handlers fiables y `ReliableMessageJob`, pero no liga stores volatiles en produccion. Cada aplicacion debe ligar stores Inbox y Outbox durables y compartidos; `reliability-drizzle` es opcional. Webhooks sigue siendo opt-in. La entrega es **at least once**: reintentos, expiracion del lease, crashes y ambiguedad del acknowledgement (el efecto se confirmo pero se perdio su confirmacion) pueden repetir mensajes, asi que cada handler debe ser idempotente.
+`@luckys_luis/nuxt-laravelize-reliability` proporciona envelopes JSON-safe versionados, procesamiento outbox con leases y deduplicacion inbox. El preset incluye `@luckys_luis/nuxt-laravelize-reliability-queue` para registrar handlers fiables y `ReliableMessageJob`, pero no liga stores volatiles en produccion. Cada aplicacion debe ligar stores Inbox y Outbox durables y compartidos; `reliability-drizzle` es opcional. Webhooks sigue siendo opt-in. La entrega es **at least once**: reintentos, expiracion del lease, crashes y ambiguedad del acknowledgement (el efecto se confirmo pero se perdio su confirmacion) pueden repetir mensajes, asi que cada handler debe ser idempotente.
 
-La gestion dead-letter es opt-in mediante `@nuxt-laravelize/dead-letter`; el preset no instala adaptadores administrativos. La aplicacion debe autorizar listar/ver/payload/resumen-de-error/reintentar/descartar y exigir un permiso reforzado para inbox. Payload, resumenes de error y pista de tenant son opt-in y nunca autorizan. Las capacidades omitidas del adapter se deniegan. Reliability admite reintentos programados y descarte; BullMQ solo reintento inmediato. Reintentar inbox puede repetir efectos. Los recibos son metadatos acotados de idempotencia/auditoria, no historial completo. La evidencia activa se conserva por defecto. El fencing BullMQ es optimista; su adapter lista snapshots acotados de hasta 1000 jobs fallidos retenidos y rechaza fuentes mayores, que requieren una cola o retencion mas estrecha. No hay acciones masivas.
+La gestion dead-letter es opt-in mediante `@luckys_luis/nuxt-laravelize-dead-letter`; el preset no instala adaptadores administrativos. La aplicacion debe autorizar listar/ver/payload/resumen-de-error/reintentar/descartar y exigir un permiso reforzado para inbox. Payload, resumenes de error y pista de tenant son opt-in y nunca autorizan. Las capacidades omitidas del adapter se deniegan. Reliability admite reintentos programados y descarte; BullMQ solo reintento inmediato. Reintentar inbox puede repetir efectos. Los recibos son metadatos acotados de idempotencia/auditoria, no historial completo. La evidencia activa se conserva por defecto. El fencing BullMQ es optimista; su adapter lista snapshots acotados de hasta 1000 jobs fallidos retenidos y rechaza fuentes mayores, que requieren una cola o retencion mas estrecha. No hay acciones masivas.
 
-Instala `@nuxt-laravelize/dead-letter-operations` por separado para el dashboard opcional. Esta desactivado por defecto y ausente del preset. Al activarlo debes definir al menos un `allowedOrigins` canonico exacto, paths literales no solapados, adapters desde un provider de la aplicacion y las abilities dead-letter centrales. La API fija autoriza cada endpoint, expone payload solo en su endpoint dedicado, nunca expone pistas de tenant, protege mutaciones JSON con CSRF y revision, y devuelve 503 sin adapters. Consulta el README del paquete.
+Instala `@luckys_luis/nuxt-laravelize-dead-letter-operations` por separado para el dashboard opcional. Esta desactivado por defecto y ausente del preset. Al activarlo debes definir al menos un `allowedOrigins` canonico exacto, paths literales no solapados, adapters desde un provider de la aplicacion y las abilities dead-letter centrales. La API fija autoriza cada endpoint, expone payload solo en su endpoint dedicado, nunca expone pistas de tenant, protege mutaciones JSON con CSRF y revision, y devuelve 503 sin adapters. Consulta el README del paquete.
 
 ```bash
-pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
+pnpm add @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-webhooks
 # Adapter Drizzle durable opcional:
-pnpm add @nuxt-laravelize/reliability-drizzle drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-reliability-drizzle drizzle-orm
 ```
 
 El snapshot del execution context del envelope solo es procedencia de correlacion. **NO DEBE** autorizar tenant, actor, rol ni recurso. Reautentica y reautoriza contra estado actual y confiable dentro del consumer.
 
 ```ts
-import { createEnvelope } from '@nuxt-laravelize/reliability'
-import { DrizzlePostgresReliabilityStore } from '@nuxt-laravelize/reliability-drizzle/postgres'
+import { createEnvelope } from '@luckys_luis/nuxt-laravelize-reliability'
+import { DrizzlePostgresReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability-drizzle/postgres'
 
 const store = new DrizzlePostgresReliabilityStore(db)
 const envelope = createEnvelope({
@@ -88,10 +88,10 @@ pnpm exec outbox-work --once --config ./outbox-worker.config.js
 pnpm exec webhook-work --config ./webhook-worker.config.js
 ```
 
-`@nuxt-laravelize/webhooks` ofrece `OutgoingWebhookProcessor`, verificacion HMAC del body raw y `WebhookInboxReceiver`. Su transport es **solo para Node** porque usa DNS, crypto, buffers y fetch de servidor de Node. Resuelve secrets de firma al entregar; el outbox solo guarda `secretId`. Los constructores de produccion exigen stores outbox/inbox durables.
+`@luckys_luis/nuxt-laravelize-webhooks` ofrece `OutgoingWebhookProcessor`, verificacion HMAC del body raw y `WebhookInboxReceiver`. Su transport es **solo para Node** porque usa DNS, crypto, buffers y fetch de servidor de Node. Resuelve secrets de firma al entregar; el outbox solo guarda `secretId`. Los constructores de produccion exigen stores outbox/inbox durables.
 
 ```ts
-import { OutgoingWebhookProcessor, createWebhookEnvelope } from '@nuxt-laravelize/webhooks'
+import { OutgoingWebhookProcessor, createWebhookEnvelope } from '@luckys_luis/nuxt-laravelize-webhooks'
 
 await store.append(createWebhookEnvelope({
   url: 'https://hooks.example.com/orders',
@@ -117,4 +117,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/reliability`](../reliability/README.es.md), [`@nuxt-laravelize/migrations-drizzle`](../migrations-drizzle/README.es.md).
+[`@luckys_luis/nuxt-laravelize-reliability`](../reliability/README.es.md), [`@luckys_luis/nuxt-laravelize-migrations-drizzle`](../migrations-drizzle/README.es.md).

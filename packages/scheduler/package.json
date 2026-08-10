@@ -1,5 +1,5 @@
 {
-  "name": "@nuxt-laravelize/scheduler",
+  "name": "@luckys_luis/nuxt-laravelize-scheduler",
   "version": "0.2.0",
   "description": "Laravel-like schedules compiled to Nitro 3 tasks",
   "license": "MIT",

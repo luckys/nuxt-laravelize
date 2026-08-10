@@ -1,6 +1,6 @@
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { executionContextToken } from '@nuxt-laravelize/execution-context/runtime'
-import { Authorization, AuthorizationRegistry, authorizationRegistryToken, authorizationToken, principalResolverToken } from '@nuxt-laravelize/authorization/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { executionContextToken } from '@luckys_luis/nuxt-laravelize-execution-context/runtime'
+import { Authorization, AuthorizationRegistry, authorizationRegistryToken, authorizationToken, principalResolverToken } from '@luckys_luis/nuxt-laravelize-authorization/runtime'
 
 export default class AuthorizationServiceProvider implements ServiceProvider {
   register(container: Container): void {

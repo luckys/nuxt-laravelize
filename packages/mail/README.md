@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/mail`
+# `@luckys_luis/nuxt-laravelize-mail`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Portable mailables and mail transports for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/mail
+pnpm add @luckys_luis/nuxt-laravelize-mail
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/mail'],
+  modules: ['@luckys_luis/nuxt-laravelize-mail'],
 })
 ```
 
@@ -35,14 +35,14 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Mail
 
-`@nuxt-laravelize/mail` supplies portable mailables, log and Resend-compatible transports. Nodemailer is isolated in `/node`. `useMailer(event)` is auto-imported in Nitro.
+`@luckys_luis/nuxt-laravelize-mail` supplies portable mailables, log and Resend-compatible transports. Nodemailer is isolated in `/node`. `useMailer(event)` is auto-imported in Nitro.
 
 ```bash
-pnpm add @nuxt-laravelize/mail
+pnpm add @luckys_luis/nuxt-laravelize-mail
 ```
 
 ```ts
-import { Mailable } from '@nuxt-laravelize/mail/runtime'
+import { Mailable } from '@luckys_luis/nuxt-laravelize-mail/runtime'
 
 class WelcomeMail extends Mailable {
   constructor(private readonly email: string) { super() }
@@ -74,4 +74,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/notifications`](../notifications/README.md), [`@nuxt-laravelize/notifications-mail`](../notifications-mail/README.md).
+[`@luckys_luis/nuxt-laravelize-notifications`](../notifications/README.md), [`@luckys_luis/nuxt-laravelize-notifications-mail`](../notifications-mail/README.md).

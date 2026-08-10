@@ -1,4 +1,4 @@
-import { isScheduledTaskDue, normalizeScheduledTask, type NormalizedScheduledTask, type QueueDispatchDescriptor, type ScheduledTask, type ScheduledTimestamp } from '@nuxt-laravelize/scheduler'
+import { isScheduledTaskDue, normalizeScheduledTask, type NormalizedScheduledTask, type QueueDispatchDescriptor, type ScheduledTask, type ScheduledTimestamp } from '@luckys_luis/nuxt-laravelize-scheduler'
 
 export interface SchedulerExecutionContext {
   readonly task: NormalizedScheduledTask

@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/events-queue`
+# `@luckys_luis/nuxt-laravelize-events-queue`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Queued-listener adapter joining Nuxt Laravelize events and queue
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/events-queue
+pnpm add @luckys_luis/nuxt-laravelize-events-queue
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/events-queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-events-queue'],
 })
 ```
 
@@ -33,10 +33,10 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Queued event listeners
 
-`@nuxt-laravelize/events-queue` connects listeners marked with `shouldQueue: true` to a queue without coupling the base packages.
+`@luckys_luis/nuxt-laravelize-events-queue` connects listeners marked with `shouldQueue: true` to a queue without coupling the base packages.
 
 ```bash
-pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
+pnpm add @luckys_luis/nuxt-laravelize-events @luckys_luis/nuxt-laravelize-queue @luckys_luis/nuxt-laravelize-events-queue
 ```
 
 ```ts
@@ -65,4 +65,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/events`](../events/README.md), [`@nuxt-laravelize/queue`](../queue/README.md).
+[`@luckys_luis/nuxt-laravelize-events`](../events/README.md), [`@luckys_luis/nuxt-laravelize-queue`](../queue/README.md).

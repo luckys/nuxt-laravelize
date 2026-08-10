@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/queue`
+# `@luckys_luis/nuxt-laravelize-queue`
 
 [Espanol](./README.es.md) | English
 
@@ -7,13 +7,13 @@ Portable queue contracts and in-memory driver for Nuxt Laravelize
 ## Install
 
 ```bash
-pnpm add @nuxt-laravelize/queue
+pnpm add @luckys_luis/nuxt-laravelize-queue
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/queue'],
+  modules: ['@luckys_luis/nuxt-laravelize-queue'],
 })
 ```
 
@@ -34,15 +34,15 @@ Use only these public entrypoints. Paths not listed here are internals and may c
 
 ## Queue
 
-`@nuxt-laravelize/queue` defines portable jobs and includes an in-memory queue. The Nitro auto-import `useQueue(event)` resolves the active driver.
+`@luckys_luis/nuxt-laravelize-queue` defines portable jobs and includes an in-memory queue. The Nitro auto-import `useQueue(event)` resolves the active driver.
 
 ```bash
-pnpm add @nuxt-laravelize/queue
+pnpm add @luckys_luis/nuxt-laravelize-queue
 ```
 
 ```ts
-import { createToken, type Resolver } from '@nuxt-laravelize/core/runtime'
-import { Job } from '@nuxt-laravelize/queue/runtime'
+import { createToken, type Resolver } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { Job } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 
 interface SendReportPayload extends Record<string, unknown> { reportId: string }
 interface ReportService { send(reportId: string): Promise<void> }
@@ -136,7 +136,7 @@ Bounded batches contain 1-100 flat children and select exactly one queue for the
 Cancellation is cooperative. Waiting and retried children check cancellation before effects, while an active child can resolve `queueBatchContextToken` and call `isCancellationRequested()` or `throwIfCancellationRequested()`. A confirmed cancellation control error neither retries nor invokes failed hooks or dead-letter reporting. Cancellation does not interrupt an already-running effect, roll it back or provide exactly-once execution. A final-completion race can leave `cancellationRequested: true`; terminal state remains `finished` when no child actually cancelled, otherwise `cancelled`. `InMemoryQueue` progress is process-local and volatile; `QueueFake` is testing-only and immediately marks all remaining children cancelled.
 
 ```ts
-import { QueueFake } from '@nuxt-laravelize/queue/testing'
+import { QueueFake } from '@luckys_luis/nuxt-laravelize-queue/testing'
 
 const queue = new QueueFake()
 await queue.push(new SendReport({ reportId: 'report_1' }))
@@ -151,4 +151,4 @@ The shared API and security reference lives in the [module guide](../../docs/mod
 
 ## Related packages
 
-[`@nuxt-laravelize/queue-bullmq`](../queue-bullmq/README.md), [`@nuxt-laravelize/queue-middleware`](../queue-middleware/README.md), [`@nuxt-laravelize/events-queue`](../events-queue/README.md).
+[`@luckys_luis/nuxt-laravelize-queue-bullmq`](../queue-bullmq/README.md), [`@luckys_luis/nuxt-laravelize-queue-middleware`](../queue-middleware/README.md), [`@luckys_luis/nuxt-laravelize-events-queue`](../events-queue/README.md).

@@ -1,4 +1,4 @@
-import { useContainer } from '@nuxt-laravelize/core/runtime/server'
+import { useContainer } from '@luckys_luis/nuxt-laravelize-core/runtime/server'
 
 import type { Queue } from '../Queue'
 import { queueToken } from '../tokens'

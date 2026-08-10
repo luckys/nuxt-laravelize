@@ -1,4 +1,4 @@
-# `@nuxt-laravelize/broadcasting`
+# `@luckys_luis/nuxt-laravelize-broadcasting`
 
 [English](./README.md) | Espanol
 
@@ -7,13 +7,13 @@ Broadcasting de servidor para canales publicos, privados y de presencia
 ## Instalacion
 
 ```bash
-pnpm add @nuxt-laravelize/broadcasting
+pnpm add @luckys_luis/nuxt-laravelize-broadcasting
 ```
 
 ```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt-laravelize/broadcasting'],
+  modules: ['@luckys_luis/nuxt-laravelize-broadcasting'],
 })
 ```
 
@@ -34,10 +34,10 @@ Usa solo estos entrypoints publicos. Las rutas no listadas son internals y puede
 
 ## Broadcasting
 
-`@nuxt-laravelize/broadcasting` forma parte del preset y conecta eventos `ShouldBroadcast` con canales publicos, privados o de presencia. Cada evento debe implementar `broadcastWith()` explicitamente; nunca se reflejan sus propiedades, evitando filtrar payloads por accidente. Registra autorizaciones privadas y de presencia mediante el registro `useBroadcastChannels(event)`. El preset falla cerrado por defecto; el driver acotado en memoria se habilita explicitamente solo para desarrollo o tests.
+`@luckys_luis/nuxt-laravelize-broadcasting` forma parte del preset y conecta eventos `ShouldBroadcast` con canales publicos, privados o de presencia. Cada evento debe implementar `broadcastWith()` explicitamente; nunca se reflejan sus propiedades, evitando filtrar payloads por accidente. Registra autorizaciones privadas y de presencia mediante el registro `useBroadcastChannels(event)`. El preset falla cerrado por defecto; el driver acotado en memoria se habilita explicitamente solo para desarrollo o tests.
 
 ```ts
-import { PrivateChannel } from '@nuxt-laravelize/broadcasting/runtime'
+import { PrivateChannel } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
 
 class OrderUpdated {
   constructor(readonly orderId: string, readonly internalNote: string) {}
@@ -49,7 +49,7 @@ class OrderUpdated {
 useBroadcastChannels(event).channel('orders.{orderId}', (user, { orderId }) => userCanView(user, orderId))
 ```
 
-`@nuxt-laravelize/broadcasting-pusher` es un **adapter de servidor** opt-in. Inyecta `PusherBroadcaster` mediante `broadcasterToken` y guarda las credenciales en runtime config privado. No incluye ni instala cliente WebSocket para navegador ni Laravel Echo; las suscripciones cliente se eligen y configuran por separado.
+`@luckys_luis/nuxt-laravelize-broadcasting-pusher` es un **adapter de servidor** opt-in. Inyecta `PusherBroadcaster` mediante `broadcasterToken` y guarda las credenciales en runtime config privado. No incluye ni instala cliente WebSocket para navegador ni Laravel Echo; las suscripciones cliente se eligen y configuran por separado.
 
 ## Compatibilidad y limites
 
@@ -59,4 +59,4 @@ La referencia compartida de APIs y decisiones de seguridad esta en la [guia de m
 
 ## Paquetes relacionados
 
-[`@nuxt-laravelize/broadcasting-pusher`](../broadcasting-pusher/README.es.md), [`@nuxt-laravelize/notifications-broadcast`](../notifications-broadcast/README.es.md).
+[`@luckys_luis/nuxt-laravelize-broadcasting-pusher`](../broadcasting-pusher/README.es.md), [`@luckys_luis/nuxt-laravelize-notifications-broadcast`](../notifications-broadcast/README.es.md).

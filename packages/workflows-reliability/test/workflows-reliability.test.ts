@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { TransactionManager, UnitOfWork } from '@nuxt-laravelize/database/runtime'
-import type { MessageEnvelope, OutboxAppendOptions } from '@nuxt-laravelize/reliability'
-import { InMemoryReliabilityStore } from '@nuxt-laravelize/reliability/testing'
-import { defineStep, defineWorkflow, InMemoryWorkflowStore, type WorkflowDefinitionResolver, type WorkflowSnapshot, type WorkflowStore, WorkflowManager, WorkflowRegistry, WorkflowStoreContractError } from '@nuxt-laravelize/workflows'
+import type { TransactionManager, UnitOfWork } from '@luckys_luis/nuxt-laravelize-database/runtime'
+import type { MessageEnvelope, OutboxAppendOptions } from '@luckys_luis/nuxt-laravelize-reliability'
+import { InMemoryReliabilityStore } from '@luckys_luis/nuxt-laravelize-reliability/testing'
+import { defineStep, defineWorkflow, InMemoryWorkflowStore, type WorkflowDefinitionResolver, type WorkflowSnapshot, type WorkflowStore, WorkflowManager, WorkflowRegistry, WorkflowStoreContractError } from '@luckys_luis/nuxt-laravelize-workflows'
 import { createWorkflowWakeHandler, TransactionalWorkflowStore, WorkflowWakeReconciler, WorkflowWakeReconciliationWorker, workflowWakeMessageType, type WorkflowWakeReconcileResult } from '../src/index.js'
 
 type Session = { store: InMemoryWorkflowStore }

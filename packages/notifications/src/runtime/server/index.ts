@@ -1,4 +1,4 @@
-import { useContainer } from '@nuxt-laravelize/core/runtime/server'
+import { useContainer } from '@luckys_luis/nuxt-laravelize-core/runtime/server'
 import { notificationManagerToken } from '../tokens'
 
 export function useNotifications(event: Parameters<typeof useContainer>[0]) {

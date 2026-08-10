@@ -1,4 +1,4 @@
-import type { FreshOwnership } from '@nuxt-laravelize/migrations'
+import type { FreshOwnership } from '@luckys_luis/nuxt-laravelize-migrations'
 import { assertIdentifier } from './shared.js'
 
 export interface MigrationTestNamespace {

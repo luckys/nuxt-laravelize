@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { existsSync } from 'node:fs'
 import { addComponentsDir, addServerHandler, createResolver, defineNuxtModule, extendPages } from '@nuxt/kit'
-import { addLaravelizeProvider } from '@nuxt-laravelize/core/kit'
+import { addLaravelizeProvider } from '@luckys_luis/nuxt-laravelize-core/kit'
 import { resolveOptions, type DeadLetterOperationsRuntimeOptions } from './runtime/options'
 import type { NuxtModule } from 'nuxt/schema'
 
@@ -36,9 +36,9 @@ export function assertNoPageCollision(pages: readonly PageRoute[], name: string,
 }
 
 const module: NuxtModule<ModuleOptions, ModuleOptions, false> = defineNuxtModule<ModuleOptions>({
-  meta: { name: '@nuxt-laravelize/dead-letter-operations', configKey: 'laravelizeDeadLetterOperations', compatibility: { nuxt: '>=4.3.0 <5' } },
+  meta: { name: '@luckys_luis/nuxt-laravelize-dead-letter-operations', configKey: 'laravelizeDeadLetterOperations', compatibility: { nuxt: '>=4.3.0 <5' } },
   defaults: { enabled: false, pagePath: '/operations/dead-letters', apiPath: '/api/operations/dead-letters', allowedOrigins: [], pageSize: 25, errorSummaries: false },
-  moduleDependencies: { '@nuxt-laravelize/core': {}, '@nuxt-laravelize/authorization': {} },
+  moduleDependencies: { '@luckys_luis/nuxt-laravelize-core': {}, '@luckys_luis/nuxt-laravelize-authorization': {} },
   setup(input, nuxt) {
     const options = resolveOptions(input)
     if (!options.enabled) return

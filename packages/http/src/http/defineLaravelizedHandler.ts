@@ -1,7 +1,7 @@
 import { createError, defineEventHandler, type EventHandler } from 'h3'
 
-import type { Token } from '@nuxt-laravelize/core/runtime'
-import { useContainer } from '@nuxt-laravelize/core/runtime/server'
+import type { Token } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { useContainer } from '@luckys_luis/nuxt-laravelize-core/runtime/server'
 
 import type { FormRequest } from './FormRequest'
 import { globalMiddlewareToken } from './GlobalMiddleware'

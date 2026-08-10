@@ -17,5 +17,5 @@ export default defineNitroPlugin((nitroApp) => {
 })
 
 declare module 'h3' {
-  interface H3EventContext { laravelizeContainer?: import('@nuxt-laravelize/core/runtime').Container }
+  interface H3EventContext { laravelizeContainer?: import('@luckys_luis/nuxt-laravelize-core/runtime').Container }
 }

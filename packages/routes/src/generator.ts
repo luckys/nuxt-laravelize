@@ -38,7 +38,7 @@ function isDefinition(value: RouteTree | RouteDefinition): value is RouteDefinit
   return 'method' in value && 'path' in value
 }
 
-export function renderRoutesModule(tree: RouteTree, baseURL = '', runtimeImport = '@nuxt-laravelize/routes/runtime'): string {
+export function renderRoutesModule(tree: RouteTree, baseURL = '', runtimeImport = '@luckys_luis/nuxt-laravelize-routes/runtime'): string {
   validateRouteTree(tree)
   return `import { defineRoutes } from ${JSON.stringify(runtimeImport)}\n\nexport const routes = defineRoutes(${JSON.stringify(tree, null, 2)}, { baseURL: ${JSON.stringify(baseURL)} })\nexport default routes\n`
 }

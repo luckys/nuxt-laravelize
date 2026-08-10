@@ -2,89 +2,89 @@
 
 English | [Espanol](./README.es.md)
 
-Nuxt Laravelize is a pnpm monorepo of focused `@nuxt-laravelize/*` packages for Laravel-inspired server architecture in Nuxt `>=4.3 <5`. Install the preset for the complete stack or select only the capabilities your application needs.
+Nuxt Laravelize is a pnpm monorepo of focused `@luckys_luis/nuxt-laravelize*` packages for Laravel-inspired server architecture in Nuxt `>=4.3 <5`. Install the preset for the complete stack or select only the capabilities your application needs.
 
 ## Packages
 
 | Package | Purpose |
 |---|---|
-| `@nuxt-laravelize/audit` | Secure append-only audit recording enriched by execution context |
-| `@nuxt-laravelize/authorization` | Portable centralized abilities and policies with scoped principals |
-| `@nuxt-laravelize/authorization-queue` | Opt-in per-attempt queue ability authorization with trusted principal reload |
-| `@nuxt-laravelize/audit-drizzle` | Optional PostgreSQL, SQLite, and Turso/libSQL audit stores |
-| `@nuxt-laravelize/ai-sdk` | Opt-in named AI model connections, typed agents, streaming, and testing |
-| `@nuxt-laravelize/agent-sdk` | Opt-in runtime-neutral agent invocation, dispatch, observation, and testing |
-| `@nuxt-laravelize/agents-cloudflare` | Cloudflare Agents 0.17.x adapter with native identity and API escape hatches |
-| `@nuxt-laravelize/agents-flue` | Flue beta.9 adapter for conversations, workflow runs, and opaque offsets |
-| `@nuxt-laravelize/broadcasting` | Server-side public, private, and presence channel broadcasting |
-| `@nuxt-laravelize/broadcasting-pusher` | Optional server-side Pusher Channels adapter |
-| `@nuxt-laravelize/cache` | Portable cache contract, TTL operations, atomic locks, counters, memoization, and in-memory driver |
-| `@nuxt-laravelize/cache-redis` | Optional Node-only Redis/Valkey cache adapter (not included in the preset) |
-| `@nuxt-laravelize/console` | Typed, dependency-injected commands with scoped execution and test fakes |
-| `@nuxt-laravelize/core` | Container, tokens, providers, lifecycle, and logging |
-| `@nuxt-laravelize/execution-context` | Immutable request/work identity, trusted correlation, and contextual logging |
-| `@nuxt-laravelize/execution-context-queue` | Transparent execution context propagation through queues |
-| `@nuxt-laravelize/encryption` | AES-256-GCM application encryption, purpose binding, and key rotation |
-| `@nuxt-laravelize/events` | Synchronous events and listeners |
-| `@nuxt-laravelize/filesystem` | Portable named disks, in-memory storage, and a root-confined local Node adapter |
-| `@nuxt-laravelize/filesystem-cloudflare` | Optional Cloudflare R2 binding-native filesystem adapter without the AWS SDK |
-| `@nuxt-laravelize/filesystem-aws` | Optional AWS SDK S3 filesystem adapter, also usable with R2's S3 API |
-| `@nuxt-laravelize/filesystem-aws-redis` | Shared Redis/Valkey store for restart-safe S3 upload confirmation |
-| `@nuxt-laravelize/queue` | Portable queue contracts, jobs, scoped execution, and in-memory driver |
-| `@nuxt-laravelize/queue-bullmq` | Node-only BullMQ driver and persistent worker |
-| `@nuxt-laravelize/queue-middleware` | Opt-in overlap locks, rate limits, and fixed-window exception throttling |
-| `@nuxt-laravelize/rate-limiter` | Cache-backed fixed-window rate limiting and Nitro middleware |
-| `@nuxt-laravelize/reliability` | Framework-neutral at-least-once outbox and idempotent inbox primitives |
-| `@nuxt-laravelize/reliability-drizzle` | Optional durable PostgreSQL, SQLite, and Turso reliability stores |
-| `@nuxt-laravelize/dead-letter` | Portable source-qualified dead-letter management contracts |
-| `@nuxt-laravelize/dead-letter-operations` | Optional fail-closed dead-letter operations dashboard (not in preset) |
-| `@nuxt-laravelize/reliability-queue` | Nuxt bridge from durable outbox/inbox messages to registered queue jobs |
-| `@nuxt-laravelize/routes` | Generated typed URL helpers from explicit route declarations |
-| `@nuxt-laravelize/events-queue` | Queued-listener integration between events and queues |
-| `@nuxt-laravelize/mail` | Mailables, mail manager, and transports |
-| `@nuxt-laravelize/migrations` | ORM-neutral transactional migration runner, checksums, and console commands |
-| `@nuxt-laravelize/migrations-drizzle` | PostgreSQL/SQLite backends and aggregate package migration sources |
-| `@nuxt-laravelize/notifications` | Notification channels, on-demand routing, and delivery lifecycle events |
-| `@nuxt-laravelize/notifications-broadcast` | Tenant-fenced realtime notifications through the configured broadcaster |
-| `@nuxt-laravelize/notifications-database` | Tenant-fenced persistent notifications with read/unread state |
-| `@nuxt-laravelize/notifications-database-drizzle` | Durable PostgreSQL, SQLite, and Turso database-notification stores |
-| `@nuxt-laravelize/notifications-mail` | Validated opt-in mail notification channel |
-| `@nuxt-laravelize/notifications-queue` | Versioned, recipient-reloading queued notification delivery |
-| `@nuxt-laravelize/notifications-webhook` | Durable tenant-fenced notification delivery through signed webhooks |
-| `@nuxt-laravelize/observability` | Vendor-neutral no-op foundation, safe HTTP spans, metrics, and testing fake |
-| `@nuxt-laravelize/observability-otel` | Optional OpenTelemetry API adapter; application-owned SDK/exporters |
-| `@nuxt-laravelize/observability-queue` | Optional bounded W3C queue propagation and semantic job telemetry |
-| `@nuxt-laravelize/pennant` | Scoped feature flags with lazy definitions, rich values, and portable stores |
-| `@nuxt-laravelize/scout` | Portable search contracts, named engines, fluent queries, and bulk indexing |
-| `@nuxt-laravelize/scout-drizzle` | Scout engines for PostgreSQL, SQLite, and Turso/libSQL through Drizzle-compatible clients |
-| `@nuxt-laravelize/http` | Nuxt-native HTTP client, requests, middleware, signed URLs, resources, pagination, and authorization |
-| `@nuxt-laravelize/hashing` | Versioned PBKDF2 password hashing and rehash detection |
-| `@nuxt-laravelize/database` | ORM-neutral factories and seeders |
-| `@nuxt-laravelize/database-drizzle` | Explicit async and sync Drizzle transaction manager adapters |
-| `@nuxt-laravelize/database-queue` | Explicit best-effort queue dispatch after confirmed database commit |
-| `@nuxt-laravelize/idempotency` | Lease-fenced HTTP idempotency, fingerprint conflicts, and response replay |
-| `@nuxt-laravelize/idempotency-drizzle` | Durable PostgreSQL, SQLite, and Turso idempotency stores |
-| `@nuxt-laravelize/testing` | Aggregate test harness and fakes |
-| `@nuxt-laravelize/validation` | Standard Schema validation, typed results, and error bags |
-| `@nuxt-laravelize/scheduler` | Framework-neutral schedules and an explicit Nitro 3 adapter |
-| `@nuxt-laravelize/scheduler-nuxt` | Opt-in Nuxt 4/Nitro 2 scheduler with policy-aware provider triggers |
-| `@nuxt-laravelize/webhooks` | Node-only signed outgoing and idempotent incoming webhooks |
-| `@nuxt-laravelize/workflows` | Persisted linear workflows with exact string-version resolution, format safety, recovery, and saga compensation |
-| `@nuxt-laravelize/workflows-drizzle` | Durable PostgreSQL, SQLite, and Turso workflow stores |
-| `@nuxt-laravelize/workflows-reliability` | Transactional ID-only wake-ups with exact-definition recovery preflight through the durable outbox |
-| `@nuxt-laravelize/workflows-queue` | ID-only queue scheduling with exact-definition preflight and store-driven reconciliation |
-| `@nuxt-laravelize/nuxt` | Convenience preset with `nuxt-i18n-micro` integration |
+| `@luckys_luis/nuxt-laravelize-audit` | Secure append-only audit recording enriched by execution context |
+| `@luckys_luis/nuxt-laravelize-authorization` | Portable centralized abilities and policies with scoped principals |
+| `@luckys_luis/nuxt-laravelize-authorization-queue` | Opt-in per-attempt queue ability authorization with trusted principal reload |
+| `@luckys_luis/nuxt-laravelize-audit-drizzle` | Optional PostgreSQL, SQLite, and Turso/libSQL audit stores |
+| `@luckys_luis/nuxt-laravelize-ai-sdk` | Opt-in named AI model connections, typed agents, streaming, and testing |
+| `@luckys_luis/nuxt-laravelize-agent-sdk` | Opt-in runtime-neutral agent invocation, dispatch, observation, and testing |
+| `@luckys_luis/nuxt-laravelize-agents-cloudflare` | Cloudflare Agents 0.17.x adapter with native identity and API escape hatches |
+| `@luckys_luis/nuxt-laravelize-agents-flue` | Flue beta.9 adapter for conversations, workflow runs, and opaque offsets |
+| `@luckys_luis/nuxt-laravelize-broadcasting` | Server-side public, private, and presence channel broadcasting |
+| `@luckys_luis/nuxt-laravelize-broadcasting-pusher` | Optional server-side Pusher Channels adapter |
+| `@luckys_luis/nuxt-laravelize-cache` | Portable cache contract, TTL operations, atomic locks, counters, memoization, and in-memory driver |
+| `@luckys_luis/nuxt-laravelize-cache-redis` | Optional Node-only Redis/Valkey cache adapter (not included in the preset) |
+| `@luckys_luis/nuxt-laravelize-console` | Typed, dependency-injected commands with scoped execution and test fakes |
+| `@luckys_luis/nuxt-laravelize-core` | Container, tokens, providers, lifecycle, and logging |
+| `@luckys_luis/nuxt-laravelize-execution-context` | Immutable request/work identity, trusted correlation, and contextual logging |
+| `@luckys_luis/nuxt-laravelize-execution-context-queue` | Transparent execution context propagation through queues |
+| `@luckys_luis/nuxt-laravelize-encryption` | AES-256-GCM application encryption, purpose binding, and key rotation |
+| `@luckys_luis/nuxt-laravelize-events` | Synchronous events and listeners |
+| `@luckys_luis/nuxt-laravelize-filesystem` | Portable named disks, in-memory storage, and a root-confined local Node adapter |
+| `@luckys_luis/nuxt-laravelize-filesystem-cloudflare` | Optional Cloudflare R2 binding-native filesystem adapter without the AWS SDK |
+| `@luckys_luis/nuxt-laravelize-filesystem-aws` | Optional AWS SDK S3 filesystem adapter, also usable with R2's S3 API |
+| `@luckys_luis/nuxt-laravelize-filesystem-aws-redis` | Shared Redis/Valkey store for restart-safe S3 upload confirmation |
+| `@luckys_luis/nuxt-laravelize-queue` | Portable queue contracts, jobs, scoped execution, and in-memory driver |
+| `@luckys_luis/nuxt-laravelize-queue-bullmq` | Node-only BullMQ driver and persistent worker |
+| `@luckys_luis/nuxt-laravelize-queue-middleware` | Opt-in overlap locks, rate limits, and fixed-window exception throttling |
+| `@luckys_luis/nuxt-laravelize-rate-limiter` | Cache-backed fixed-window rate limiting and Nitro middleware |
+| `@luckys_luis/nuxt-laravelize-reliability` | Framework-neutral at-least-once outbox and idempotent inbox primitives |
+| `@luckys_luis/nuxt-laravelize-reliability-drizzle` | Optional durable PostgreSQL, SQLite, and Turso reliability stores |
+| `@luckys_luis/nuxt-laravelize-dead-letter` | Portable source-qualified dead-letter management contracts |
+| `@luckys_luis/nuxt-laravelize-dead-letter-operations` | Optional fail-closed dead-letter operations dashboard (not in preset) |
+| `@luckys_luis/nuxt-laravelize-reliability-queue` | Nuxt bridge from durable outbox/inbox messages to registered queue jobs |
+| `@luckys_luis/nuxt-laravelize-routes` | Generated typed URL helpers from explicit route declarations |
+| `@luckys_luis/nuxt-laravelize-events-queue` | Queued-listener integration between events and queues |
+| `@luckys_luis/nuxt-laravelize-mail` | Mailables, mail manager, and transports |
+| `@luckys_luis/nuxt-laravelize-migrations` | ORM-neutral transactional migration runner, checksums, and console commands |
+| `@luckys_luis/nuxt-laravelize-migrations-drizzle` | PostgreSQL/SQLite backends and aggregate package migration sources |
+| `@luckys_luis/nuxt-laravelize-notifications` | Notification channels, on-demand routing, and delivery lifecycle events |
+| `@luckys_luis/nuxt-laravelize-notifications-broadcast` | Tenant-fenced realtime notifications through the configured broadcaster |
+| `@luckys_luis/nuxt-laravelize-notifications-database` | Tenant-fenced persistent notifications with read/unread state |
+| `@luckys_luis/nuxt-laravelize-notifications-database-drizzle` | Durable PostgreSQL, SQLite, and Turso database-notification stores |
+| `@luckys_luis/nuxt-laravelize-notifications-mail` | Validated opt-in mail notification channel |
+| `@luckys_luis/nuxt-laravelize-notifications-queue` | Versioned, recipient-reloading queued notification delivery |
+| `@luckys_luis/nuxt-laravelize-notifications-webhook` | Durable tenant-fenced notification delivery through signed webhooks |
+| `@luckys_luis/nuxt-laravelize-observability` | Vendor-neutral no-op foundation, safe HTTP spans, metrics, and testing fake |
+| `@luckys_luis/nuxt-laravelize-observability-otel` | Optional OpenTelemetry API adapter; application-owned SDK/exporters |
+| `@luckys_luis/nuxt-laravelize-observability-queue` | Optional bounded W3C queue propagation and semantic job telemetry |
+| `@luckys_luis/nuxt-laravelize-pennant` | Scoped feature flags with lazy definitions, rich values, and portable stores |
+| `@luckys_luis/nuxt-laravelize-scout` | Portable search contracts, named engines, fluent queries, and bulk indexing |
+| `@luckys_luis/nuxt-laravelize-scout-drizzle` | Scout engines for PostgreSQL, SQLite, and Turso/libSQL through Drizzle-compatible clients |
+| `@luckys_luis/nuxt-laravelize-http` | Nuxt-native HTTP client, requests, middleware, signed URLs, resources, pagination, and authorization |
+| `@luckys_luis/nuxt-laravelize-hashing` | Versioned PBKDF2 password hashing and rehash detection |
+| `@luckys_luis/nuxt-laravelize-database` | ORM-neutral factories and seeders |
+| `@luckys_luis/nuxt-laravelize-database-drizzle` | Explicit async and sync Drizzle transaction manager adapters |
+| `@luckys_luis/nuxt-laravelize-database-queue` | Explicit best-effort queue dispatch after confirmed database commit |
+| `@luckys_luis/nuxt-laravelize-idempotency` | Lease-fenced HTTP idempotency, fingerprint conflicts, and response replay |
+| `@luckys_luis/nuxt-laravelize-idempotency-drizzle` | Durable PostgreSQL, SQLite, and Turso idempotency stores |
+| `@luckys_luis/nuxt-laravelize-testing` | Aggregate test harness and fakes |
+| `@luckys_luis/nuxt-laravelize-validation` | Standard Schema validation, typed results, and error bags |
+| `@luckys_luis/nuxt-laravelize-scheduler` | Framework-neutral schedules and an explicit Nitro 3 adapter |
+| `@luckys_luis/nuxt-laravelize-scheduler-nuxt` | Opt-in Nuxt 4/Nitro 2 scheduler with policy-aware provider triggers |
+| `@luckys_luis/nuxt-laravelize-webhooks` | Node-only signed outgoing and idempotent incoming webhooks |
+| `@luckys_luis/nuxt-laravelize-workflows` | Persisted linear workflows with exact string-version resolution, format safety, recovery, and saga compensation |
+| `@luckys_luis/nuxt-laravelize-workflows-drizzle` | Durable PostgreSQL, SQLite, and Turso workflow stores |
+| `@luckys_luis/nuxt-laravelize-workflows-reliability` | Transactional ID-only wake-ups with exact-definition recovery preflight through the durable outbox |
+| `@luckys_luis/nuxt-laravelize-workflows-queue` | ID-only queue scheduling with exact-definition preflight and store-driven reconciliation |
+| `@luckys_luis/nuxt-laravelize` | Convenience preset with `nuxt-i18n-micro` integration |
 
 ## Installation
 
 ### Complete Nuxt preset
 
 ```bash
-pnpm add @nuxt-laravelize/nuxt
+pnpm add @luckys_luis/nuxt-laravelize
 ```
 
 ```ts
-import Laravelize from '@nuxt-laravelize/nuxt'
+import Laravelize from '@luckys_luis/nuxt-laravelize'
 
 export default defineNuxtConfig({
   modules: [Laravelize],
@@ -111,39 +111,39 @@ Generated typed routes from explicit declarations are also included in the prese
 Install and declare only the Nuxt feature modules you use:
 
 ```bash
-pnpm add @nuxt-laravelize/events @nuxt-laravelize/http
+pnpm add @luckys_luis/nuxt-laravelize-events @luckys_luis/nuxt-laravelize-http
 ```
 
 ```ts
 export default defineNuxtConfig({
   modules: [
-    '@nuxt-laravelize/events',
-    '@nuxt-laravelize/http',
+    '@luckys_luis/nuxt-laravelize-events',
+    '@luckys_luis/nuxt-laravelize-http',
   ],
 })
 ```
 
-Feature modules install and activate `@nuxt-laravelize/core` transitively. Add adapters separately when required:
+Feature modules install and activate `@luckys_luis/nuxt-laravelize-core` transitively. Add adapters separately when required:
 
 ```bash
-pnpm add @nuxt-laravelize/queue @nuxt-laravelize/queue-bullmq
-pnpm add @nuxt-laravelize/events @nuxt-laravelize/queue @nuxt-laravelize/events-queue
-pnpm add @nuxt-laravelize/scout @nuxt-laravelize/scout-drizzle drizzle-orm
-pnpm add @nuxt-laravelize/audit @nuxt-laravelize/audit-drizzle drizzle-orm
-pnpm add @nuxt-laravelize/ai-sdk ai zod @ai-sdk/anthropic
-pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/webhooks
-pnpm add @nuxt-laravelize/reliability @nuxt-laravelize/reliability-drizzle drizzle-orm
-pnpm add @nuxt-laravelize/database @nuxt-laravelize/database-drizzle drizzle-orm
-pnpm add @nuxt-laravelize/database @nuxt-laravelize/queue @nuxt-laravelize/database-queue
-pnpm add @nuxt-laravelize/idempotency
-pnpm add @nuxt-laravelize/workflows
-pnpm add @nuxt-laravelize/idempotency @nuxt-laravelize/idempotency-drizzle drizzle-orm
-pnpm add @nuxt-laravelize/workflows @nuxt-laravelize/workflows-drizzle drizzle-orm
-pnpm add @nuxt-laravelize/workflows-reliability @nuxt-laravelize/reliability @nuxt-laravelize/database
-pnpm add @nuxt-laravelize/workflows @nuxt-laravelize/workflows-queue @nuxt-laravelize/queue
-pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-cloudflare
-pnpm add @nuxt-laravelize/filesystem @nuxt-laravelize/filesystem-aws
-pnpm add -D @nuxt-laravelize/testing
+pnpm add @luckys_luis/nuxt-laravelize-queue @luckys_luis/nuxt-laravelize-queue-bullmq
+pnpm add @luckys_luis/nuxt-laravelize-events @luckys_luis/nuxt-laravelize-queue @luckys_luis/nuxt-laravelize-events-queue
+pnpm add @luckys_luis/nuxt-laravelize-scout @luckys_luis/nuxt-laravelize-scout-drizzle drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-audit @luckys_luis/nuxt-laravelize-audit-drizzle drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-ai-sdk ai zod @ai-sdk/anthropic
+pnpm add @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-webhooks
+pnpm add @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-reliability-drizzle drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-database @luckys_luis/nuxt-laravelize-database-drizzle drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-database @luckys_luis/nuxt-laravelize-queue @luckys_luis/nuxt-laravelize-database-queue
+pnpm add @luckys_luis/nuxt-laravelize-idempotency
+pnpm add @luckys_luis/nuxt-laravelize-workflows
+pnpm add @luckys_luis/nuxt-laravelize-idempotency @luckys_luis/nuxt-laravelize-idempotency-drizzle drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-workflows @luckys_luis/nuxt-laravelize-workflows-drizzle drizzle-orm
+pnpm add @luckys_luis/nuxt-laravelize-workflows-reliability @luckys_luis/nuxt-laravelize-reliability @luckys_luis/nuxt-laravelize-database
+pnpm add @luckys_luis/nuxt-laravelize-workflows @luckys_luis/nuxt-laravelize-workflows-queue @luckys_luis/nuxt-laravelize-queue
+pnpm add @luckys_luis/nuxt-laravelize-filesystem @luckys_luis/nuxt-laravelize-filesystem-cloudflare
+pnpm add @luckys_luis/nuxt-laravelize-filesystem @luckys_luis/nuxt-laravelize-filesystem-aws
+pnpm add -D @luckys_luis/nuxt-laravelize-testing
 ```
 
 ## Public Entrypoints
@@ -152,72 +152,72 @@ The package root is the Nuxt module entrypoint unless noted otherwise. Applicati
 
 | Package | Runtime and adapter entrypoints | Testing entrypoint |
 |---|---|---|
-| `@nuxt-laravelize/audit` | `/runtime`, `/runtime/server` | `/testing` |
-| `@nuxt-laravelize/audit-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
-| `@nuxt-laravelize/ai-sdk` | `/runtime`, `/runtime/server` | `/testing` |
-| `@nuxt-laravelize/agent-sdk` | `/runtime`, `/runtime/server` | `/testing` |
-| `@nuxt-laravelize/agents-cloudflare` | Package root | - |
-| `@nuxt-laravelize/agents-flue` | Package root | - |
-| `@nuxt-laravelize/database-drizzle` | Package root | - |
-| `@nuxt-laravelize/idempotency` | `/runtime` | - |
-| `@nuxt-laravelize/idempotency-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
-| `@nuxt-laravelize/workflows` | Package root | - |
-| `@nuxt-laravelize/workflows-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
-| `@nuxt-laravelize/workflows-reliability` | Package root | - |
-| `@nuxt-laravelize/workflows-queue` | `/runtime` | - |
-| `@nuxt-laravelize/cache` | `/runtime` | `/testing` |
-| `@nuxt-laravelize/cache-redis` | package root | — |
-| `@nuxt-laravelize/console` | Package root, `/node` | `/testing` |
-| `@nuxt-laravelize/core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
-| `@nuxt-laravelize/authorization-queue` | Nuxt module, `/runtime` | - |
-| `@nuxt-laravelize/execution-context` | `/runtime`, `/runtime/server` | `/testing` |
-| `@nuxt-laravelize/execution-context-queue` | `/runtime` | - |
-| `@nuxt-laravelize/encryption` | `/runtime` | - |
-| `@nuxt-laravelize/events` | `/runtime` | `/testing` |
-| `@nuxt-laravelize/filesystem` | `/runtime`, `/node` | `/testing` |
-| `@nuxt-laravelize/filesystem-cloudflare` | Package root | - |
-| `@nuxt-laravelize/filesystem-aws` | Package root | - |
-| `@nuxt-laravelize/queue` | `/runtime` | `/testing` |
-| `@nuxt-laravelize/queue-bullmq` | `/runtime` | - |
-| `@nuxt-laravelize/rate-limiter` | `/runtime` | - |
-| `@nuxt-laravelize/reliability` | Package root | `/testing` |
-| `@nuxt-laravelize/dead-letter` | Package root | `/testing` |
-| `@nuxt-laravelize/dead-letter-operations` | Nuxt module | `/runtime`, `/runtime/server` |
-| `@nuxt-laravelize/reliability-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso` | - |
-| `@nuxt-laravelize/reliability-queue` | Package root, `/runtime` | - |
-| `@nuxt-laravelize/events-queue` | `/runtime` | - |
-| `@nuxt-laravelize/mail` | `/runtime`, `/node` | `/testing` |
-| `@nuxt-laravelize/migrations` | Package root, `/console` | `/testing` |
-| `@nuxt-laravelize/migrations-drizzle` | Package root, `/postgres`, `/sqlite`, `/sources` | `/testing` |
-| `@nuxt-laravelize/notifications` | `/runtime` | `/testing` |
-| `@nuxt-laravelize/observability` | `/runtime`, `/runtime/server` | `/testing` |
-| `@nuxt-laravelize/observability-otel` | Package root, `/runtime/server` | - |
-| `@nuxt-laravelize/observability-queue` | Package root | - |
-| `@nuxt-laravelize/pennant` | `/runtime` | - |
-| `@nuxt-laravelize/scout` | `/runtime` | - |
-| `@nuxt-laravelize/scout-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
-| `@nuxt-laravelize/http` | `/runtime` | - |
-| `@nuxt-laravelize/hashing` | `/runtime` | - |
-| `@nuxt-laravelize/database` | `/runtime` | - |
-| `@nuxt-laravelize/database-queue` | Package root | - |
-| `@nuxt-laravelize/testing` | Package root | Package root |
-| `@nuxt-laravelize/validation` | `/runtime` | - |
-| `@nuxt-laravelize/scheduler` | Package root, `/nitro3` | - |
-| `@nuxt-laravelize/scheduler-nuxt` | Nuxt module, `/runtime`, `/adapters`, `/compiler`, `/cache-lock` | - |
-| `@nuxt-laravelize/webhooks` | Package root | `/testing` |
-| `@nuxt-laravelize/nuxt` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-audit` | `/runtime`, `/runtime/server` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-audit-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `@luckys_luis/nuxt-laravelize-ai-sdk` | `/runtime`, `/runtime/server` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-agent-sdk` | `/runtime`, `/runtime/server` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-agents-cloudflare` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-agents-flue` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-database-drizzle` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-idempotency` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-idempotency-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `@luckys_luis/nuxt-laravelize-workflows` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-workflows-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `@luckys_luis/nuxt-laravelize-workflows-reliability` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-workflows-queue` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-cache` | `/runtime` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-cache-redis` | package root | — |
+| `@luckys_luis/nuxt-laravelize-console` | Package root, `/node` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-core` | `/runtime`, `/runtime/server`, `/kit` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-authorization-queue` | Nuxt module, `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-execution-context` | `/runtime`, `/runtime/server` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-execution-context-queue` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-encryption` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-events` | `/runtime` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-filesystem` | `/runtime`, `/node` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-filesystem-cloudflare` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-filesystem-aws` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-queue` | `/runtime` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-queue-bullmq` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-rate-limiter` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-reliability` | Package root | `/testing` |
+| `@luckys_luis/nuxt-laravelize-dead-letter` | Package root | `/testing` |
+| `@luckys_luis/nuxt-laravelize-dead-letter-operations` | Nuxt module | `/runtime`, `/runtime/server` |
+| `@luckys_luis/nuxt-laravelize-reliability-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso` | - |
+| `@luckys_luis/nuxt-laravelize-reliability-queue` | Package root, `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-events-queue` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-mail` | `/runtime`, `/node` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-migrations` | Package root, `/console` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-migrations-drizzle` | Package root, `/postgres`, `/sqlite`, `/sources` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-notifications` | `/runtime` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-observability` | `/runtime`, `/runtime/server` | `/testing` |
+| `@luckys_luis/nuxt-laravelize-observability-otel` | Package root, `/runtime/server` | - |
+| `@luckys_luis/nuxt-laravelize-observability-queue` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-pennant` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-scout` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-scout-drizzle` | Package root, `/postgres`, `/sqlite`, `/turso`, `/schema`, `/sqlite-schema` | - |
+| `@luckys_luis/nuxt-laravelize-http` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-hashing` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-database` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-database-queue` | Package root | - |
+| `@luckys_luis/nuxt-laravelize-testing` | Package root | Package root |
+| `@luckys_luis/nuxt-laravelize-validation` | `/runtime` | - |
+| `@luckys_luis/nuxt-laravelize-scheduler` | Package root, `/nitro3` | - |
+| `@luckys_luis/nuxt-laravelize-scheduler-nuxt` | Nuxt module, `/runtime`, `/adapters`, `/compiler`, `/cache-lock` | - |
+| `@luckys_luis/nuxt-laravelize-webhooks` | Package root | `/testing` |
+| `@luckys_luis/nuxt-laravelize` | Package root | - |
 
 Examples:
 
 ```ts
-import { createToken } from '@nuxt-laravelize/core/runtime'
-import { mountLaravelize } from '@nuxt-laravelize/testing'
-import { NodemailerMailer } from '@nuxt-laravelize/mail/node'
+import { createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { mountLaravelize } from '@luckys_luis/nuxt-laravelize-testing'
+import { NodemailerMailer } from '@luckys_luis/nuxt-laravelize-mail/node'
 ```
 
 ## Scheduler Boundary
 
-`@nuxt-laravelize/scheduler` is framework-neutral and is not part of `@nuxt-laravelize/nuxt`. Use the opt-in `@nuxt-laravelize/scheduler-nuxt` module for Nuxt 4; it compiles explicit declarations into Nuxt-owned Nitro 2 tasks without replacing Nitro. Generated wrappers execute maintenance, overlap, one-server, queue, and lifecycle policies through an application-provided runtime scope. Redis/Valkey locks are available through `/cache-lock`.
+`@luckys_luis/nuxt-laravelize-scheduler` is framework-neutral and is not part of `@luckys_luis/nuxt-laravelize`. Use the opt-in `@luckys_luis/nuxt-laravelize-scheduler-nuxt` module for Nuxt 4; it compiles explicit declarations into Nuxt-owned Nitro 2 tasks without replacing Nitro. Generated wrappers execute maintenance, overlap, one-server, queue, and lifecycle policies through an application-provided runtime scope. Redis/Valkey locks are available through `/cache-lock`.
 
 The separate `/nitro3` adapter targets exactly `nitro@3.0.260610-beta`. Do not install Nitro 3 into a Nuxt 4 application. Use `/nitro3` only in an explicit Nitro 3 application that satisfies its peer version.
 

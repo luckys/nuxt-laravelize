@@ -1,8 +1,8 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer, queueBatchChildJobId } from '@nuxt-laravelize/queue/runtime'
-import { createContainer, createToken } from '@nuxt-laravelize/core/runtime'
+import { InMemoryJobRegistry, Job, JobMetadataContributorRegistry, JobRunner, JobSerializer, queueBatchChildJobId } from '@luckys_luis/nuxt-laravelize-queue/runtime'
+import { createContainer, createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
 
 const add = vi.fn(async (_name: string, _data: unknown, _options: unknown) => ({ id: 'bull-1' }))
 const constructQueue = vi.fn()

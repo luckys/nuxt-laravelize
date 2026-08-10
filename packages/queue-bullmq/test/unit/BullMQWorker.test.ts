@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { DelayedError, UnrecoverableError, type Job as BullJob } from 'bullmq'
-import { createContainer } from '@nuxt-laravelize/core/runtime'
-import { currentQueueChainStep, InMemoryJobRegistry, Job, JobReleasedError, JobRunner, JobSerializer, nextQueueChainEnvelope, NonRetryableJobError, prepareQueueBatch, prepareQueueChain, queueBatchChildJobId, queueBatchCoordinatorJobId, queueChainJobId, type QueueBatchChildEnvelopeV1, type QueueChainEnvelopeV1 } from '@nuxt-laravelize/queue/runtime'
+import { createContainer } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { currentQueueChainStep, InMemoryJobRegistry, Job, JobReleasedError, JobRunner, JobSerializer, nextQueueChainEnvelope, NonRetryableJobError, prepareQueueBatch, prepareQueueChain, queueBatchChildJobId, queueBatchCoordinatorJobId, queueChainJobId, type QueueBatchChildEnvelopeV1, type QueueChainEnvelopeV1 } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BullMQWorker, isTerminalBullMQFailure, processBullMQJob, toBullMQJobError } from '../../src/runtime/BullMQWorker'
 import { FailureReporter } from '../../src/runtime/FailureReporter'

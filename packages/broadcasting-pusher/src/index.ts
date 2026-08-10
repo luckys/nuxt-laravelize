@@ -1,6 +1,6 @@
 import { createHmac, createHash } from 'node:crypto'
-import type { Broadcaster, BroadcastMessage } from '@nuxt-laravelize/broadcasting/runtime'
-import { validateMessage } from '@nuxt-laravelize/broadcasting/runtime'
+import type { Broadcaster, BroadcastMessage } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
+import { validateMessage } from '@luckys_luis/nuxt-laravelize-broadcasting/runtime'
 
 export interface PusherOptions { appId: string, key: string, secret: string, cluster?: string, host?: string, useTLS?: boolean }
 export type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>

@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-statements-per-line */
 import { createFlueClient, type AgentConversationObservation, type AgentPromptOptions, type FlueClient, type FlueEvent } from '@flue/sdk'
-import type { AgentDispatchReceipt, AgentInvokeResult, AgentObservation, AgentObservationEvent, AgentObserveRequest, AgentRequest, AgentRuntime, AgentRuntimeCapabilities } from '@nuxt-laravelize/agent-sdk/runtime'
+import type { AgentDispatchReceipt, AgentInvokeResult, AgentObservation, AgentObservationEvent, AgentObserveRequest, AgentRequest, AgentRuntime, AgentRuntimeCapabilities } from '@luckys_luis/nuxt-laravelize-agent-sdk/runtime'
 
 interface FlueConnectionOptions { readonly token?: string, readonly headers?: Record<string, string> }
 export type FlueAgentRuntimeOptions = ({ readonly client: FlueClient, readonly baseUrl?: never } | { readonly client?: never, readonly baseUrl: string }) & FlueConnectionOptions

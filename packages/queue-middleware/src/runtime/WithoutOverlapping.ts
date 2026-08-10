@@ -1,5 +1,5 @@
-import { CacheLock, isDistributedCache, type Cache } from '@nuxt-laravelize/cache/runtime'
-import { JobReleasedError, type JobExecutionMiddleware } from '@nuxt-laravelize/queue/runtime'
+import { CacheLock, isDistributedCache, type Cache } from '@luckys_luis/nuxt-laravelize-cache/runtime'
+import { JobReleasedError, type JobExecutionMiddleware } from '@luckys_luis/nuxt-laravelize-queue/runtime'
 import { releaseBudget, resolveMiddlewareKey, safeIdentifier, type JobMiddlewareKey } from './keys'
 
 export interface WithoutOverlappingOptions {

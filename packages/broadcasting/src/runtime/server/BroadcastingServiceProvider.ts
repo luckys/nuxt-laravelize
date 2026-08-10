@@ -1,6 +1,6 @@
 import { useRuntimeConfig } from '#imports'
-import type { Container, ServiceProvider } from '@nuxt-laravelize/core/runtime'
-import { eventListenerRegistryToken } from '@nuxt-laravelize/events/runtime'
+import type { Container, ServiceProvider } from '@luckys_luis/nuxt-laravelize-core/runtime'
+import { eventListenerRegistryToken } from '@luckys_luis/nuxt-laravelize-events/runtime'
 import { BroadcastingManager, FailClosedBroadcaster } from '../Broadcasting'
 import { ChannelRegistry } from '../ChannelRegistry'
 import { BroadcastEventListener } from '../EventBridge'

@@ -1,4 +1,4 @@
-import { createToken } from '@nuxt-laravelize/core/runtime'
+import { createToken } from '@luckys_luis/nuxt-laravelize-core/runtime'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import { argument, CommandRegistry, ConsoleInputError, defineCommand, option, parseCommandInput, type CommandHandler } from '../src/index'
 
