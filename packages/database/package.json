@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-database",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "ORM-neutral factories and seeders for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

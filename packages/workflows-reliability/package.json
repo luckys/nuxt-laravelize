@@ -1,20 +1,54 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-workflows-reliability",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Transactional workflow wake-ups through the Laravelize reliability outbox",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
-  "bin": { "workflow-wake-reconcile": "./dist/bin/workflow-wake-reconcile.mjs" },
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "workflow-wake-reconcile": "./dist/bin/workflow-wake-reconcile.mjs"
+  },
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
-  "exports": { ".": { "types": "./dist/index.d.mts", "import": "./dist/index.mjs" }, "./cli": { "types": "./dist/cli.d.mts", "import": "./dist/cli.mjs" }, "./package.json": "./package.json" },
-  "scripts": { "build": "unbuild", "typecheck": "tsc --noEmit", "test": "vitest run --exclude test/postgres.integration.test.ts", "test:postgres": "vitest run test/postgres.integration.test.ts", "prepack": "pnpm run build", "pack:test": "pnpm pack --pack-destination ../../.pack" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.mts",
+      "import": "./dist/cli.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --exclude test/postgres.integration.test.ts",
+    "test:postgres": "vitest run test/postgres.integration.test.ts",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
   "dependencies": {
     "@luckys_luis/nuxt-laravelize-database": "workspace:^",
     "@luckys_luis/nuxt-laravelize-reliability": "workspace:^",
     "@luckys_luis/nuxt-laravelize-workflows": "workspace:^"
   },
-  "devDependencies": { "@luckys_luis/nuxt-laravelize-core": "workspace:^", "@luckys_luis/nuxt-laravelize-database-drizzle": "workspace:^", "@luckys_luis/nuxt-laravelize-queue": "workspace:^", "@luckys_luis/nuxt-laravelize-reliability-drizzle": "workspace:^", "@luckys_luis/nuxt-laravelize-reliability-queue": "workspace:^", "@luckys_luis/nuxt-laravelize-workflows-drizzle": "workspace:^", "@types/node": "latest", "drizzle-orm": "^0.44.7", "postgres": "^3.4.8", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5" }
+  "devDependencies": {
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-database-drizzle": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-queue": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-reliability-drizzle": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-reliability-queue": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-workflows-drizzle": "workspace:^",
+    "@types/node": "latest",
+    "drizzle-orm": "^0.44.7",
+    "postgres": "^3.4.8",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5"
+  }
 }

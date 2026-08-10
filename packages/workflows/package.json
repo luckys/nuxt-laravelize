@@ -1,14 +1,33 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-workflows",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Portable persisted linear workflows and sagas",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
-  "exports": { ".": { "types": "./dist/index.d.mts", "import": "./dist/index.mjs" }, "./package.json": "./package.json" },
-  "scripts": { "build": "unbuild", "typecheck": "vue-tsc --noEmit", "test": "vitest run", "prepack": "pnpm run build", "pack:test": "pnpm pack --pack-destination ../../.pack" },
-  "devDependencies": { "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5", "vue-tsc": "^3.2.8" }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5",
+    "vue-tsc": "^3.2.8"
+  }
 }

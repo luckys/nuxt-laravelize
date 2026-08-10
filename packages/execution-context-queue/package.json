@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-execution-context-queue",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Execution context propagation across Laravelize queues",
   "license": "MIT",
   "type": "module",

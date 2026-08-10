@@ -1,1 +1,66 @@
-{"name":"@luckys_luis/nuxt-laravelize-idempotency-drizzle","version":"0.1.0","description":"Durable Drizzle idempotency stores for PostgreSQL, SQLite and Turso","license":"MIT","type":"module","sideEffects":false,"files":["dist","migrations"],"exports":{".":{"types":"./dist/index.d.mts","import":"./dist/index.mjs"},"./postgres":{"types":"./dist/postgres.d.mts","import":"./dist/postgres.mjs"},"./sqlite":{"types":"./dist/sqlite.d.mts","import":"./dist/sqlite.mjs"},"./turso":{"types":"./dist/turso.d.mts","import":"./dist/turso.mjs"},"./schema":{"types":"./dist/schema.d.mts","import":"./dist/schema.mjs"},"./sqlite-schema":{"types":"./dist/sqlite-schema.d.mts","import":"./dist/sqlite-schema.mjs"},"./migrations":{"types":"./dist/migrations.d.mts","import":"./dist/migrations.mjs"},"./migrations/postgres":"./migrations/0000_idempotency_postgres.sql","./migrations/sqlite":"./migrations/0001_idempotency_sqlite.sql","./package.json":"./package.json"},"scripts":{"build":"unbuild","typecheck":"tsc --noEmit","test":"vitest run","prepack":"pnpm run build","pack:test":"pnpm pack --pack-destination ../../.pack"},"dependencies":{"@luckys_luis/nuxt-laravelize-idempotency":"workspace:^","@luckys_luis/nuxt-laravelize-migrations":"workspace:^"},"peerDependencies":{"drizzle-orm":">=0.44.0"},"devDependencies":{"@types/node":"latest","drizzle-orm":"^0.44.7","typescript":"^5.9.3","unbuild":"^3.6.1","vitest":"^4.1.5"}}
+{
+  "name": "@luckys_luis/nuxt-laravelize-idempotency-drizzle",
+  "version": "0.2.0",
+  "description": "Durable Drizzle idempotency stores for PostgreSQL, SQLite and Turso",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "migrations"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./postgres": {
+      "types": "./dist/postgres.d.mts",
+      "import": "./dist/postgres.mjs"
+    },
+    "./sqlite": {
+      "types": "./dist/sqlite.d.mts",
+      "import": "./dist/sqlite.mjs"
+    },
+    "./turso": {
+      "types": "./dist/turso.d.mts",
+      "import": "./dist/turso.mjs"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.mts",
+      "import": "./dist/schema.mjs"
+    },
+    "./sqlite-schema": {
+      "types": "./dist/sqlite-schema.d.mts",
+      "import": "./dist/sqlite-schema.mjs"
+    },
+    "./migrations": {
+      "types": "./dist/migrations.d.mts",
+      "import": "./dist/migrations.mjs"
+    },
+    "./migrations/postgres": "./migrations/0000_idempotency_postgres.sql",
+    "./migrations/sqlite": "./migrations/0001_idempotency_sqlite.sql",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "dependencies": {
+    "@luckys_luis/nuxt-laravelize-idempotency": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-migrations": "workspace:^"
+  },
+  "peerDependencies": {
+    "drizzle-orm": ">=0.44.0"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "drizzle-orm": "^0.44.7",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5"
+  }
+}

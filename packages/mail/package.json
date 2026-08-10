@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-mail",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Portable mailables and mail transports for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

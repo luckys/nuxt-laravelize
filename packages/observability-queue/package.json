@@ -1,7 +1,38 @@
 {
-  "name": "@luckys_luis/nuxt-laravelize-observability-queue", "version": "0.1.0", "description": "Semantic queue tracing and metrics bridge", "license": "MIT", "type": "module", "sideEffects": false, "files": ["dist"],
-  "main": "./dist/public-runtime.mjs", "types": "./dist/public-runtime.d.mts", "exports": { ".": { "types": "./dist/public-runtime.d.mts", "import": "./dist/public-runtime.mjs" }, "./package.json": "./package.json" },
-  "scripts": { "build": "unbuild", "test": "vitest run", "typecheck": "tsc --noEmit", "prepack": "pnpm run build", "pack:test": "pnpm pack --pack-destination ../../.pack" },
-  "dependencies": { "@luckys_luis/nuxt-laravelize-core": "workspace:^", "@luckys_luis/nuxt-laravelize-execution-context": "workspace:^", "@luckys_luis/nuxt-laravelize-observability": "workspace:^", "@luckys_luis/nuxt-laravelize-queue": "workspace:^" },
-  "devDependencies": { "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5" }
+  "name": "@luckys_luis/nuxt-laravelize-observability-queue",
+  "version": "0.2.0",
+  "description": "Semantic queue tracing and metrics bridge",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/public-runtime.mjs",
+  "types": "./dist/public-runtime.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/public-runtime.d.mts",
+      "import": "./dist/public-runtime.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "dependencies": {
+    "@luckys_luis/nuxt-laravelize-core": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-execution-context": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-observability": "workspace:^",
+    "@luckys_luis/nuxt-laravelize-queue": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5"
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-observability",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vendor-neutral observability contracts and safe Nuxt request instrumentation",
   "license": "MIT",
   "type": "module",

@@ -1,11 +1,13 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-database-drizzle",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Drizzle transaction manager adapter for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",

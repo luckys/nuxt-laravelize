@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-notifications-queue",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Durable queued delivery bridge for Nuxt Laravelize notifications",
   "license": "MIT",
   "type": "module",

@@ -1,16 +1,40 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-cache-redis",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Redis and Valkey cache adapter for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
-  "exports": { ".": { "types": "./dist/index.d.mts", "import": "./dist/index.mjs" }, "./package.json": "./package.json" },
-  "scripts": { "build": "unbuild", "typecheck": "tsc --noEmit", "test": "vitest run", "test:redis": "CACHE_REDIS_REQUIRED=1 vitest run test/integration", "prepack": "pnpm run build", "pack:test": "pnpm pack --pack-destination ../../.pack" },
-  "dependencies": { "@luckys_luis/nuxt-laravelize-cache": "workspace:^" },
-  "peerDependencies": { "ioredis": ">=5 <6" },
-  "devDependencies": { "ioredis": "^5.7.0", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5" }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:redis": "CACHE_REDIS_REQUIRED=1 vitest run test/integration",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "dependencies": {
+    "@luckys_luis/nuxt-laravelize-cache": "workspace:^"
+  },
+  "peerDependencies": {
+    "ioredis": ">=5 <6"
+  },
+  "devDependencies": {
+    "ioredis": "^5.7.0",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5"
+  }
 }

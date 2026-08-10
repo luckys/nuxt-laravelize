@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Convenience preset for Nuxt Laravelize modules",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-dead-letter-operations",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Opt-in, fail-closed dead-letter operations console for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

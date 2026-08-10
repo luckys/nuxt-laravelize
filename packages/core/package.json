@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Framework-neutral container and provider lifecycle for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

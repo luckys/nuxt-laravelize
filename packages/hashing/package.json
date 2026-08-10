@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-hashing",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Portable password hashing for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

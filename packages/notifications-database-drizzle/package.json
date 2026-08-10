@@ -1,20 +1,41 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-notifications-database-drizzle",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Drizzle PostgreSQL, SQLite and Turso stores for database notifications",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist", "migrations"],
+  "files": [
+    "dist",
+    "migrations"
+  ],
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": { "types": "./dist/index.d.mts", "import": "./dist/index.mjs" },
-    "./postgres": { "types": "./dist/postgres.d.mts", "import": "./dist/postgres.mjs" },
-    "./sqlite": { "types": "./dist/sqlite.d.mts", "import": "./dist/sqlite.mjs" },
-    "./schema": { "types": "./dist/schema.d.mts", "import": "./dist/schema.mjs" },
-    "./sqlite-schema": { "types": "./dist/sqlite-schema.d.mts", "import": "./dist/sqlite-schema.mjs" },
-    "./migrations": { "types": "./dist/migrations.d.mts", "import": "./dist/migrations.mjs" },
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./postgres": {
+      "types": "./dist/postgres.d.mts",
+      "import": "./dist/postgres.mjs"
+    },
+    "./sqlite": {
+      "types": "./dist/sqlite.d.mts",
+      "import": "./dist/sqlite.mjs"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.mts",
+      "import": "./dist/schema.mjs"
+    },
+    "./sqlite-schema": {
+      "types": "./dist/sqlite-schema.d.mts",
+      "import": "./dist/sqlite-schema.mjs"
+    },
+    "./migrations": {
+      "types": "./dist/migrations.d.mts",
+      "import": "./dist/migrations.mjs"
+    },
     "./migrations/*": "./migrations/*",
     "./package.json": "./package.json"
   },
@@ -30,8 +51,14 @@
     "@luckys_luis/nuxt-laravelize-migrations": "workspace:^",
     "@luckys_luis/nuxt-laravelize-notifications-database": "workspace:^"
   },
-  "peerDependencies": { "drizzle-orm": ">=0.44.0" },
-  "peerDependenciesMeta": { "drizzle-orm": { "optional": true } },
+  "peerDependencies": {
+    "drizzle-orm": ">=0.44.0"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-orm": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "26.1.1",
     "drizzle-orm": "^0.44.7",

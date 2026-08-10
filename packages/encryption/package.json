@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-encryption",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Authenticated application encryption with key rotation for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

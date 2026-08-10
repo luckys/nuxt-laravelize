@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-http",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Nuxt-native HTTP client and Laravel-like server architecture for Nuxt",
   "license": "MIT",
   "type": "module",

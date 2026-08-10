@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-broadcasting",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Server-side Laravel-style broadcasting for Nuxt",
   "license": "MIT",
   "type": "module",

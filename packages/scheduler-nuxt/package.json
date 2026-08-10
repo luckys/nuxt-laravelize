@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-scheduler-nuxt",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Opt-in Nuxt 4 and Nitro 2 scheduler integration",
   "license": "MIT",
   "type": "module",

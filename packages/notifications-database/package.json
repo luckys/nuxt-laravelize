@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-notifications-database",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Persistent read and unread notification channel for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

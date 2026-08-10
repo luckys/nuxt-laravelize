@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-agent-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Runtime-neutral agent API for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

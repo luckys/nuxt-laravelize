@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-notifications-broadcast",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tenant-fenced realtime broadcast channel for Nuxt Laravelize notifications",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@luckys_luis/nuxt-laravelize-rate-limiter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Cache-backed rate limiting for Nuxt Laravelize",
   "license": "MIT",
   "type": "module",

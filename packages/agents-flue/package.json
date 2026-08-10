@@ -1,7 +1,41 @@
 {
-  "name": "@luckys_luis/nuxt-laravelize-agents-flue", "version": "0.1.0", "description": "Flue agent and workflow adapter for Nuxt Laravelize", "license": "MIT", "type": "module", "sideEffects": false, "engines": { "node": ">=22.19.0" }, "files": ["dist"],
-  "exports": { ".": { "types": "./dist/index.d.mts", "import": "./dist/index.mjs" }, "./package.json": "./package.json" },
-  "scripts": { "build": "unbuild", "test": "vitest run", "typecheck": "tsc --noEmit", "prepack": "pnpm run build", "pack:test": "pnpm pack --pack-destination ../../.pack" },
-  "peerDependencies": { "@luckys_luis/nuxt-laravelize-agent-sdk": "workspace:^", "@flue/runtime": "1.0.0-beta.9", "@flue/sdk": "1.0.0-beta.9" },
-  "devDependencies": { "@luckys_luis/nuxt-laravelize-agent-sdk": "workspace:^", "@flue/runtime": "1.0.0-beta.9", "@flue/sdk": "1.0.0-beta.9", "typescript": "^5.9.3", "unbuild": "^3.6.1", "vitest": "^4.1.5" }
+  "name": "@luckys_luis/nuxt-laravelize-agents-flue",
+  "version": "1.0.0",
+  "description": "Flue agent and workflow adapter for Nuxt Laravelize",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepack": "pnpm run build",
+    "pack:test": "pnpm pack --pack-destination ../../.pack"
+  },
+  "peerDependencies": {
+    "@luckys_luis/nuxt-laravelize-agent-sdk": "workspace:^",
+    "@flue/runtime": "1.0.0-beta.9",
+    "@flue/sdk": "1.0.0-beta.9"
+  },
+  "devDependencies": {
+    "@luckys_luis/nuxt-laravelize-agent-sdk": "workspace:^",
+    "@flue/runtime": "1.0.0-beta.9",
+    "@flue/sdk": "1.0.0-beta.9",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.5"
+  }
 }
